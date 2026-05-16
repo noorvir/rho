@@ -1,0 +1,36 @@
+{
+	"name": "@rho/ai",
+	"version": "0.0.0",
+	"description": "AI provider integration layer for long-running agents.",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
+	},
+	"dependencies": {
+		"@earendil-works/pi-ai": "^0.74.0"
+	},
+	"keywords": [
+		"ai",
+		"agents",
+		"llm"
+	],
+	"license": "MIT",
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}

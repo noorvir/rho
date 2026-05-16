@@ -1,0 +1,20 @@
+node_modules/
+dist/
+packages/*/dist/
+*.tsbuildinfo
+.tsbuildinfo
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+.zed/
+*.swp
+*.swo
