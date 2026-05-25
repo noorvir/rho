@@ -13,7 +13,6 @@ packages/*/dist/
 
 # OS/editor
 .DS_Store
-.vscode/
 .idea/
 .zed/
 *.swp
