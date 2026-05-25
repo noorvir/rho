@@ -52,11 +52,11 @@ private struct RootBottomBar: View {
             .controlShadow()
 
             Button(action: openChat) {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 22, weight: .semibold))
+                Image(systemName: "bubble.left")
+                    .font(.system(size: 28, weight: .medium))
                     .foregroundStyle(.primary)
-                    .frame(width: 48, height: 48)
-                    .controlSurface(cornerRadius: 10)
+                    .frame(width: 60, height: 60)
+                    .controlSurface(cornerRadius: 16)
             }
             .buttonStyle(.plain)
         }
