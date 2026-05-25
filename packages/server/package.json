@@ -1,0 +1,42 @@
+{
+	"name": "@rho/server",
+	"version": "0.0.0",
+	"description": "Local HTTP server for rho.",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"rho-server": "./dist/cli.js"
+	},
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"scripts": {
+		"build": "tsgo -b tsconfig.json",
+		"typecheck": "tsgo -b tsconfig.json --pretty false",
+		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
+	},
+	"dependencies": {
+		"@hono/node-server": "^1.14.4",
+		"@rho/ai": "0.0.0",
+		"@rho/channels": "0.0.0",
+		"hono": "^4.7.11"
+	},
+	"keywords": [
+		"ai",
+		"agents",
+		"server"
+	],
+	"license": "MIT",
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}

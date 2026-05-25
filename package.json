@@ -10,6 +10,7 @@
 	"scripts": {
 		"build": "tsgo -b",
 		"rho": "bun run build && bun packages/cli/dist/cli.js",
+		"server": "bun run build && bun packages/server/dist/cli.js",
 		"typecheck": "tsgo -b --pretty false",
 		"check": "biome check . && bun run typecheck",
 		"format": "biome check --write .",

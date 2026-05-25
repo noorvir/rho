@@ -7,6 +7,8 @@ import type {
 	SendReceipt,
 } from "./types.ts";
 
+export { HttpChannel, type SseStream } from "./http.ts";
+
 export type {
 	Attachment,
 	AttachmentBase,
@@ -63,6 +65,13 @@ export class ChannelRuntime {
 	async stop(): Promise<void> {
 		this.abortController.abort();
 		await Promise.all([...this.channels.values()].map((channel) => channel.stop()));
+	}
+
+	replaceChannels(channels: Channel[]): void {
+		this.channels.clear();
+		for (const channel of channels) {
+			this.channels.set(channel.name, channel);
+		}
 	}
 
 	async receive(message: InboundMessage): Promise<SendReceipt> {
@@ -128,7 +137,7 @@ export function replyTo(message: InboundMessage, text: string): OutboundMessage 
 		text,
 		replyTo: message.id,
 		attachments: [],
-		metadata: {},
+		metadata: message.metadata,
 	};
 }
 
