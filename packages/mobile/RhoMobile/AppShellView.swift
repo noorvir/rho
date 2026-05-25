@@ -1,21 +1,31 @@
 import SwiftUI
 
-struct AppShellView: View {
+struct AppShellView<Content: View>: View {
     let bottomBar: BottomBarState
+    @ViewBuilder let content: Content
 
     var body: some View {
-        Color.white
-            .ignoresSafeArea()
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                BottomBar(state: bottomBar)
-            }
+        ZStack {
+            Color.white.ignoresSafeArea()
+            content
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            BottomBar(state: bottomBar)
+        }
     }
 }
 
 #Preview("Root") {
-    AppShellView(bottomBar: .root(openChat: {}))
+    AppShellView(
+        bottomBar: .root(screen: .home, apps: InstalledApp.examples, selectScreen: { _ in }, openChat: {})
+    ) {
+        Color.white
+    }
 }
 
 #Preview("Page actions") {
-    AppShellView(bottomBar: .pageActions(openChat: {}))
+    AppShellView(bottomBar: .pageActions(openChat: {})) {
+        Color.white
+    }
 }

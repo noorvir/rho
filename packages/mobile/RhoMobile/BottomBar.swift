@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum BottomBarState {
-    case root(openChat: () -> Void)
+    case root(screen: RootScreen, apps: [InstalledApp], selectScreen: (RootScreen) -> Void, openChat: () -> Void)
     case pageActions(openChat: () -> Void)
 }
 
@@ -11,8 +11,8 @@ struct BottomBar: View {
     var body: some View {
         Group {
             switch state {
-            case .root(let openChat):
-                RootBottomBar(openChat: openChat)
+            case .root(let screen, let apps, let selectScreen, let openChat):
+                RootBottomBar(screen: screen, apps: apps, selectScreen: selectScreen, openChat: openChat)
             case .pageActions(let openChat):
                 PageActionBottomBar(openChat: openChat)
             }
@@ -36,30 +36,62 @@ struct BottomBar: View {
 }
 
 private struct RootBottomBar: View {
+    let screen: RootScreen
+    let apps: [InstalledApp]
+    let selectScreen: (RootScreen) -> Void
     let openChat: () -> Void
 
     @State private var isAppsMenuPresented = false
 
+    private var isAppsSelected: Bool {
+        if case .app = screen { return true }
+        return isAppsMenuPresented
+    }
+
     var body: some View {
-        HStack(spacing: 14) {
-            HStack(spacing: 10) {
-                RootBarItem(systemName: "house", isSelected: true)
-                Button(action: { isAppsMenuPresented.toggle() }) {
-                    RootBarItem(systemName: "rectangle.grid.2x2", isSelected: isAppsMenuPresented, hasHighlight: true)
-                }
-                .buttonStyle(.plain)
-                RootBarItem(systemName: "magnifyingglass", isSelected: false)
-                RootBarItem(systemName: "gearshape", isSelected: false)
-            }
-            .padding(6)
-            .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .controlBorder(cornerRadius: 16)
-            .controlShadow()
-            .overlay(alignment: .topLeading) {
+        HStack(alignment: .bottom, spacing: 14) {
+            VStack(spacing: 8) {
                 if isAppsMenuPresented {
-                    AppsMenuView()
-                        .offset(y: -202)
+                    AppsMenuView(apps: apps) { app in
+                        selectScreen(.app(app))
+                        isAppsMenuPresented = false
+                    }
                 }
+
+                HStack(spacing: 10) {
+                    Button(action: {
+                        isAppsMenuPresented = false
+                        selectScreen(.home)
+                    }) {
+                        RootBarItem(systemName: "house", isSelected: isHomeSelected)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: { isAppsMenuPresented.toggle() }) {
+                        RootBarItem(systemName: "rectangle.grid.2x2", isSelected: isAppsSelected, hasHighlight: true)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: {
+                        isAppsMenuPresented = false
+                        selectScreen(.search)
+                    }) {
+                        RootBarItem(systemName: "magnifyingglass", isSelected: isSearchSelected)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: {
+                        isAppsMenuPresented = false
+                        selectScreen(.settings)
+                    }) {
+                        RootBarItem(systemName: "gearshape", isSelected: isSettingsSelected)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(6)
+                .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .controlBorder(cornerRadius: 16)
+                .controlShadow()
             }
 
             Button(action: openChat) {
@@ -72,14 +104,26 @@ private struct RootBottomBar: View {
             .buttonStyle(.plain)
         }
     }
+
+    private var isHomeSelected: Bool {
+        if case .home = screen { return true }
+        return false
+    }
+
+    private var isSearchSelected: Bool {
+        if case .search = screen { return true }
+        return false
+    }
+
+    private var isSettingsSelected: Bool {
+        if case .settings = screen { return true }
+        return false
+    }
 }
 
 private struct AppsMenuView: View {
-    private let apps: [(String, Color)] = [
-        ("Linear", .blue),
-        ("GitHub", .purple),
-        ("Slack", .green),
-    ]
+    let apps: [InstalledApp]
+    let selectApp: (InstalledApp) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -103,8 +147,11 @@ private struct AppsMenuView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 3)
 
-            ForEach(apps, id: \.0) { app in
-                AppsMenuRow(title: app.0, color: app.1)
+            ForEach(apps) { app in
+                Button(action: { selectApp(app) }) {
+                    AppsMenuRow(app: app)
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(6)
@@ -116,27 +163,28 @@ private struct AppsMenuView: View {
 }
 
 private struct AppsMenuRow: View {
-    let title: String
-    let color: Color
+    let app: InstalledApp
 
     var body: some View {
         HStack(spacing: 10) {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [color.opacity(0.75), color],
+                        colors: [app.color.opacity(0.75), app.color],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
                 .frame(width: 28, height: 28)
                 .overlay {
-                    Text(String(title.prefix(1)))
+                    Text(String(app.name.prefix(1)))
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(.white)
                 }
-            Text(title)
+            Text(app.name)
                 .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 10)
@@ -236,7 +284,7 @@ private extension View {
 }
 
 #Preview("Root bar") {
-    BottomBar(state: .root(openChat: {}))
+    BottomBar(state: .root(screen: .home, apps: InstalledApp.examples, selectScreen: { _ in }, openChat: {}))
 }
 
 #Preview("Page action bar") {
