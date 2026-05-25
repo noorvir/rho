@@ -4,12 +4,12 @@ struct ContentView: View {
     @State private var isChatPresented = false
 
     var body: some View {
-        IssueDetailView(openChat: { isChatPresented = true })
+        AppShellView(bottomBar: .root(openChat: { isChatPresented = true }))
             .sheet(isPresented: $isChatPresented) {
-                LinearAgentChatView()
+                ChatSheetView()
                     .presentationDetents([.large])
                     .presentationDragIndicator(.hidden)
-                    .presentationCornerRadius(28)
+                    .presentationCornerRadius(18)
             }
             .dynamicTypeSize(.medium)
             .preferredColorScheme(.light)

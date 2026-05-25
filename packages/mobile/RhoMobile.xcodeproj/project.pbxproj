@@ -9,16 +9,18 @@
 /* Begin PBXBuildFile section */
 		A00000000000000000000001 /* RhoMobileApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* RhoMobileApp.swift */; };
 		A00000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* ContentView.swift */; };
-		A00000000000000000000003 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* ChatView.swift */; };
-		A00000000000000000000004 /* IssueDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000014 /* IssueDetailView.swift */; };
+		A00000000000000000000003 /* ChatSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* ChatSheetView.swift */; };
+		A00000000000000000000005 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* AppShellView.swift */; };
+		A00000000000000000000006 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* BottomBar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A00000000000000000000010 /* RhoMobile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RhoMobile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000011 /* RhoMobileApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhoMobileApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		A00000000000000000000013 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		A00000000000000000000014 /* IssueDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IssueDetailView.swift; sourceTree = "<group>"; };
+		A00000000000000000000013 /* ChatSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSheetView.swift; sourceTree = "<group>"; };
+		A00000000000000000000015 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
+		A00000000000000000000016 /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -45,8 +47,9 @@
 			children = (
 				A00000000000000000000011 /* RhoMobileApp.swift */,
 				A00000000000000000000012 /* ContentView.swift */,
-				A00000000000000000000013 /* ChatView.swift */,
-				A00000000000000000000014 /* IssueDetailView.swift */,
+				A00000000000000000000013 /* ChatSheetView.swift */,
+				A00000000000000000000015 /* AppShellView.swift */,
+				A00000000000000000000016 /* BottomBar.swift */,
 			);
 			path = RhoMobile;
 			sourceTree = "<group>";
@@ -129,8 +132,9 @@
 			files = (
 				A00000000000000000000001 /* RhoMobileApp.swift in Sources */,
 				A00000000000000000000002 /* ContentView.swift in Sources */,
-				A00000000000000000000003 /* ChatView.swift in Sources */,
-				A00000000000000000000004 /* IssueDetailView.swift in Sources */,
+				A00000000000000000000003 /* ChatSheetView.swift in Sources */,
+				A00000000000000000000005 /* AppShellView.swift in Sources */,
+				A00000000000000000000006 /* BottomBar.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

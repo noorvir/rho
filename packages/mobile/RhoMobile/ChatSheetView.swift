@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct LinearAgentChatView: View {
+struct ChatSheetView: View {
     @State private var draft = ""
 
     var body: some View {
@@ -71,5 +71,5 @@ private struct AgentInput: View {
 }
 
 #Preview {
-    LinearAgentChatView()
+    ChatSheetView()
 }
