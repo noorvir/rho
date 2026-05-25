@@ -24,10 +24,6 @@
 		"includes": [
 			"packages/*/src/**/*.ts",
 			"packages/*/src/**/*.tsx",
-			"packages/*/app/**/*.tsx",
-			"packages/*/components/**/*.tsx",
-			"packages/*/constants/**/*.ts",
-			"packages/*/providers/**/*.tsx",
 			"packages/*/test/**/*.ts",
 			"*.json",
 			"packages/*/*.json",

@@ -11,8 +11,7 @@
 		"build": "tsgo -b",
 		"rho": "bun run build && bun packages/cli/dist/cli.js",
 		"typecheck": "tsgo -b --pretty false",
-		"typecheck:mobile": "cd packages/mobile && bun run typecheck",
-		"check": "biome check . && bun run typecheck && bun run typecheck:mobile",
+		"check": "biome check . && bun run typecheck",
 		"format": "biome check --write .",
 		"clean": "rm -rf packages/*/dist packages/*/.tsbuildinfo packages/*/*.tsbuildinfo tsconfig.tsbuildinfo"
 	},
