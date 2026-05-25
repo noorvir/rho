@@ -1,0 +1,31 @@
+{
+	"name": "@rho/mobile",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Expo mobile shell for rho.",
+	"type": "module",
+	"main": "expo-router/entry",
+	"scripts": {
+		"dev": "expo start --go --port 8082",
+		"ios": "expo start --go --ios --port 8082",
+		"android": "expo start --go --android --port 8082",
+		"typecheck": "tsgo --noEmit -p tsconfig.json"
+	},
+	"dependencies": {
+		"@react-navigation/native": "7.1.8",
+		"expo": "54.0.33",
+		"expo-router": "6.0.23",
+		"expo-status-bar": "3.0.9",
+		"react": "19.1.0",
+		"react-native": "0.81.5",
+		"react-native-safe-area-context": "5.6.0",
+		"react-native-screens": "4.16.0"
+	},
+	"devDependencies": {
+		"@types/react": "19.1.0"
+	},
+	"license": "MIT",
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}

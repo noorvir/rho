@@ -4,6 +4,10 @@ packages/*/dist/
 *.tsbuildinfo
 .tsbuildinfo
 
+# Generated local app state
+**/.expo/
+**/.pi-lens/
+
 # Logs
 *.log
 
