@@ -38,18 +38,29 @@ struct BottomBar: View {
 private struct RootBottomBar: View {
     let openChat: () -> Void
 
+    @State private var isAppsMenuPresented = false
+
     var body: some View {
         HStack(spacing: 14) {
             HStack(spacing: 10) {
-                RootBarItem(systemName: "tray.full", isSelected: true)
-                RootBarItem(systemName: "viewfinder", isSelected: false, hasHighlight: true)
-                RootBarItem(systemName: "star", isSelected: false)
-                RootBarItem(systemName: "chevron.up.chevron.down", isSelected: false)
+                RootBarItem(systemName: "house", isSelected: true)
+                Button(action: { isAppsMenuPresented.toggle() }) {
+                    RootBarItem(systemName: "rectangle.grid.2x2", isSelected: isAppsMenuPresented, hasHighlight: true)
+                }
+                .buttonStyle(.plain)
+                RootBarItem(systemName: "magnifyingglass", isSelected: false)
+                RootBarItem(systemName: "gearshape", isSelected: false)
             }
             .padding(6)
             .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .controlBorder(cornerRadius: 16)
             .controlShadow()
+            .overlay(alignment: .topLeading) {
+                if isAppsMenuPresented {
+                    AppsMenuView()
+                        .offset(y: -202)
+                }
+            }
 
             Button(action: openChat) {
                 Image(systemName: "bubble.left")
@@ -60,6 +71,76 @@ private struct RootBottomBar: View {
             }
             .buttonStyle(.plain)
         }
+    }
+}
+
+private struct AppsMenuView: View {
+    private let apps: [(String, Color)] = [
+        ("Linear", .blue),
+        ("GitHub", .purple),
+        ("Slack", .green),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Button(action: {}) {
+                HStack(spacing: 10) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 15, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                        .background(Color.black.opacity(0.06), in: Circle())
+                    Text("Create new")
+                        .font(.system(size: 16, weight: .semibold))
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 10)
+                .frame(height: 44)
+            }
+            .buttonStyle(.plain)
+
+            Divider()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 3)
+
+            ForEach(apps, id: \.0) { app in
+                AppsMenuRow(title: app.0, color: app.1)
+            }
+        }
+        .padding(6)
+        .frame(width: 266)
+        .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .controlBorder(cornerRadius: 16)
+        .controlShadow()
+    }
+}
+
+private struct AppsMenuRow: View {
+    let title: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [color.opacity(0.75), color],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 28, height: 28)
+                .overlay {
+                    Text(String(title.prefix(1)))
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+            Text(title)
+                .font(.system(size: 16, weight: .semibold))
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .frame(height: 42)
     }
 }
 
