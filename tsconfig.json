@@ -1,4 +1,8 @@
 {
 	"files": [],
-	"references": [{ "path": "./packages/channels" }, { "path": "./packages/ai" }]
+	"references": [
+		{ "path": "./packages/channels" },
+		{ "path": "./packages/ai" },
+		{ "path": "./packages/cli" }
+	]
 }

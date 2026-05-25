@@ -6,6 +6,7 @@ A lightweight substrate for long-running AI agents, inspired by pi.
 
 - `@rho/channels` — channel primitives for long-running agents.
 - `@rho/ai` — AI provider integration layer.
+- `@rho/cli` — command-line interface.
 
 ## Development
 

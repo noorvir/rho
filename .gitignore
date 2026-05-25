@@ -18,3 +18,5 @@ packages/*/dist/
 .zed/
 *.swp
 *.swo
+
+.agent/current.md

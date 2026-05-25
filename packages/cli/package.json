@@ -1,7 +1,7 @@
 {
-	"name": "@rho/channels",
+	"name": "@rho/cli",
 	"version": "0.0.0",
-	"description": "Channel primitives for long-running agents.",
+	"description": "Command-line interface for rho.",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -12,6 +12,9 @@
 		},
 		"./package.json": "./package.json"
 	},
+	"bin": {
+		"rho": "./dist/cli.js"
+	},
 	"files": [
 		"dist",
 		"README.md"
@@ -21,10 +24,14 @@
 		"typecheck": "tsgo -b tsconfig.json --pretty false",
 		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
 	},
+	"dependencies": {
+		"@rho/ai": "0.0.0",
+		"@rho/channels": "0.0.0"
+	},
 	"keywords": [
 		"ai",
 		"agents",
-		"channels"
+		"cli"
 	],
 	"license": "MIT",
 	"engines": {

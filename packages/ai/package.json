@@ -17,8 +17,8 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "tsc -p tsconfig.json",
-		"typecheck": "tsc -p tsconfig.json --noEmit",
+		"build": "tsgo -b tsconfig.json",
+		"typecheck": "tsgo -b tsconfig.json --pretty false",
 		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
 	},
 	"dependencies": {
