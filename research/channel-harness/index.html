@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rho Channel Harness Research</title>
+  <style>
+    :root {
+      --bg: #f7f5f0;
+      --paper: #fffdf8;
+      --ink: #171512;
+      --muted: #6f6a61;
+      --line: #ded8cc;
+      --accent: #111;
+      --soft: #ece6da;
+      --green: #dcebd6;
+      --blue: #dce7f4;
+      --yellow: #f5e7b8;
+      --red: #f1d2cc;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .shell { max-width: 1180px; margin: 0 auto; padding: 28px; }
+    header { display: grid; grid-template-columns: 1.35fr .65fr; gap: 20px; align-items: stretch; margin-bottom: 18px; }
+    .hero, .card { background: var(--paper); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.05); }
+    .hero { padding: 30px; }
+    h1 { font-size: clamp(34px, 6vw, 64px); line-height: .92; margin: 0 0 20px; letter-spacing: -0.055em; }
+    h2 { font-size: 28px; letter-spacing: -0.035em; margin: 0 0 14px; }
+    h3 { font-size: 17px; margin: 0 0 9px; }
+    p { color: var(--muted); line-height: 1.5; margin: 0 0 12px; }
+    .tagline { font-size: 19px; max-width: 720px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+    .pill { border: 1px solid var(--line); background: #fff; padding: 7px 10px; border-radius: 999px; font-size: 13px; color: #39352f; }
+    .summary { padding: 22px; display: flex; flex-direction: column; justify-content: space-between; }
+    .summary strong { font-size: 42px; letter-spacing: -0.05em; display: block; }
+    .summary span { color: var(--muted); }
+
+    .grid { display: grid; gap: 14px; }
+    .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    section { margin-top: 18px; }
+    .card { padding: 20px; }
+    .tiny { font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); font-weight: 700; }
+    .system-card { min-height: 250px; display: flex; flex-direction: column; gap: 12px; }
+    .system-card ul, .recommend ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.45; }
+    .system-card li, .recommend li { margin-bottom: 6px; }
+    .badge { display: inline-block; border: 1px solid var(--line); border-radius: 8px; padding: 4px 7px; font-family: var(--mono); font-size: 12px; background: #fff; }
+    .openclaw { background: linear-gradient(180deg, #fffdf8, var(--yellow)); }
+    .hermes { background: linear-gradient(180deg, #fffdf8, var(--blue)); }
+    .zero { background: linear-gradient(180deg, #fffdf8, var(--green)); }
+    .nano { background: linear-gradient(180deg, #fffdf8, #eadff3); }
+
+    .diagram { background: #111; color: #fafafa; border-radius: 18px; padding: 22px; overflow: hidden; }
+    .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; align-items: center; margin-top: 16px; }
+    .node { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.07); border-radius: 14px; padding: 14px; min-height: 86px; }
+    .node b { display: block; margin-bottom: 6px; }
+    .node span { color: rgba(255,255,255,.72); font-size: 13px; line-height: 1.35; }
+    .arrow { text-align: center; color: rgba(255,255,255,.45); font-size: 24px; }
+    .event-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .event { font-family: var(--mono); font-size: 12px; background: #fff; border: 1px solid var(--line); border-radius: 999px; padding: 7px 9px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 12px 10px; text-align: left; vertical-align: top; }
+    th { color: #3c3832; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    td { color: var(--muted); }
+    td:first-child { color: var(--ink); font-weight: 700; }
+
+    pre { background: #15130f; color: #f7f0df; border-radius: 14px; padding: 16px; overflow: auto; font-size: 13px; line-height: 1.45; }
+    code { font-family: var(--mono); }
+    .recommend { border-left: 5px solid var(--accent); }
+    .risk { border-left: 5px solid #ad3d2c; }
+    .good { border-left: 5px solid #3c7a39; }
+    .footer { color: var(--muted); font-size: 13px; padding: 24px 0 8px; }
+
+    @media (max-width: 900px) {
+      header, .cols-4, .cols-3, .cols-2, .flow { grid-template-columns: 1fr; }
+      .arrow { display: none; }
+      .shell { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="hero">
+        <div class="tiny">rho research microsite</div>
+        <h1>Channels are adapters. Turns are the product boundary.</h1>
+        <p class="tagline">A comparative study of OpenClaw, Hermes Agent, ZeroClaw, and Nanobot: how they route chat platforms, stream output, authorize users, cancel work, and move media/voice through agent systems.</p>
+        <div class="meta">
+          <span class="pill">OpenClaw</span><span class="pill">Hermes Agent</span><span class="pill">ZeroClaw</span><span class="pill">Nanobot</span><span class="pill">Streaming</span><span class="pill">WhatsApp / Telegram</span><span class="pill">Voice / Media</span>
+        </div>
+      </div>
+      <div class="card summary">
+        <div><strong>7</strong><span>interfaces rho should care about</span></div>
+        <p>AgentRun, Pi AgentEvent, AgentRunRegistry, MediaStore, AuthPolicy, ChannelFactory.</p>
+      </div>
+    </header>
+
+    <section class="grid cols-4">
+      <div class="card system-card openclaw">
+        <span class="badge">OpenClaw</span>
+        <h3>Full gateway + harness boundary</h3>
+        <ul>
+          <li>Host prepares turns before harness execution.</li>
+          <li>Live previews/finalization are platform-aware.</li>
+          <li>Strong media/voice/plugin surfaces.</li>
+        </ul>
+      </div>
+      <div class="card system-card hermes">
+        <span class="badge">Hermes</span>
+        <h3>Gateway stream consumer</h3>
+        <ul>
+          <li>Sync token callbacks bridge into async adapters.</li>
+          <li>Allowlists and DM pairing gate sessions.</li>
+          <li>Voice is adapter capability.</li>
+        </ul>
+      </div>
+      <div class="card system-card zero">
+        <span class="badge">ZeroClaw</span>
+        <h3>Trait-based channel runtime</h3>
+        <ul>
+          <li>Draft lifecycle is the streaming interface.</li>
+          <li>Explicit cancel/finalize hooks.</li>
+          <li>Media markers normalized centrally.</li>
+        </ul>
+      </div>
+      <div class="card system-card nano">
+        <span class="badge">Nanobot</span>
+        <h3>Small bus + adapters</h3>
+        <ul>
+          <li>Minimal Inbound/Outbound message bus.</li>
+          <li>Stream deltas are metadata.</li>
+          <li>WhatsApp lives behind hardened local bridge.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="diagram">
+      <div class="tiny" style="color: rgba(255,255,255,.55)">recommended rho flow</div>
+      <h2>Every platform becomes a prepared turn</h2>
+      <div class="flow">
+        <div class="node"><b>Platform</b><span>HTTP, mobile, Telegram, WhatsApp, webhooks, CLI</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>Channel adapter</b><span>auth, allowlist, IDs, attachments, native quirks</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>AgentRun</b><span>runId, session key, media handles, AbortSignal</span></div>
+      </div>
+      <div class="flow" style="grid-template-columns: repeat(5, 1fr); margin-top: 10px">
+        <div class="node"><b>Agent/harness</b><span>reasoning, tools, provider/native runtime</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>Pi AgentEvent</b><span>message_update, tool events, turn boundaries, agent_end</span></div>
+        <div class="arrow">→</div>
+        <div class="node"><b>Native render</b><span>SSE, edit draft, final message, TTS, media upload</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Convergence matrix</h2>
+      <table>
+        <thead><tr><th>Concern</th><th>What others do</th><th>Rho stance</th></tr></thead>
+        <tbody>
+          <tr><td>Streaming</td><td>OpenClaw live previews, Hermes stream consumer, ZeroClaw drafts, Nanobot delta metadata.</td><td>Reuse Pi `AgentEvent`s internally; channels decide how to render.</td></tr>
+          <tr><td>Auth</td><td>Separate platform credentials from user allowlists/pairing and admin command tiers.</td><td>Three layers: connector auth, user authorization, capability authorization.</td></tr>
+          <tr><td>Cancel</td><td>Abort controllers/tokens, `/stop`, session cancel, disconnect reasons.</td><td>AgentRunRegistry owns AbortSignal and cancellation reason before ack.</td></tr>
+          <tr><td>Media</td><td>Claim-check stores or local path markers; safe roots and MIME checks.</td><td>Typed content parts backed by a media store; markers only at provider/channel edges.</td></tr>
+          <tr><td>Voice</td><td>Either media+transcript or separate realtime audio stream sessions.</td><td>Start as audio attachment/transcript; realtime voice gets its own session API later.</td></tr>
+          <tr><td>Extensibility</td><td>Plugins/factories/bridges; WhatsApp often separated into local bridge.</td><td>File-backed `ChannelDefinition` + `ChannelFactory`, loaded by `/reload`.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="grid cols-2">
+      <div class="card recommend good">
+        <h2>Interfaces to add next</h2>
+        <ul>
+          <li><code>AgentRun</code> for persisted/cancellable execution.</li>
+          <li>Wrapped Pi <code>AgentEvent</code>s for streaming.</li>
+          <li><code>AgentRunRegistry</code> for cancellation and active session ownership.</li>
+          <li><code>ChannelFactory</code> for file-backed reloadable connectors.</li>
+          <li><code>MediaStore</code> before adding image/audio uploads.</li>
+        </ul>
+      </div>
+      <div class="card recommend risk">
+        <h2>Anti-patterns to avoid</h2>
+        <ul>
+          <li>Do not let each channel call the agent with its own shape.</li>
+          <li>Do not expose raw LLM chunks as the extension protocol.</li>
+          <li>Do not mix platform tokens with user authorization.</li>
+          <li>Do not implement media parsing separately per route.</li>
+          <li>Do not treat realtime voice as just another text message.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Minimal rho run contract</h2>
+      <pre><code>import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
+import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
+
+type AgentRun = {
+  id: string;
+  sessionId: string;
+  source: ChannelSource;
+  status: "running" | "completed" | "cancelled" | "failed";
+  messages: AgentMessage[];
+  abortReason?: CancelReason;
+};
+
+type AgentRunEvent = {
+  runId: string;
+  event: AgentEvent;
+};
+
+type RhoContentPart = TextContent | ImageContent | AudioContent | VideoContent | FileContent;</code></pre>
+      <div class="event-row">
+        <span class="event">turn.accepted</span><span class="event">message.delta</span><span class="event">tool.progress</span><span class="event">message.completed</span><span class="event">turn.cancelled</span><span class="event">message.error</span>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Source map</h2>
+      <p>Detailed citations and implementation notes are in <a href="./report.md">report.md</a>. Key source files inspected include:</p>
+      <div class="grid cols-2">
+        <p><b>OpenClaw:</b> channel message types, live previews, Telegram draft stream, WhatsApp media/auth, Twilio voice media stream.</p>
+        <p><b>Hermes:</b> gateway stream consumer, platform base adapter, media safety, pairing/allowlists, agent interrupt.</p>
+        <p><b>ZeroClaw:</b> channel trait, orchestrator draft lifecycle, Telegram/Discord draft implementations, multimodal marker preparation.</p>
+        <p><b>Nanobot:</b> BaseChannel, message bus events, Telegram stream deltas, WhatsApp local bridge, session-key cancellation.</p>
+      </div>
+    </section>
+
+    <div class="footer">Generated for rho. Open this file directly in a browser: <code>research/channel-harness/index.html</code>.</div>
+  </div>
+</body>
+</html>

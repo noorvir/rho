@@ -9,9 +9,6 @@ export interface ServerDeps {
 	httpChannel: HttpChannel;
 	channels: ChannelRegistry;
 	files: RegistrySource;
-	ids?: {
-		streamId(): string;
-	};
 }
 
 export function createServer(deps: ServerDeps): Hono {
@@ -25,7 +22,7 @@ export function createServer(deps: ServerDeps): Hono {
 }
 
 async function handleHttpMessage(context: Context, deps: ServerDeps): Promise<Response> {
-	const streamId = deps.ids?.streamId() ?? crypto.randomUUID();
+	const streamId = crypto.randomUUID();
 	const stream = createSseStream();
 
 	try {

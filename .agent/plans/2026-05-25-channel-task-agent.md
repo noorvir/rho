@@ -1,12 +1,12 @@
-# Current Work: Hono Server + HTTP Channel + Mobile Chat
+# Current Work: Pi-backed AgentRun Streaming
 
 ## Goal
 
-Add a minimal long-running `rho` server that exposes a default HTTP channel for mobile chat. The first implementation can use the existing fake/echo AI response, but the server and mobile app should communicate through a real HTTP streaming path.
+Replace the fake/final-only HTTP chat path with a Pi-backed `AgentRun` path that streams Pi agent events to the mobile app over SSE. Reuse Pi's `AgentEvent`, `AgentMessage`, `TextContent`, and `ImageContent` types wherever possible. Define only the small rho-owned shape around run metadata, channel routing, cancellation, and future media extensions.
 
 ## Current State
 
-The repository has a minimal channel runtime, CLI channel, and fake AI echo path. The mobile app has a global chat sheet with local input only. There is not yet a long-running server, HTTP channel, or mobile-to-server chat transport.
+The repository now has a Hono `@rho/server`, a persistent built-in `HttpChannel`, `/health`, `/reload`, and a mobile chat that can call the HTTP endpoint and render an echo response. The current server still uses the fake/echo agent and mobile parses the SSE response after completion. The next implementation should use Pi's agent loop and stream real events incrementally.
 
 ## Server Shape
 
@@ -82,21 +82,56 @@ mobile chat
 
 The persistent `HttpChannel` owns the map of active response streams. The Hono request owns one stream and registers it before calling the runtime.
 
-## Streaming Model
+## AgentRun Model
 
-The current channel handler returns one `OutboundMessage`, not an async stream. That means the minimal first version can stream the transport response by emitting the final fake/echo text as one `message.delta` inside `HttpChannel.send(...)`.
-
-That proves the mobile app, Hono endpoint, HTTP channel, and SSE parsing work. It is not yet true token streaming from the AI layer.
-
-True model streaming would require a later contract change, such as:
+Rho should not invent a parallel agent event vocabulary. Pi already exposes the agent loop as `AgentEvent`:
 
 ```ts
-type ChannelHandler =
-  | ((message: InboundMessage) => Promise<OutboundMessage>)
-  | ((message: InboundMessage) => AsyncIterable<OutboundEvent>);
+agent_start
+turn_start
+message_start
+message_update
+message_end
+tool_execution_start
+tool_execution_update
+tool_execution_end
+turn_end
+agent_end
 ```
 
-Do not add that broader contract until the simple HTTP/SSE path is working.
+Rho adds the persistent/cancellable wrapper:
+
+```ts
+import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
+import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
+
+type AgentRun = {
+  id: string;
+  sessionId: string;
+  source: ChannelSource;
+  status: "running" | "completed" | "cancelled" | "failed";
+  messages: AgentMessage[];
+  abortReason?: CancelReason;
+};
+
+type AgentRunEvent = {
+  runId: string;
+  event: AgentEvent;
+};
+```
+
+Future multimedia should extend Pi content parts only where Pi lacks coverage:
+
+```ts
+type RhoContentPart =
+  | TextContent
+  | ImageContent
+  | AudioContent
+  | VideoContent
+  | FileContent;
+```
+
+For now, audio/video/file are shape-only. They should normalize through media refs and be rendered into Pi-compatible text/image parts before calling Pi.
 
 ## HTTP Contract
 
@@ -110,17 +145,20 @@ body: {
 
 response: text/event-stream
 
-event: message.started
-data: { replyTo: string | null }
+event: agent.run.started
+data: { runId: string }
 
-event: message.delta
-data: { text: string }
+event: agent.event
+data: { runId: string, event: AgentEvent }
 
-event: message.completed
-data: { text: string }
+event: agent.run.completed
+data: { runId: string }
 
-event: message.error
-data: { error: string }
+event: agent.run.cancelled
+data: { runId: string, reason: string }
+
+event: agent.run.error
+data: { runId: string, error: string }
 ```
 
 ## Implementation Sketch
@@ -187,6 +225,34 @@ async function handleHttpMessage(context, deps) {
 }
 ```
 
+## Implementation Plan
+
+1. **Server run boundary**
+   - Add `AgentRun` and `AgentRunRegistry` in the server/runtime layer.
+   - Store active runs by `runId` and `sessionId`.
+   - Each run owns an `AbortController`, source channel metadata, status, and final Pi messages.
+
+2. **Pi agent integration**
+   - Construct a Pi `Agent` with rho's configured model/tools.
+   - For an HTTP chat request, create a run and call `agent.prompt(...)`.
+   - Subscribe to Pi `AgentEvent`s and stream `{ runId, event }` over SSE.
+   - Use Pi's existing `message_update` / `AssistantMessageEvent` for text deltas instead of inventing new internal delta events.
+
+3. **HTTP channel streaming**
+   - Keep `HttpChannel` as the default built-in channel.
+   - Attach request-local SSE streams by `runId` or stream id.
+   - Emit `agent.run.started`, repeated `agent.event`, and terminal `agent.run.completed` / `agent.run.error` / `agent.run.cancelled` events.
+
+4. **Mobile streaming**
+   - Parse SSE incrementally.
+   - Render text from Pi `message_update` events as assistant draft text.
+   - Finalize on `agent.run.completed`.
+
+5. **Multimedia shape only**
+   - Define or document `MediaRef`, `AudioContent`, `VideoContent`, and `FileContent` as rho extensions.
+   - Do not add realtime audio/video transport yet.
+   - Convert unsupported media to Pi-compatible text/image content at the boundary until Pi supports those parts directly.
+
 ## Reloadability Direction
 
 Hot reload is a key product constraint. Everything configurable should have a file-backed source of truth: channel definitions, app definitions, secrets references, API variables, and local dev options.
@@ -251,30 +317,29 @@ First slice: add health check and clear startup errors. Defer robust supervisor/
 
 ## Near-term Scope
 
-- Add `@rho/server` with Hono.
-- Add a persistent server startup path with injected `agent`, `ChannelRuntime`, default `HttpChannel`, file-backed registry source, and channel factories.
-- Add a minimal `/reload` route that reloads server settings/capabilities from the current registry source and swaps in-memory app/channel registries.
-- Define the SSE helper and event names once.
-- Convert HTTP request bodies into `InboundMessage` at the HTTP boundary.
-- Implement an HTTP channel whose `send` method writes SSE response events to the active stream map.
-- Wire the mobile chat sheet to call the local HTTP endpoint and render streamed assistant output.
-- Keep fake AI streaming simple: one delta is acceptable for the first pass.
+- Add an `AgentRun`/`AgentRunRegistry` boundary in the server/runtime layer.
+- Wire HTTP chat requests into a Pi `Agent.prompt(...)` run instead of `PiEchoAgent.reply(...)`.
+- Subscribe to Pi `AgentEvent`s and stream them over the existing SSE response.
+- Keep channel-facing streaming as a renderer of Pi events; do not create duplicate internal event names for tool/text/turn events.
+- Update mobile chat to consume events incrementally rather than waiting for the full SSE body.
+- Sketch `AudioContent`, `VideoContent`, `FileContent`, and `MediaRef` types, but do not implement realtime multimedia yet.
+- Keep `/reload` file-backed and preserve the default `HttpChannel`.
 
 ## Non-goals
 
 - Auth, persistence, user accounts, production deployment, external tunnels, or push notifications.
 - Full app hosting/proxying for microapps beyond the existing placeholder WebViews.
 - Durable conversation storage or message history sync.
-- Replacing the fake AI provider with a real model.
+- Replacing the selected Pi model/provider plumbing beyond what is needed for a minimal run.
 - Building a general task/agent orchestration system.
-- True AI token streaming in the first HTTP pass.
+- Realtime audio/video implementation in this pass.
 - Full daemon/supervisor implementation in the first pass.
 - Filesystem watching or automatic reload in the first pass.
 
 ## Design Constraints
 
-- Keep boundaries clean: server owns HTTP/SSE and dependency wiring, channels own normalized message delivery, AI owns replies, mobile owns UI state.
-- Prefer the smallest working streaming contract over a broad protocol framework.
+- Keep boundaries clean: server owns HTTP/SSE, run lifecycle, and dependency wiring; channels own platform delivery; Pi owns agent-loop events and tool execution where possible.
+- Prefer reusing Pi types over creating rho equivalents.
 - Do not make CLI depend on server, mobile, or frontend-only code.
 - Validate at HTTP boundaries and keep internal message shapes typed.
 - Mobile UI should stay compact and safe-area-aware.
@@ -284,8 +349,8 @@ First slice: add health check and clear startup errors. Defer robust supervisor/
 
 - `bun run check` passes.
 - Starting the server exposes `/health` and the streaming HTTP endpoint.
-- A command-line HTTP request can receive a streamed echo/fake response.
-- The iOS app can send chat text and display the streamed response in the chat sheet.
+- A command-line HTTP request receives Pi-backed SSE `agent.event` frames.
+- The iOS app can send chat text and display text deltas incrementally in the chat sheet.
 - SwiftUI app builds, installs, launches, and is visually inspected after the chat wiring.
 
 ## Progress
@@ -298,3 +363,7 @@ First slice: add health check and clear startup errors. Defer robust supervisor/
 - [x] Validate server streaming independently.
 - [x] Wire mobile chat to the HTTP streaming endpoint.
 - [x] Validate mobile chat response visually.
+- [ ] Define `AgentRun` and `AgentRunRegistry` using Pi types.
+- [ ] Stream Pi `AgentEvent`s over HTTP SSE.
+- [ ] Render Pi text deltas incrementally in mobile chat.
+- [ ] Sketch future audio/video/file content extensions without implementing realtime multimedia.

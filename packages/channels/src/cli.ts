@@ -1,12 +1,5 @@
-import { messageText } from "./index.ts";
-import type {
-	Channel,
-	ChannelContext,
-	ChannelMessage,
-	ChannelOutput,
-	MessageId,
-	SendReceipt,
-} from "./types.ts";
+import { channelMessages, messageText } from "./message.ts";
+import type { Channel, ChannelContext, ChannelOutput, MessageId, SendReceipt } from "./types.ts";
 
 export class CliChannel implements Channel {
 	readonly id = "cli";
@@ -20,20 +13,11 @@ export class CliChannel implements Channel {
 
 	async send(output: ChannelOutput): Promise<SendReceipt> {
 		let messageId: MessageId = `cli:${Date.now()}`;
-		for await (const message of messagesFrom(output)) {
+		for await (const message of channelMessages(output)) {
 			messageId = message.id;
 			this.output.write(`${messageText(message)}\n`);
 		}
 
 		return { ok: true, messageId, raw: null };
 	}
-}
-
-async function* messagesFrom(output: ChannelOutput): AsyncIterable<ChannelMessage> {
-	if (Symbol.asyncIterator in output) {
-		yield* output;
-		return;
-	}
-
-	yield output;
 }

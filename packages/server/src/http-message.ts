@@ -1,4 +1,4 @@
-import { type ChannelMessage, type ChannelParticipant, channelMessage } from "@rho/channels";
+import type { ChannelMessage, ChannelParticipant } from "@rho/channels";
 
 export interface HttpMessageInput {
 	conversationId: string;
@@ -17,13 +17,19 @@ export function validateHttpMessage(value: unknown): HttpMessageInput {
 }
 
 export function messageFromHttp(input: HttpMessageInput, streamId: string): ChannelMessage {
-	return channelMessage(input.text, {
+	return {
+		id: `msg:${crypto.randomUUID()}`,
 		channelId: "http",
 		target: { type: "conversation", id: input.conversationId },
 		from: input.sender,
-		metadata: { streamId },
+		content: [{ type: "text", text: input.text }],
+		timestamp: new Date(),
+		streamId,
+		replyTo: null,
+		attachments: [],
+		metadata: {},
 		raw: input,
-	});
+	};
 }
 
 function readSender(value: unknown): ChannelParticipant {

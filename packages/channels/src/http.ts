@@ -1,3 +1,4 @@
+import { channelMessages, messageText } from "./message.ts";
 import type {
 	Channel,
 	ChannelContext,
@@ -36,7 +37,7 @@ export class HttpChannel implements Channel {
 
 	async send(output: ChannelOutput): Promise<SendReceipt> {
 		let receipt: SendReceipt | undefined;
-		for await (const message of messagesFrom(output)) {
+		for await (const message of channelMessages(output)) {
 			receipt = await this.sendMessage(message);
 			if (!receipt.ok) return receipt;
 		}
@@ -68,20 +69,4 @@ export class HttpChannel implements Channel {
 
 		return { ok: true, messageId: message.id, raw: null };
 	}
-}
-
-function messageText(message: ChannelMessage): string {
-	return message.content
-		.filter((part) => part.type === "text")
-		.map((part) => part.text)
-		.join("\n");
-}
-
-async function* messagesFrom(output: ChannelOutput): AsyncIterable<ChannelMessage> {
-	if (Symbol.asyncIterator in output) {
-		yield* output;
-		return;
-	}
-
-	yield output;
 }

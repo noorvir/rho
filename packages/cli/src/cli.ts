@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { PiEchoAgent } from "@rho/ai";
-import { ChannelRuntime, CliChannel, channelMessage, messageText, replyTo } from "@rho/channels";
+import { ChannelRuntime, CliChannel, messageText, replyTo } from "@rho/channels";
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
 	const text = args.join(" ").trim();
@@ -22,7 +22,19 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 	});
 
 	try {
-		await runtime.receive(channelMessage(text));
+		await runtime.receive({
+			id: `msg:${crypto.randomUUID()}`,
+			channelId: "cli",
+			target: { type: "conversation", id: "cli" },
+			from: { id: "cli-user", role: "user" },
+			content: [{ type: "text", text }],
+			timestamp: new Date(),
+			streamId: null,
+			replyTo: null,
+			attachments: [],
+			metadata: {},
+			raw: null,
+		});
 	} finally {
 		agent.dispose();
 	}
