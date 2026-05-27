@@ -1,9 +1,13 @@
-export type ChannelKind = "cli" | "web" | "mobile" | "chat" | (string & {});
+export type ChannelId = string & {};
+export type MessageId = string & {};
+export type ConversationId = string & {};
+export type RealtimeSessionId = string & {};
+export type ChannelKind = "cli" | "http" | "web" | "mobile" | "chat";
 
-export type ConversationType = "dm" | "group" | "channel" | "thread" | (string & {});
+export type ConversationType = "dm" | "group" | "channel" | "thread";
 
 export interface ConversationBase {
-	id: string;
+	id: ConversationId;
 	type: ConversationType;
 }
 
@@ -14,10 +18,73 @@ export interface ThreadConversation extends ConversationBase {
 
 export type Conversation = ConversationBase | ThreadConversation;
 
-export interface Sender {
+export interface ChannelParticipant {
 	id: string;
+	role: "user" | "assistant" | "system";
+}
+
+export interface MediaRefBase {
+	id: string;
+	mimeType: string;
+	sizeBytes: number | null;
+}
+
+export interface UrlMediaRef extends MediaRefBase {
+	kind: "url";
+	url: string;
+}
+
+export interface DataMediaRef extends MediaRefBase {
+	kind: "data";
+	data: Uint8Array;
+}
+
+export interface FileMediaRef extends MediaRefBase {
+	kind: "file";
+	path: string;
+}
+
+export interface ChannelMediaRef extends MediaRefBase {
+	kind: "channel";
+	channelId: ChannelId;
+	mediaId: string;
+}
+
+export type MediaRef = UrlMediaRef | DataMediaRef | FileMediaRef | ChannelMediaRef;
+
+export interface TextContent {
+	type: "text";
+	text: string;
+}
+
+export interface ImageContent {
+	type: "image";
+	media: MediaRef;
+	altText: string | null;
+}
+
+export interface AudioContent {
+	type: "audio";
+	media: MediaRef;
+}
+
+export interface VideoContent {
+	type: "video";
+	media: MediaRef;
+}
+
+export interface FileContent {
+	type: "file";
+	media: MediaRef;
 	name: string;
 }
+
+export type ChannelContent =
+	| TextContent
+	| ImageContent
+	| AudioContent
+	| VideoContent
+	| FileContent;
 
 export interface AttachmentBase {
 	id: string;
@@ -35,46 +102,35 @@ export interface DataAttachment extends AttachmentBase {
 	data: Uint8Array;
 }
 
-export type Attachment = UrlAttachment | DataAttachment;
+export interface FileAttachment extends AttachmentBase {
+	kind: "file";
+	path: string;
+}
 
-export interface InboundMessage {
-	id: string;
-	channel: string;
+export type Attachment = UrlAttachment | DataAttachment | FileAttachment;
+
+export interface ChannelMessage {
+	id: MessageId;
+	channelId: ChannelId;
 	conversation: Conversation;
-	sender: Sender;
-	text: string;
+	from: ChannelParticipant;
+	content: ChannelContent[];
 	timestamp: Date;
+	streamId: string | null;
+	replyTo: MessageId | null;
 	attachments: Attachment[];
 	metadata: Record<string, unknown>;
 	raw: unknown | null;
 }
 
-export interface ConversationTarget {
-	kind: "conversation";
-	conversationId: string;
-}
+export type ChannelMessageStream = AsyncIterable<ChannelMessage>;
 
-export interface ThreadTarget {
-	kind: "thread";
-	conversationId: string;
-	threadId: string;
-}
-
-export type ChannelTarget = ConversationTarget | ThreadTarget;
-
-export interface OutboundMessage {
-	channel: string;
-	target: ChannelTarget;
-	text: string;
-	replyTo: string | null;
-	attachments: Attachment[];
-	metadata: Record<string, unknown>;
-}
+export type ChannelOutput = ChannelMessage | ChannelMessageStream;
 
 export type SendReceipt =
 	| {
 			ok: true;
-			messageId: string;
+			messageId: MessageId;
 			raw: unknown | null;
 	  }
 	| {
@@ -85,14 +141,48 @@ export type SendReceipt =
 	  };
 
 export interface ChannelContext {
-	receive(message: InboundMessage): Promise<void>;
+	receive(message: ChannelMessage): Promise<void>;
 	signal: AbortSignal;
 }
 
+export interface RealtimeSessionRequest {
+	id: RealtimeSessionId;
+	channelId: ChannelId;
+	metadata: Record<string, unknown>;
+	raw: unknown | null;
+}
+
+export type RealtimeContent = AudioContent | VideoContent;
+
+export interface RealtimeFrame {
+	sessionId: RealtimeSessionId;
+	channelId: ChannelId;
+	sequence: number;
+	content: RealtimeContent;
+	timestamp: Date;
+	metadata: Record<string, unknown>;
+	raw: unknown | null;
+}
+
+export type RealtimeFrameStream = AsyncIterable<RealtimeFrame>;
+
+export interface RealtimeSession {
+	id: RealtimeSessionId;
+	channelId: ChannelId;
+	receive(input: RealtimeFrame | RealtimeFrameStream): Promise<void>;
+	send(output: RealtimeFrame | RealtimeFrameStream): Promise<void>;
+	interrupt(reason: "barge-in" | "stop" | "disconnect" | "error"): Promise<void>;
+	close(): Promise<void>;
+}
+
 export interface Channel {
-	name: string;
+	id: ChannelId;
 	kind: ChannelKind;
 	start(context: ChannelContext): Promise<void>;
 	stop(): Promise<void>;
-	send(message: OutboundMessage): Promise<SendReceipt>;
+	send(output: ChannelOutput): Promise<SendReceipt>;
+}
+
+export interface RealtimeChannel extends Channel {
+	open(request: RealtimeSessionRequest): Promise<RealtimeSession>;
 }
