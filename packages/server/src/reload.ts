@@ -46,7 +46,7 @@ export async function reload(deps: ReloadDependencies): Promise<ReloadResult> {
 
 	return {
 		ok: true,
-		channels: deps.channels.current().map((channel) => channel.name),
+		channels: deps.channels.current().map((channel) => channel.id),
 		apps: apps.length,
 	};
 }

@@ -76,12 +76,7 @@ export type SendReceipt =
 			raw: unknown | null;
 	  };
 
-export type ChannelContent =
-	| TextContent
-	| ImageContent
-	| AudioContent
-	| VideoContent
-	| FileContent;
+export type ChannelContent = TextContent | ImageContent | AudioContent | VideoContent | FileContent;
 
 export interface TextContent {
 	type: "text";
@@ -185,4 +180,4 @@ export type MessageId = string & {};
 export type ConversationId = string & {};
 export type RealtimeSessionId = string & {};
 
-export type ChannelKind = "cli" | "http" | "web" | "mobile" | "chat";
+export type ChannelKind = "cli" | "http" | "mobile" | "chat";

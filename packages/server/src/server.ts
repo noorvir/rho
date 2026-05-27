@@ -4,17 +4,17 @@ import type { ChannelRegistry } from "./channel-registry.ts";
 import { messageFromHttp, validateHttpMessage } from "./http-message.ts";
 import { type RegistrySource, reload } from "./reload.ts";
 
-export interface ServerDependencies {
+export interface ServerDeps {
 	runtime: ChannelRuntime;
 	httpChannel: HttpChannel;
 	channels: ChannelRegistry;
 	files: RegistrySource;
 	ids?: {
-		stream(): string;
+		streamId(): string;
 	};
 }
 
-export function createServer(deps: ServerDependencies): Hono {
+export function createServer(deps: ServerDeps): Hono {
 	const app = new Hono();
 
 	app.get("/health", (context) => context.json({ ok: true }));
@@ -24,11 +24,8 @@ export function createServer(deps: ServerDependencies): Hono {
 	return app;
 }
 
-async function handleHttpMessage(
-	context: HonoContext,
-	deps: ServerDependencies,
-): Promise<Response> {
-	const streamId = deps.ids?.stream() ?? crypto.randomUUID();
+async function handleHttpMessage(context: Context, deps: ServerDeps): Promise<Response> {
+	const streamId = deps.ids?.streamId() ?? crypto.randomUUID();
 	const stream = createSseStream();
 
 	try {
@@ -47,8 +44,6 @@ async function handleHttpMessage(
 
 	return stream.response;
 }
-
-type HonoContext = Context;
 
 interface ServerSseStream extends SseStream {
 	response: Response;

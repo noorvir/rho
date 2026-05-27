@@ -1,4 +1,10 @@
-import type { Channel, ChannelContext, OutboundMessage, SendReceipt } from "@rho/channels";
+import type {
+	Channel,
+	ChannelContext,
+	ChannelMessage,
+	ChannelOutput,
+	SendReceipt,
+} from "./types.ts";
 
 export interface SseStream {
 	event(name: string, data: Record<string, unknown>): void;
@@ -6,9 +12,10 @@ export interface SseStream {
 }
 
 export class HttpChannel implements Channel {
-	readonly name = "http";
-	readonly kind = "web";
+	readonly kind = "http";
 	private readonly streams = new Map<string, SseStream>();
+
+	constructor(readonly id = "http") {}
 
 	attach(streamId: string, stream: SseStream): void {
 		this.streams.set(streamId, stream);
@@ -27,28 +34,54 @@ export class HttpChannel implements Channel {
 		this.streams.clear();
 	}
 
-	async send(message: OutboundMessage): Promise<SendReceipt> {
-		const streamId = readStreamId(message.metadata);
-		if (!streamId) {
+	async send(output: ChannelOutput): Promise<SendReceipt> {
+		let receipt: SendReceipt | undefined;
+		for await (const message of messagesFrom(output)) {
+			receipt = await this.sendMessage(message);
+			if (!receipt.ok) return receipt;
+		}
+
+		return receipt ?? { ok: false, retryable: false, error: "Missing HTTP message", raw: null };
+	}
+
+	private async sendMessage(message: ChannelMessage): Promise<SendReceipt> {
+		if (!message.streamId) {
 			return { ok: false, retryable: false, error: "Missing HTTP stream id", raw: null };
 		}
 
-		const stream = this.streams.get(streamId);
+		const stream = this.streams.get(message.streamId);
 		if (!stream) {
-			return { ok: false, retryable: false, error: `Unknown HTTP stream: ${streamId}`, raw: null };
+			return {
+				ok: false,
+				retryable: false,
+				error: `Unknown HTTP stream: ${message.streamId}`,
+				raw: null,
+			};
 		}
 
+		const text = messageText(message);
 		stream.event("message.started", { replyTo: message.replyTo });
-		stream.event("message.delta", { text: message.text });
-		stream.event("message.completed", { text: message.text });
+		stream.event("message.delta", { text });
+		stream.event("message.completed", { text });
 		stream.close();
-		this.detach(streamId);
+		this.detach(message.streamId);
 
-		return { ok: true, messageId: `http:${streamId}`, raw: null };
+		return { ok: true, messageId: message.id, raw: null };
 	}
 }
 
-function readStreamId(metadata: Record<string, unknown>): string | undefined {
-	const value = metadata.streamId;
-	return typeof value === "string" ? value : undefined;
+function messageText(message: ChannelMessage): string {
+	return message.content
+		.filter((part) => part.type === "text")
+		.map((part) => part.text)
+		.join("\n");
+}
+
+async function* messagesFrom(output: ChannelOutput): AsyncIterable<ChannelMessage> {
+	if (Symbol.asyncIterator in output) {
+		yield* output;
+		return;
+	}
+
+	yield output;
 }

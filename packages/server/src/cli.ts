@@ -2,7 +2,7 @@
 
 import { serve } from "@hono/node-server";
 import { PiEchoAgent } from "@rho/ai";
-import { ChannelRuntime, HttpChannel, replyTo } from "@rho/channels";
+import { ChannelRuntime, HttpChannel, messageText, replyTo } from "@rho/channels";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { EmptyRegistrySource, reload } from "./reload.ts";
 import { createServer } from "./server.ts";
@@ -12,10 +12,11 @@ const agent = new PiEchoAgent();
 const httpChannel = new HttpChannel();
 const channels = new ChannelRegistry([httpChannel]);
 const files = new EmptyRegistrySource();
+
 const runtime = new ChannelRuntime({
 	channels: channels.current(),
 	handle: async (message) => {
-		const reply = await agent.reply({ text: message.text, timestamp: message.timestamp });
+		const reply = await agent.reply({ text: messageText(message), timestamp: message.timestamp });
 		return replyTo(message, reply.text);
 	},
 });
@@ -32,7 +33,7 @@ console.log(`rho server listening on http://localhost:${port}`);
 console.log(
 	`active channels: ${channels
 		.current()
-		.map((channel) => channel.name)
+		.map((channel) => channel.id)
 		.join(", ")}`,
 );
 

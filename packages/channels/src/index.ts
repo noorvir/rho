@@ -1,36 +1,58 @@
 import type {
 	Channel,
+	ChannelContent,
+	ChannelMessage,
+	ChannelOutput,
 	ChannelTarget,
-	Conversation,
-	InboundMessage,
-	OutboundMessage,
+	MessageId,
 	SendReceipt,
 } from "./types.ts";
 
+export { CliChannel } from "./cli.ts";
 export { HttpChannel, type SseStream } from "./http.ts";
 
 export type {
 	Attachment,
 	AttachmentBase,
+	AudioContent,
 	Channel,
+	ChannelContent,
 	ChannelContext,
+	ChannelId,
 	ChannelKind,
+	ChannelMediaRef,
+	ChannelMessage,
+	ChannelMessageStream,
+	ChannelOutput,
+	ChannelParticipant,
 	ChannelTarget,
-	Conversation,
-	ConversationBase,
+	ConversationId,
 	ConversationTarget,
-	ConversationType,
 	DataAttachment,
-	InboundMessage,
-	OutboundMessage,
-	Sender,
+	DataMediaRef,
+	FileAttachment,
+	FileContent,
+	FileMediaRef,
+	ImageContent,
+	MediaRef,
+	MediaRefBase,
+	MessageId,
+	RealtimeChannel,
+	RealtimeContent,
+	RealtimeFrame,
+	RealtimeFrameStream,
+	RealtimeSession,
+	RealtimeSessionId,
+	RealtimeSessionRequest,
 	SendReceipt,
-	ThreadConversation,
+	TextContent,
 	ThreadTarget,
 	UrlAttachment,
+	UrlMediaRef,
+	VideoContent,
 } from "./types.ts";
 
-export type ChannelHandler = (message: InboundMessage) => Promise<OutboundMessage>;
+export type ChannelHandler = (message: ChannelMessage) => Promise<ChannelOutput>;
 
 export interface ChannelRuntimeOptions {
 	channels: Channel[];
@@ -45,7 +67,7 @@ export class ChannelRuntime {
 	constructor(options: ChannelRuntimeOptions) {
 		this.handle = options.handle;
 		for (const channel of options.channels) {
-			this.channels.set(channel.name, channel);
+			this.channels.set(channel.id, channel);
 		}
 	}
 
@@ -70,88 +92,76 @@ export class ChannelRuntime {
 	replaceChannels(channels: Channel[]): void {
 		this.channels.clear();
 		for (const channel of channels) {
-			this.channels.set(channel.name, channel);
+			this.channels.set(channel.id, channel);
 		}
 	}
 
-	async receive(message: InboundMessage): Promise<SendReceipt> {
-		const channel = this.channels.get(message.channel);
+	async receive(message: ChannelMessage): Promise<SendReceipt> {
+		const channel = this.channels.get(message.channelId);
 		if (!channel) {
-			throw new Error(`Unknown channel: ${message.channel}`);
+			throw new Error(`Unknown channel: ${message.channelId}`);
 		}
 
-		const outbound = await this.handle(message);
-		return channel.send(outbound);
+		return channel.send(await this.handle(message));
 	}
 }
 
-export class CliChannel implements Channel {
-	readonly name = "cli";
-	readonly kind = "cli";
-
-	constructor(private readonly output: Pick<NodeJS.WritableStream, "write"> = process.stdout) {}
-
-	async start(): Promise<void> {}
-
-	async stop(): Promise<void> {}
-
-	async send(message: OutboundMessage): Promise<SendReceipt> {
-		this.output.write(`${message.text}\n`);
-		return {
-			ok: true,
-			messageId: `cli:${Date.now()}`,
-			raw: null,
-		};
-	}
-}
-
-export interface InboundMessageOptions {
-	id?: string;
-	channel?: string;
-	conversation?: InboundMessage["conversation"];
-	sender?: InboundMessage["sender"];
+export interface ChannelMessageOptions {
+	id?: MessageId;
+	channelId?: string;
+	target?: ChannelTarget;
+	from?: ChannelMessage["from"];
 	timestamp?: Date;
-	attachments?: InboundMessage["attachments"];
-	metadata?: InboundMessage["metadata"];
+	attachments?: ChannelMessage["attachments"];
+	metadata?: ChannelMessage["metadata"];
 	raw?: unknown | null;
 }
 
-export function inboundMessage(text: string, options: InboundMessageOptions = {}): InboundMessage {
+export function channelMessage(
+	content: string | ChannelContent[],
+	options: ChannelMessageOptions = {},
+): ChannelMessage {
 	return {
 		id: options.id ?? `msg:${crypto.randomUUID()}`,
-		channel: options.channel ?? "cli",
-		conversation: options.conversation ?? { id: "cli", type: "dm" },
-		sender: options.sender ?? { id: "cli-user", name: "CLI User" },
-		text,
+		channelId: options.channelId ?? "cli",
+		target: options.target ?? { type: "conversation", id: "cli" },
+		from: options.from ?? { id: "cli-user", role: "user" },
+		content: typeof content === "string" ? [{ type: "text", text: content }] : content,
 		timestamp: options.timestamp ?? new Date(),
+		streamId: readString(options.metadata?.streamId) ?? null,
+		replyTo: null,
 		attachments: options.attachments ?? [],
 		metadata: options.metadata ?? {},
 		raw: options.raw ?? null,
 	};
 }
 
-export function replyTo(message: InboundMessage, text: string): OutboundMessage {
+export function replyTo(
+	message: ChannelMessage,
+	content: string | ChannelContent[],
+): ChannelMessage {
 	return {
-		channel: message.channel,
-		target: targetForConversation(message.conversation),
-		text,
+		id: `msg:${crypto.randomUUID()}`,
+		channelId: message.channelId,
+		target: message.target,
+		from: { id: "assistant", role: "assistant" },
+		content: typeof content === "string" ? [{ type: "text", text: content }] : content,
+		timestamp: new Date(),
+		streamId: message.streamId,
 		replyTo: message.id,
 		attachments: [],
 		metadata: message.metadata,
+		raw: null,
 	};
 }
 
-function targetForConversation(conversation: Conversation): ChannelTarget {
-	if ("threadId" in conversation) {
-		return {
-			kind: "thread",
-			conversationId: conversation.id,
-			threadId: conversation.threadId,
-		};
-	}
+export function messageText(message: ChannelMessage): string {
+	return message.content
+		.filter((part) => part.type === "text")
+		.map((part) => part.text)
+		.join("\n");
+}
 
-	return {
-		kind: "conversation",
-		conversationId: conversation.id,
-	};
+function readString(value: unknown): string | undefined {
+	return typeof value === "string" ? value : undefined;
 }

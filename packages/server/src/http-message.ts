@@ -1,8 +1,8 @@
-import { type InboundMessage, inboundMessage, type Sender } from "@rho/channels";
+import { type ChannelMessage, type ChannelParticipant, channelMessage } from "@rho/channels";
 
 export interface HttpMessageInput {
 	conversationId: string;
-	sender: Sender;
+	sender: ChannelParticipant;
 	text: string;
 }
 
@@ -16,21 +16,21 @@ export function validateHttpMessage(value: unknown): HttpMessageInput {
 	return { conversationId, sender, text };
 }
 
-export function messageFromHttp(input: HttpMessageInput, streamId: string): InboundMessage {
-	return inboundMessage(input.text, {
-		channel: "http",
-		conversation: { id: input.conversationId, type: "dm" },
-		sender: input.sender,
+export function messageFromHttp(input: HttpMessageInput, streamId: string): ChannelMessage {
+	return channelMessage(input.text, {
+		channelId: "http",
+		target: { type: "conversation", id: input.conversationId },
+		from: input.sender,
 		metadata: { streamId },
 		raw: input,
 	});
 }
 
-function readSender(value: unknown): Sender {
+function readSender(value: unknown): ChannelParticipant {
 	if (!isRecord(value)) throw new Error("sender must be an object");
 	return {
 		id: readString(value.id, "sender.id"),
-		name: readString(value.name, "sender.name"),
+		role: "user",
 	};
 }
 
