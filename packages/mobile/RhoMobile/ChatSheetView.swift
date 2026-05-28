@@ -214,7 +214,7 @@ private enum ChatEvent {
 }
 
 private final class ChatClient {
-    private let endpoint = URL(string: "http://localhost:7331/channels/http/messages")!
+    private let endpoint = URL(string: "http://127.0.0.1:7331/agent/messages:stream")!
 
     func send(text: String) -> AsyncThrowingStream<ChatEvent, Error> {
         AsyncThrowingStream { continuation in
@@ -225,15 +225,30 @@ private final class ChatClient {
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     request.httpBody = try JSONEncoder().encode(ChatRequest(text: text))
 
-                    let (data, response) = try await URLSession.shared.data(for: request)
+                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
                     guard let httpResponse = response as? HTTPURLResponse,
                           (200..<300).contains(httpResponse.statusCode)
                     else {
                         throw URLError(.badServerResponse)
                     }
 
-                    let body = String(decoding: data, as: UTF8.self)
-                    for event in parseEvents(body) {
+                    var buffer = ""
+
+                    for try await byte in bytes {
+                        guard let scalar = UnicodeScalar(Int(byte)) else { continue }
+                        buffer.unicodeScalars.append(scalar)
+
+                        while let range = eventSeparator(in: buffer) {
+                            let block = String(buffer[..<range.lowerBound])
+                            buffer.removeSubrange(..<range.upperBound)
+
+                            if let event = parseEvent(block) {
+                                continuation.yield(event)
+                            }
+                        }
+                    }
+
+                    if let event = parseEvent(buffer) {
                         continuation.yield(event)
                     }
 
@@ -247,30 +262,32 @@ private final class ChatClient {
         }
     }
 
-    private func parseEvents(_ body: String) -> [ChatEvent] {
-        body
-            .components(separatedBy: "\n\n")
-            .compactMap { block in
-                let lines = block.split(separator: "\n", omittingEmptySubsequences: false)
-                let eventName = lines.first { $0.hasPrefix("event: ") }?.dropFirst(7)
-                let data = lines
-                    .filter { $0.hasPrefix("data: ") }
-                    .map { String($0.dropFirst(6)) }
-                    .joined(separator: "\n")
+    private func parseEvent(_ block: String) -> ChatEvent? {
+        let lines = block
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .map { $0.trimmingCharacters(in: .newlines) }
+        let eventName = lines.first { $0.hasPrefix("event: ") }?.dropFirst(7)
+        let data = lines
+            .filter { $0.hasPrefix("data: ") }
+            .map { String($0.dropFirst(6)) }
+            .joined(separator: "\n")
 
-                switch eventName {
-                case "message.started":
-                    return .started
-                case "message.delta":
-                    return .delta(decode(data, field: "text") ?? "")
-                case "message.completed":
-                    return .completed(decode(data, field: "text") ?? "")
-                case "message.error":
-                    return .error(decode(data, field: "error") ?? "Unknown server error")
-                default:
-                    return nil
-                }
-            }
+        switch eventName {
+        case "message.started":
+            return .started
+        case "message.delta":
+            return .delta(decode(data, field: "text") ?? "")
+        case "message.completed":
+            return .completed(decode(data, field: "text") ?? "")
+        case "message.error":
+            return .error(decode(data, field: "error") ?? "Unknown server error")
+        default:
+            return nil
+        }
+    }
+
+    private func eventSeparator(in buffer: String) -> Range<String.Index>? {
+        buffer.range(of: "\n\n") ?? buffer.range(of: "\r\n\r\n")
     }
 
     private func decode(_ data: String, field: String) -> String? {
