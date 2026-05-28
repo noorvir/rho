@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { agentEventTextDelta, PiEchoAgent } from "@rho/ai";
+import { agentEventTextDelta, OpenAICodexAgent } from "@rho/ai";
 import { type ChannelMessage, ChannelRuntime, CliChannel, messageText } from "@rho/channels";
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
@@ -12,32 +12,28 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 		return;
 	}
 
-	const agent = new PiEchoAgent();
+	const agent = new OpenAICodexAgent();
 	const runtime = new ChannelRuntime({
 		channels: [new CliChannel()],
 		handle: async (message) => agentResponse(agent, message),
 	});
 
-	try {
-		await runtime.receive({
-			id: `msg:${crypto.randomUUID()}`,
-			channelId: "cli",
-			target: { type: "conversation", id: "cli" },
-			from: { id: "cli-user", role: "user" },
-			content: [{ type: "text", text }],
-			timestamp: new Date(),
-			replyTo: null,
-			attachments: [],
-			metadata: {},
-			raw: null,
-		});
-	} finally {
-		agent.dispose();
-	}
+	await runtime.receive({
+		id: `msg:${crypto.randomUUID()}`,
+		channelId: "cli",
+		target: { type: "conversation", id: "cli" },
+		from: { id: "cli-user", role: "user" },
+		content: [{ type: "text", text }],
+		timestamp: new Date(),
+		replyTo: null,
+		attachments: [],
+		metadata: {},
+		raw: null,
+	});
 }
 
 async function* agentResponse(
-	agent: PiEchoAgent,
+	agent: OpenAICodexAgent,
 	message: ChannelMessage,
 ): AsyncIterable<ChannelMessage> {
 	const stream = agent.respond({
