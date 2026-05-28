@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { agentEventTextDelta, OpenAICodexAgent } from "@rho/ai";
+import { agentEventTextDelta, createRhoAgent, type RhoAgent } from "@rho/ai";
 import { type ChannelMessage, ChannelRuntime, CliChannel, messageText } from "@rho/channels";
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
@@ -12,7 +12,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 		return;
 	}
 
-	const agent = new OpenAICodexAgent();
+	const agent = await createRhoAgent();
 	const runtime = new ChannelRuntime({
 		channels: [new CliChannel()],
 		handle: async (message) => agentResponse(agent, message),
@@ -33,7 +33,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 }
 
 async function* agentResponse(
-	agent: OpenAICodexAgent,
+	agent: RhoAgent,
 	message: ChannelMessage,
 ): AsyncIterable<ChannelMessage> {
 	const stream = agent.respond({

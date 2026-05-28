@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 import { serve } from "@hono/node-server";
-import { agentEventTextDelta, OpenAICodexAgent } from "@rho/ai";
+import { agentEventTextDelta, createRhoAgent } from "@rho/ai";
 import { type ChannelMessage, ChannelRuntime, HttpChannel, messageText } from "@rho/channels";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { EmptyRegistrySource, reload } from "./reload.ts";
 import { createServer } from "./server.ts";
 
 const port = Number(process.env.RHO_PORT ?? "7331");
-const agent = new OpenAICodexAgent();
+
 const httpChannel = new HttpChannel();
 const channels = new ChannelRegistry([httpChannel]);
 const files = new EmptyRegistrySource();
@@ -35,6 +35,7 @@ console.log(
 );
 
 async function* agentResponse(message: ChannelMessage): AsyncIterable<ChannelMessage> {
+	const agent = await createRhoAgent();
 	const stream = agent.respond({
 		messages: [
 			{
