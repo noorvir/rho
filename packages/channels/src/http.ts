@@ -1,4 +1,4 @@
-import { channelMessages, messageText } from "./message.ts";
+import { messageText } from "./message.ts";
 import type {
 	Channel,
 	ChannelContext,
@@ -14,59 +14,70 @@ export interface SseStream {
 
 export class HttpChannel implements Channel {
 	readonly kind = "http";
-	private readonly streams = new Map<string, SseStream>();
 
-	constructor(readonly id = "http") {}
-
-	attach(streamId: string, stream: SseStream): void {
-		this.streams.set(streamId, stream);
-	}
-
-	detach(streamId: string): void {
-		this.streams.delete(streamId);
-	}
+	constructor(
+		readonly id = "http",
+		private readonly stream: SseStream = new ConsoleSseStream(),
+	) {}
 
 	async start(_context: ChannelContext): Promise<void> {}
 
 	async stop(): Promise<void> {
-		for (const stream of this.streams.values()) {
-			stream.close();
-		}
-		this.streams.clear();
+		this.stream.close();
 	}
 
 	async send(output: ChannelOutput): Promise<SendReceipt> {
-		let receipt: SendReceipt | undefined;
-		for await (const message of channelMessages(output)) {
-			receipt = await this.sendMessage(message);
-			if (!receipt.ok) return receipt;
-		}
-
-		return receipt ?? { ok: false, retryable: false, error: "Missing HTTP message", raw: null };
+		return isMessageStream(output) ? this.sendStream(output) : this.sendMessage(output);
 	}
 
 	private async sendMessage(message: ChannelMessage): Promise<SendReceipt> {
-		if (!message.streamId) {
-			return { ok: false, retryable: false, error: "Missing HTTP stream id", raw: null };
-		}
-
-		const stream = this.streams.get(message.streamId);
-		if (!stream) {
-			return {
-				ok: false,
-				retryable: false,
-				error: `Unknown HTTP stream: ${message.streamId}`,
-				raw: null,
-			};
-		}
-
 		const text = messageText(message);
-		stream.event("message.started", { replyTo: message.replyTo });
-		stream.event("message.delta", { text });
-		stream.event("message.completed", { text });
-		stream.close();
-		this.detach(message.streamId);
+		this.stream.event("message.started", { replyTo: message.replyTo });
+		this.stream.event("message.delta", { text });
+		this.stream.event("message.completed", { text });
+		this.stream.close();
 
 		return { ok: true, messageId: message.id, raw: null };
 	}
+
+	private async sendStream(messages: AsyncIterable<ChannelMessage>): Promise<SendReceipt> {
+		let messageId: string | undefined;
+		let text = "";
+		let started = false;
+
+		for await (const message of messages) {
+			if (!started) {
+				this.stream.event("message.started", { replyTo: message.replyTo });
+				started = true;
+			}
+
+			messageId = message.id;
+			const delta = messageText(message);
+			text += delta;
+			this.stream.event("message.delta", { text: delta });
+		}
+
+		if (!messageId) {
+			return { ok: false, retryable: false, error: "Missing HTTP message", raw: null };
+		}
+
+		this.stream.event("message.completed", { text });
+		this.stream.close();
+
+		return { ok: true, messageId, raw: null };
+	}
+}
+
+class ConsoleSseStream implements SseStream {
+	event(name: string, data: Record<string, unknown>): void {
+		console.log(`event: ${name}`);
+		console.log(`data: ${JSON.stringify(data)}`);
+		console.log();
+	}
+
+	close(): void {}
+}
+
+function isMessageStream(output: ChannelOutput): output is AsyncIterable<ChannelMessage> {
+	return Symbol.asyncIterator in output;
 }

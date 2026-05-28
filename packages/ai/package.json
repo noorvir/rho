@@ -22,7 +22,8 @@
 		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
 	},
 	"dependencies": {
-		"@earendil-works/pi-ai": "^0.74.0"
+		"@earendil-works/pi-agent-core": "^0.75.5",
+		"@earendil-works/pi-ai": "^0.75.5"
 	},
 	"keywords": [
 		"ai",

@@ -10,10 +10,10 @@ export interface ChannelRuntimeOptions {
 export class ChannelRuntime {
 	private readonly abortController = new AbortController();
 	private readonly channels = new Map<string, Channel>();
-	private readonly handle: ChannelHandler;
+	private readonly handler: ChannelHandler;
 
 	constructor(options: ChannelRuntimeOptions) {
-		this.handle = options.handle;
+		this.handler = options.handle;
 		for (const channel of options.channels) {
 			this.channels.set(channel.id, channel);
 		}
@@ -44,12 +44,17 @@ export class ChannelRuntime {
 		}
 	}
 
+	async handle(message: ChannelMessage): Promise<ChannelOutput> {
+		return this.handler(message);
+	}
+
 	async receive(message: ChannelMessage): Promise<SendReceipt> {
 		const channel = this.channels.get(message.channelId);
 		if (!channel) {
 			throw new Error(`Unknown channel: ${message.channelId}`);
 		}
 
-		return channel.send(await this.handle(message));
+		const output = await this.handle(message);
+		return channel.send(output);
 	}
 }

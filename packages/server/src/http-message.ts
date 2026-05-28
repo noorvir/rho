@@ -16,7 +16,7 @@ export function validateHttpMessage(value: unknown): HttpMessageInput {
 	return { conversationId, sender, text };
 }
 
-export function messageFromHttp(input: HttpMessageInput, streamId: string): ChannelMessage {
+export function messageFromHttp(input: HttpMessageInput): ChannelMessage {
 	return {
 		id: `msg:${crypto.randomUUID()}`,
 		channelId: "http",
@@ -24,7 +24,6 @@ export function messageFromHttp(input: HttpMessageInput, streamId: string): Chan
 		from: input.sender,
 		content: [{ type: "text", text: input.text }],
 		timestamp: new Date(),
-		streamId,
 		replyTo: null,
 		attachments: [],
 		metadata: {},

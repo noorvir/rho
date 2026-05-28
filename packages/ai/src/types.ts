@@ -1,13 +1,17 @@
+import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
+import type { ImageContent, TextContent } from "@earendil-works/pi-ai";
+
 export interface AgentInput {
-	text: string;
-	timestamp: Date;
+	messages: AgentMessage[];
+	signal: AbortSignal;
 }
 
-export interface AgentReply {
-	text: string;
-	raw?: unknown;
+export interface AgentEventStream extends AsyncIterable<AgentEvent> {
+	result(): Promise<AgentMessage[]>;
 }
 
 export interface Agent {
-	reply(input: AgentInput): Promise<AgentReply>;
+	respond(input: AgentInput): AgentEventStream;
 }
+
+export type RhoContent = TextContent | ImageContent;

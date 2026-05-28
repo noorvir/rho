@@ -26,7 +26,6 @@ export interface ChannelMessage {
 	from: ChannelParticipant;
 	content: ChannelContent[];
 	timestamp: Date;
-	streamId: string | null;
 	replyTo: MessageId | null;
 	attachments: Attachment[];
 	metadata: Record<string, unknown>;
