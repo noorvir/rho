@@ -7,6 +7,5 @@
 		"tsBuildInfoFile": "./.tsbuildinfo"
 	},
 	"include": ["src/**/*.ts"],
-	"exclude": ["node_modules", "dist"],
-	"references": [{ "path": "../channels" }, { "path": "../ai" }, { "path": "../lib" }]
+	"exclude": ["node_modules", "dist"]
 }

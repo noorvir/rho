@@ -7,7 +7,9 @@ export interface HttpMessageInput {
 }
 
 export function validateHttpMessage(value: unknown): HttpMessageInput {
-	if (!isRecord(value)) throw new Error("Request body must be an object");
+	if (!isRecord(value)) {
+		throw new Error("Request body must be an object");
+	}
 
 	const conversationId = readString(value.conversationId, "conversationId");
 	const text = readString(value.text, "text");
@@ -32,7 +34,10 @@ export function messageFromHttp(input: HttpMessageInput): ChannelMessage {
 }
 
 function readSender(value: unknown): ChannelParticipant {
-	if (!isRecord(value)) throw new Error("sender must be an object");
+	if (!isRecord(value)) {
+		throw new Error("sender must be an object");
+	}
+
 	return {
 		id: readString(value.id, "sender.id"),
 		role: "user",

@@ -1,3 +1,4 @@
+import { loadConversation, type StateManager } from "@rho/ai";
 import {
 	type ChannelMessage,
 	type ChannelOutput,
@@ -6,6 +7,7 @@ import {
 	messageText,
 	type SseStream,
 } from "@rho/channels";
+import { tc, wrapError } from "@rho/lib";
 import { type Context, Hono } from "hono";
 import type { ChannelRegistry } from "./channel-registry.ts";
 import { messageFromHttp, validateHttpMessage } from "./http-message.ts";
@@ -16,6 +18,7 @@ export interface ServerDeps {
 	httpChannel: HttpChannel;
 	channels: ChannelRegistry;
 	files: RegistrySource;
+	state: StateManager;
 }
 
 export function createServer(deps: ServerDeps): Hono {
@@ -23,22 +26,43 @@ export function createServer(deps: ServerDeps): Hono {
 
 	app.get("/health", (context) => context.json({ ok: true }));
 	app.post("/reload", async (context) => context.json(await reload(deps)));
+	app.get("/agent/conversations/:id/messages", async (context) => messages(context, deps));
 	app.post("/agent/messages", async (context) => handleAgentMessage(context, deps));
 	app.post("/agent/messages:stream", async (context) => handleAgentMessageStream(context, deps));
 
 	return app;
 }
 
-async function handleAgentMessage(context: Context, deps: ServerDeps): Promise<Response> {
-	try {
-		const input = validateHttpMessage(await context.req.json());
-		const output = await deps.runtime.handle(messageFromHttp(input));
-		const message = await collectMessage(output);
-
-		return context.json({ message });
-	} catch (error) {
-		return context.json({ error: errorMessage(error) }, 400);
+async function messages(context: Context, deps: ServerDeps): Promise<Response> {
+	const id = context.req.param("id");
+	if (!id) {
+		return context.json({ error: "conversation id is required" }, 400);
 	}
+
+	const result = await tc(loadConversation(deps.state, conversationKey(id)));
+	if (result.error) {
+		return context.json({ error: wrapError(result.error, "Failed to load messages").message }, 400);
+	}
+
+	return context.json(result.data);
+}
+
+async function handleAgentMessage(context: Context, deps: ServerDeps): Promise<Response> {
+	const result = await tc(
+		(async () => {
+			const input = validateHttpMessage(await context.req.json());
+			const output = await deps.runtime.handle(messageFromHttp(input));
+			return collectMessage(output);
+		})(),
+	);
+	if (result.error) {
+		return context.json(
+			{ error: wrapError(result.error, "Failed to handle message").message },
+			400,
+		);
+	}
+
+	return context.json({ message: result.data });
 }
 
 async function handleAgentMessageStream(context: Context, deps: ServerDeps): Promise<Response> {
@@ -93,7 +117,9 @@ function createSseStream(): ServerSseStream {
 }
 
 async function collectMessage(output: ChannelOutput): Promise<ChannelMessage> {
-	if (!isMessageStream(output)) return output;
+	if (!isMessageStream(output)) {
+		return output;
+	}
 
 	let firstMessage: ChannelMessage | undefined;
 	let lastMessage: ChannelMessage | undefined;
@@ -118,6 +144,10 @@ async function collectMessage(output: ChannelOutput): Promise<ChannelMessage> {
 
 function isMessageStream(output: ChannelOutput): output is AsyncIterable<ChannelMessage> {
 	return Symbol.asyncIterator in output;
+}
+
+function conversationKey(conversationId: string): string {
+	return `http:conversation:${conversationId}`;
 }
 
 function errorMessage(error: unknown): string {

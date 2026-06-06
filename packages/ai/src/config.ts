@@ -46,7 +46,9 @@ function resolveModel(
 ): Model<Api> | undefined {
 	if (provider && modelId) {
 		const configured = modelRegistry.find(provider, modelId);
-		if (configured) return configured;
+		if (configured) {
+			return configured;
+		}
 	}
 
 	return modelRegistry.getAvailable()[0];

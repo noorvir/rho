@@ -9,7 +9,10 @@ export function agentEventTextDelta(event: AgentEvent): string | undefined {
 
 export function lastUserText(context: Context): string | undefined {
 	const message = [...context.messages].reverse().find((candidate) => candidate.role === "user");
-	if (!message || message.role !== "user") return undefined;
+	if (!message || message.role !== "user") {
+		return undefined;
+	}
+
 	return typeof message.content === "string"
 		? message.content
 		: message.content

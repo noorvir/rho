@@ -1,6 +1,7 @@
 {
 	"files": [],
 	"references": [
+		{ "path": "./packages/lib" },
 		{ "path": "./packages/channels" },
 		{ "path": "./packages/ai" },
 		{ "path": "./packages/server" },

@@ -31,6 +31,9 @@ struct ChatSheetView: View {
             Spacer(minLength: 0)
         }
         .background(Color.white.ignoresSafeArea())
+        .task {
+            await loadHistory()
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             AgentInput(draft: $draft, isSending: isSending) {
                 sendDraft()
@@ -49,6 +52,21 @@ struct ChatSheetView: View {
                     endPoint: .bottom
                 )
                 .ignoresSafeArea()
+            }
+        }
+    }
+
+    private func loadHistory() async {
+        do {
+            let history = try await chatClient.history()
+            await MainActor.run {
+                messages = history.messages.map { message in
+                    ChatMessage(role: message.role.chatRole, text: message.text)
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorText = error.localizedDescription
             }
         }
     }
@@ -214,13 +232,25 @@ private enum ChatEvent {
 }
 
 private final class ChatClient {
-    private let endpoint = URL(string: "http://127.0.0.1:7331/agent/messages:stream")!
+    private let streamEndpoint = URL(string: "http://127.0.0.1:7331/agent/messages:stream")!
+    private let historyEndpoint = URL(string: "http://127.0.0.1:7331/agent/conversations/mobile-chat/messages")!
+
+    func history() async throws -> ChatHistory {
+        let (data, response) = try await URLSession.shared.data(from: historyEndpoint)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode)
+        else {
+            throw URLError(.badServerResponse)
+        }
+
+        return try JSONDecoder().decode(ChatHistory.self, from: data)
+    }
 
     func send(text: String) -> AsyncThrowingStream<ChatEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    var request = URLRequest(url: endpoint)
+                    var request = URLRequest(url: streamEndpoint)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     request.httpBody = try JSONEncoder().encode(ChatRequest(text: text))
@@ -232,23 +262,28 @@ private final class ChatClient {
                         throw URLError(.badServerResponse)
                     }
 
-                    var buffer = ""
+                    var eventName: String?
+                    var dataLines: [String] = []
 
-                    for try await byte in bytes {
-                        guard let scalar = UnicodeScalar(Int(byte)) else { continue }
-                        buffer.unicodeScalars.append(scalar)
-
-                        while let range = eventSeparator(in: buffer) {
-                            let block = String(buffer[..<range.lowerBound])
-                            buffer.removeSubrange(..<range.upperBound)
-
-                            if let event = parseEvent(block) {
+                    for try await line in bytes.lines {
+                        let line = line.trimmingCharacters(in: .newlines)
+                        if line.isEmpty {
+                            if let event = parseEvent(name: eventName, data: dataLines.joined(separator: "\n")) {
                                 continuation.yield(event)
                             }
+                            eventName = nil
+                            dataLines.removeAll(keepingCapacity: true)
+                            continue
+                        }
+
+                        if line.hasPrefix("event: ") {
+                            eventName = String(line.dropFirst(7))
+                        } else if line.hasPrefix("data: ") {
+                            dataLines.append(String(line.dropFirst(6)))
                         }
                     }
 
-                    if let event = parseEvent(buffer) {
+                    if let event = parseEvent(name: eventName, data: dataLines.joined(separator: "\n")) {
                         continuation.yield(event)
                     }
 
@@ -262,41 +297,56 @@ private final class ChatClient {
         }
     }
 
-    private func parseEvent(_ block: String) -> ChatEvent? {
-        let lines = block
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { $0.trimmingCharacters(in: .newlines) }
-        let eventName = lines.first { $0.hasPrefix("event: ") }?.dropFirst(7)
-        let data = lines
-            .filter { $0.hasPrefix("data: ") }
-            .map { String($0.dropFirst(6)) }
-            .joined(separator: "\n")
-
-        switch eventName {
+    private func parseEvent(name: String?, data: String) -> ChatEvent? {
+        switch name {
         case "message.started":
             return .started
         case "message.delta":
-            return .delta(decode(data, field: "text") ?? "")
+            return .delta(decode(TextPayload.self, from: data)?.text ?? "")
         case "message.completed":
-            return .completed(decode(data, field: "text") ?? "")
+            return .completed(decode(TextPayload.self, from: data)?.text ?? "")
         case "message.error":
-            return .error(decode(data, field: "error") ?? "Unknown server error")
+            return .error(decode(ErrorPayload.self, from: data)?.error ?? "Unknown server error")
         default:
             return nil
         }
     }
 
-    private func eventSeparator(in buffer: String) -> Range<String.Index>? {
-        buffer.range(of: "\n\n") ?? buffer.range(of: "\r\n\r\n")
+    private func decode<T: Decodable>(_ type: T.Type, from data: String) -> T? {
+        guard let jsonData = data.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(type, from: jsonData)
+    }
+}
+
+private struct TextPayload: Decodable {
+    let text: String
+}
+
+private struct ErrorPayload: Decodable {
+    let error: String
+}
+
+private struct ChatHistory: Decodable {
+    let messages: [ChatHistoryMessage]
+}
+
+private struct ChatHistoryMessage: Decodable {
+    enum Role: String, Decodable {
+        case user
+        case assistant
+
+        var chatRole: ChatMessage.Role {
+            switch self {
+            case .user:
+                return .user
+            case .assistant:
+                return .assistant
+            }
+        }
     }
 
-    private func decode(_ data: String, field: String) -> String? {
-        guard let jsonData = data.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
-        else { return nil }
-
-        return object[field] as? String
-    }
+    let role: Role
+    let text: String
 }
 
 private struct ChatRequest: Encodable {

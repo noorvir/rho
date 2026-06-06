@@ -23,4 +23,5 @@ packages/*/dist/
 *.swo
 
 .agent/current.md
+.agent/research/
 .pi-review

@@ -35,6 +35,10 @@
         "@rho/channels": "workspace:*",
       },
     },
+    "packages/lib": {
+      "name": "@rho/lib",
+      "version": "0.0.0",
+    },
     "packages/server": {
       "name": "@rho/server",
       "version": "0.0.0",
@@ -45,6 +49,7 @@
         "@hono/node-server": "^1.14.4",
         "@rho/ai": "0.0.0",
         "@rho/channels": "0.0.0",
+        "@rho/lib": "0.0.0",
         "hono": "^4.7.11",
       },
     },
@@ -185,6 +190,8 @@
     "@rho/channels": ["@rho/channels@workspace:packages/channels"],
 
     "@rho/cli": ["@rho/cli@workspace:packages/cli"],
+
+    "@rho/lib": ["@rho/lib@workspace:packages/lib"],
 
     "@rho/server": ["@rho/server@workspace:packages/server"],
 
