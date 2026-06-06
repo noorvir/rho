@@ -74,6 +74,7 @@ async function runConversation(
 	await resourceLoader.reload();
 
 	const { session } = await createAgentSession({
+		agentDir,
 		sessionManager,
 		settingsManager,
 		resourceLoader,
