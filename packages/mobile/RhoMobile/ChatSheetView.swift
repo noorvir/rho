@@ -239,19 +239,21 @@ private final class ChatClient {
     #endif
 
     private var streamEndpoint: URL {
-        baseURL.appending(path: "agent/messages:stream")
+        baseURL.appendingPathComponent("agent/messages:stream")
     }
 
     private var historyEndpoint: URL {
-        baseURL.appending(path: "agent/conversations/mobile-chat/messages")
+        baseURL.appendingPathComponent("agent/conversations/mobile-chat/messages")
     }
 
     func history() async throws -> ChatHistory {
         let (data, response) = try await URLSession.shared.data(for: request(url: historyEndpoint))
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200..<300).contains(httpResponse.statusCode)
-        else {
-            throw URLError(.badServerResponse)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ChatClientError.server("No HTTP response from \(historyEndpoint.absoluteString)")
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            throw ChatClientError.server("History failed with HTTP \(httpResponse.statusCode): \(body)")
         }
 
         return try JSONDecoder().decode(ChatHistory.self, from: data)
@@ -267,10 +269,11 @@ private final class ChatClient {
                     request.httpBody = try JSONEncoder().encode(ChatRequest(text: text))
 
                     let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                    guard let httpResponse = response as? HTTPURLResponse,
-                          (200..<300).contains(httpResponse.statusCode)
-                    else {
-                        throw URLError(.badServerResponse)
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw ChatClientError.server("No HTTP response from \(streamEndpoint.absoluteString)")
+                    }
+                    guard (200..<300).contains(httpResponse.statusCode) else {
+                        throw ChatClientError.server("Stream failed with HTTP \(httpResponse.statusCode) at \(streamEndpoint.absoluteString)")
                     }
 
                     var eventName: String?
@@ -310,10 +313,13 @@ private final class ChatClient {
 
     private func request(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        if let apiSecret = Bundle.main.object(forInfoDictionaryKey: "RHO_API_SECRET") as? String,
-           !apiSecret.isEmpty {
-            request.setValue("Bearer \(apiSecret)", forHTTPHeaderField: "Authorization")
+        guard let apiSecret = Bundle.main.object(forInfoDictionaryKey: "RHO_API_SECRET") as? String,
+              !apiSecret.isEmpty
+        else {
+            return request
         }
+
+        request.setValue("Bearer \(apiSecret)", forHTTPHeaderField: "Authorization")
         return request
     }
 
@@ -344,6 +350,17 @@ private struct TextPayload: Decodable {
 
 private struct ErrorPayload: Decodable {
     let error: String
+}
+
+private enum ChatClientError: LocalizedError {
+    case server(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .server(let message):
+            return message
+        }
+    }
 }
 
 private struct ChatHistory: Decodable {
