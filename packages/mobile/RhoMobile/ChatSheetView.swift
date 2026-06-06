@@ -232,11 +232,7 @@ private enum ChatEvent {
 }
 
 private final class ChatClient {
-    #if targetEnvironment(simulator)
-    private let baseURL = URL(string: "http://127.0.0.1:7331")!
-    #else
-    private let baseURL = URL(string: "https://rho-server-production.up.railway.app")!
-    #endif
+    private let baseURL = MobileBuildInfo.chatBaseURL
 
     private var streamEndpoint: URL {
         baseURL.appendingPathComponent("agent/messages:stream")

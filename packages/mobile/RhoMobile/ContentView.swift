@@ -60,7 +60,7 @@ private struct RootScreenView: View {
         case .search:
             PlaceholderScreen(title: "Search", subtitle: "Find apps, sessions, and saved work")
         case .settings:
-            PlaceholderScreen(title: "Settings", subtitle: "Configurable rho preferences")
+            SettingsScreen()
         }
     }
 }
@@ -85,6 +85,47 @@ private struct PlaceholderScreen: View {
         .padding(.horizontal, 24)
         .padding(.top, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct SettingsScreen: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Settings")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(maxWidth: .infinity)
+
+            VStack(alignment: .leading, spacing: 12) {
+                SettingsRow(label: "Chat environment", value: MobileBuildInfo.chatEnvironment)
+                SettingsRow(label: "Chat endpoint", value: MobileBuildInfo.chatBaseURL.absoluteString)
+                SettingsRow(label: "Version", value: MobileBuildInfo.version)
+                SettingsRow(label: "Bundle", value: MobileBuildInfo.bundleIdentifier)
+            }
+            .padding(16)
+            .background(Color.black.opacity(0.035), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct SettingsRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+        }
     }
 }
 
