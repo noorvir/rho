@@ -232,7 +232,6 @@ private enum ChatEvent {
 }
 
 private final class ChatClient {
-    private let apiSecret = "rho-mobile-dev"
     private let streamEndpoint = URL(string: "https://rho-server-production.up.railway.app/agent/messages:stream")!
     private let historyEndpoint = URL(string: "https://rho-server-production.up.railway.app/agent/conversations/mobile-chat/messages")!
 
@@ -300,7 +299,10 @@ private final class ChatClient {
 
     private func request(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        request.setValue("Bearer \(apiSecret)", forHTTPHeaderField: "Authorization")
+        if let apiSecret = Bundle.main.object(forInfoDictionaryKey: "RHO_API_SECRET") as? String,
+           !apiSecret.isEmpty {
+            request.setValue("Bearer \(apiSecret)", forHTTPHeaderField: "Authorization")
+        }
         return request
     }
 

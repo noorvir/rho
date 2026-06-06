@@ -1,2 +1,3 @@
-// Copy this file to Signing.local.xcconfig and set your Apple development team.
+// Copy this file to Signing.local.xcconfig and set local-only mobile settings.
 DEVELOPMENT_TEAM = 
+RHO_API_SECRET = 
