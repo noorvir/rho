@@ -20,7 +20,7 @@ export class FileStateManager implements StateManager {
 
 	constructor(options: FileStateManagerOptions = {}) {
 		this.cwd = options.cwd ?? process.cwd();
-		this.rootDir = options.rootDir ?? join(getAgentDir(), "rho-state");
+		this.rootDir = options.rootDir ?? process.env.RHO_STATE_DIR ?? join(getAgentDir(), "rho-state");
 		this.indexPath = join(this.rootDir, "conversations.json");
 		this.sessionsDir = join(this.rootDir, "sessions");
 	}

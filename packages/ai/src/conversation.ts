@@ -61,7 +61,7 @@ async function runConversation(
 	input: ConversationInput,
 	emit: (event: AgentEvent) => void,
 ): Promise<AgentMessage[]> {
-	const agentDir = getAgentDir();
+	const agentDir = process.env.RHO_AGENT_DIR ?? getAgentDir();
 	const conversation = await input.state.resolve(input.key);
 	const sessionManager = SessionManager.open(conversation.sessionFile);
 	const settingsManager = SettingsManager.create(process.cwd(), agentDir);

@@ -14,7 +14,7 @@ export interface RhoAgentConfigOptions {
 
 export async function createRhoAgent(options: RhoAgentConfigOptions = {}): Promise<RhoAgent> {
 	const cwd = options.cwd ?? process.cwd();
-	const agentDir = options.agentDir ?? getAgentDir();
+	const agentDir = options.agentDir ?? process.env.RHO_AGENT_DIR ?? getAgentDir();
 	const authStorage = AuthStorage.create(`${agentDir}/auth.json`);
 	const modelRegistry = ModelRegistry.create(authStorage, `${agentDir}/models.json`);
 	const settings = SettingsManager.create(cwd, agentDir);
