@@ -21,6 +21,8 @@ packages/*/dist/
 .zed/
 *.swp
 *.swo
+**/xcuserdata/
+**/*.xcuserstate
 
 .agent/current.md
 .agent/research/
