@@ -23,6 +23,7 @@ packages/*/dist/
 *.swo
 **/xcuserdata/
 **/*.xcuserstate
+packages/mobile/Config/Signing.local.xcconfig
 
 .agent/current.md
 .agent/research/
