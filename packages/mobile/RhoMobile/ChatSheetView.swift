@@ -232,8 +232,19 @@ private enum ChatEvent {
 }
 
 private final class ChatClient {
-    private let streamEndpoint = URL(string: "https://rho-server-production.up.railway.app/agent/messages:stream")!
-    private let historyEndpoint = URL(string: "https://rho-server-production.up.railway.app/agent/conversations/mobile-chat/messages")!
+    #if targetEnvironment(simulator)
+    private let baseURL = URL(string: "http://127.0.0.1:7331")!
+    #else
+    private let baseURL = URL(string: "https://rho-server-production.up.railway.app")!
+    #endif
+
+    private var streamEndpoint: URL {
+        baseURL.appending(path: "agent/messages:stream")
+    }
+
+    private var historyEndpoint: URL {
+        baseURL.appending(path: "agent/conversations/mobile-chat/messages")
+    }
 
     func history() async throws -> ChatHistory {
         let (data, response) = try await URLSession.shared.data(for: request(url: historyEndpoint))
