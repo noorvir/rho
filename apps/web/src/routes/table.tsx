@@ -1,31 +1,36 @@
 import {
 	IconAdjustmentsHorizontal,
 	IconBookmark,
-	IconCalendar,
 	IconChevronDown,
 	IconFilter,
 	IconLink,
-	IconMinus,
-	IconTrendingDown,
-	IconTrendingUp,
 	IconX,
 } from "@tabler/icons-react";
+import type { ColumnDef } from "@tanstack/react-table";
 import type { ReactNode } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+	ChipSeparator,
+	DataTable,
+	DataTableChip,
+	DataTableControls,
+	DataTableRail,
+	DataTableScroll,
+	DataTableSelectCell,
+	DataTableSelectHeader,
+	DataTableSurface,
+	DataTableToolbar,
+	DateCell,
+	HealthValue,
+	OwnerAvatar,
+	StatusLabel,
+	type StatusTone,
+	Trend,
+} from "@/components/data-table";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
 
-interface Row {
+interface CustomerRow {
 	company: string;
 	plan: string;
 	region: string;
@@ -39,7 +44,7 @@ interface Row {
 	renewal: string;
 }
 
-const rows: Row[] = [
+const rows: CustomerRow[] = [
 	{
 		company: "Pinnacle Ventures AI",
 		plan: "Starter",
@@ -224,11 +229,128 @@ const ownerColors: Record<string, string> = {
 	"Priya Shah": "bg-sky-500",
 };
 
+const columns: ColumnDef<CustomerRow>[] = [
+	{
+		id: "select",
+		header: ({ table }) => <DataTableSelectHeader table={table} />,
+		cell: ({ row }) => <DataTableSelectCell row={row} />,
+		enableHiding: false,
+		enableSorting: false,
+		size: 40,
+		meta: {
+			cellClassName: "px-4",
+			headClassName: "w-10 px-4 text-muted-foreground",
+		},
+	},
+	{
+		accessorKey: "company",
+		header: "Company",
+		size: 220,
+		meta: {
+			cellClassName: "separator-r px-3 font-medium",
+			headClassName: "separator-r px-3 text-muted-foreground",
+		},
+	},
+	{
+		accessorKey: "plan",
+		header: "Plan",
+		size: 128,
+		meta: { cellClassName: "px-3", headClassName: "px-3 text-muted-foreground" },
+	},
+	{
+		accessorKey: "region",
+		header: "Region",
+		size: 112,
+		meta: { cellClassName: "px-3", headClassName: "px-3 text-muted-foreground" },
+	},
+	{
+		accessorKey: "seats",
+		header: "Seats",
+		size: 96,
+		meta: { cellClassName: "px-3", headClassName: "px-3 text-muted-foreground" },
+	},
+	{
+		accessorKey: "status",
+		header: "Status",
+		cell: ({ row }) => (
+			<StatusLabel tone={statusTone(row.original.status)}>{row.original.status}</StatusLabel>
+		),
+		size: 128,
+		meta: { cellClassName: "px-3", headClassName: "px-3 text-muted-foreground" },
+	},
+	{
+		accessorKey: "owner",
+		header: "Responsible",
+		cell: ({ row }) => (
+			<OwnerAvatar
+				className={ownerColors[row.original.owner]}
+				initials={row.original.initials}
+				name={row.original.owner}
+			/>
+		),
+		size: 192,
+		meta: { cellClassName: "px-3", headClassName: "px-3 text-muted-foreground" },
+	},
+	{
+		accessorKey: "health",
+		header: "Health",
+		cell: ({ row }) => <HealthValue value={row.original.health} />,
+		size: 128,
+		meta: { cellClassName: "px-3", headClassName: "px-3 text-muted-foreground" },
+	},
+	{
+		accessorKey: "revenue",
+		header: "Revenue",
+		size: 128,
+		meta: {
+			cellClassName: "px-3 font-semibold",
+			headClassName: "px-3 text-muted-foreground",
+		},
+	},
+	{
+		accessorKey: "trend",
+		header: "↓",
+		cell: ({ row }) => <Trend trend={row.original.trend} />,
+		size: 48,
+		meta: {
+			cellClassName: "px-3 text-muted-foreground",
+			headClassName: "px-3 text-muted-foreground",
+		},
+	},
+	{
+		accessorKey: "renewal",
+		header: "Renewal",
+		cell: ({ row }) => <DateCell>{row.original.renewal}</DateCell>,
+		size: 176,
+		meta: { cellClassName: "px-3", headClassName: "px-3 text-muted-foreground" },
+	},
+	{
+		id: "tags",
+		header: "Tags",
+		cell: () => "—",
+		size: 144,
+		meta: {
+			cellClassName: "px-3 text-muted-foreground",
+			headClassName: "px-3 text-muted-foreground",
+		},
+	},
+	{
+		id: "contact",
+		header: "Contact",
+		cell: () => "—",
+		size: 160,
+		meta: {
+			cellClassName: "px-3 text-muted-foreground",
+			headClassName: "px-3 text-muted-foreground",
+		},
+	},
+];
+
 export function TablePage() {
 	return (
 		<div className="h-dvh bg-background p-3 text-foreground">
-			<section className="reference-table relative flex h-full flex-col overflow-hidden bg-card shadow-sm shadow-foreground/5">
-				<header className="flex h-14 items-center justify-between gap-3 px-4">
+			<DataTableSurface className="reference-table-wide h-full">
+				<DataTableToolbar>
 					<div className="flex items-center gap-3">
 						<Input
 							aria-label="Search"
@@ -241,74 +363,49 @@ export function TablePage() {
 						</Button>
 					</div>
 
-					<div className="flex items-center gap-2">
+					<DataTableControls>
 						<ToolButton icon={<IconBookmark className="size-3.5" />} label="Views" />
 						<ToolButton icon={<IconAdjustmentsHorizontal className="size-3.5" />} label="Display" />
 						<ToolButton icon={<IconLink className="size-3.5" />} label="" />
-					</div>
-				</header>
+					</DataTableControls>
+				</DataTableToolbar>
 
 				<Separator />
 
 				<div className="flex h-10 items-center px-4">
-					<div className="inline-flex h-7 items-center overflow-hidden rounded-md bg-card text-sm text-muted-foreground ring-1 ring-border">
+					<DataTableChip>
 						<span className="px-2">Ordered by</span>
-						<Separator className="h-full" orientation="vertical" />
+						<ChipSeparator />
 						<span className="px-2 font-medium text-foreground">Revenue</span>
-						<Separator className="h-full" orientation="vertical" />
+						<ChipSeparator />
 						<button className="inline-flex h-full items-center gap-1 px-2" type="button">
 							Descending
 							<IconChevronDown className="size-3.5" />
 						</button>
-						<Separator className="h-full" orientation="vertical" />
+						<ChipSeparator />
 						<button className="inline-flex size-7 items-center justify-center" type="button">
 							<IconX className="size-3.5" />
 						</button>
-					</div>
+					</DataTableChip>
 				</div>
 
 				<Separator />
 
 				<div className="flex min-h-0 flex-1">
-					<div className="scrollbar-thin min-w-0 flex-1 overflow-auto overscroll-contain">
-						<Table className="w-[108rem] table-fixed border-collapse text-sm">
-							<TableHeader className="sticky top-0 z-10 bg-card text-muted-foreground">
-								<TableRow className="h-12 hover:bg-transparent">
-									<TableHead className="w-10 px-4 text-muted-foreground">
-										<SelectBox />
-									</TableHead>
-									<TableHead className="w-56 separator-r px-3 text-muted-foreground">
-										Company
-									</TableHead>
-									<TableHead className="w-32 px-3 text-muted-foreground">Plan</TableHead>
-									<TableHead className="w-28 px-3 text-muted-foreground">Region</TableHead>
-									<TableHead className="w-24 px-3 text-muted-foreground">Seats</TableHead>
-									<TableHead className="w-32 px-3 text-muted-foreground">Status</TableHead>
-									<TableHead className="w-48 px-3 text-muted-foreground">Responsible</TableHead>
-									<TableHead className="w-32 px-3 text-muted-foreground">Health</TableHead>
-									<TableHead className="w-32 px-3 text-muted-foreground">Revenue</TableHead>
-									<TableHead className="w-12 px-3 text-muted-foreground">↓</TableHead>
-									<TableHead className="w-44 px-3 text-muted-foreground">Renewal</TableHead>
-									<TableHead className="w-36 px-3 text-muted-foreground">Tags</TableHead>
-									<TableHead className="w-40 px-3 text-muted-foreground">Contact</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{rows.map((row) => (
-									<DataRow key={row.company} row={row} />
-								))}
-								<GroupRow />
-							</TableBody>
-						</Table>
-					</div>
+					<DataTableScroll>
+						<DataTable
+							columns={columns}
+							data={rows}
+							headerClassName="sticky top-0 z-10 bg-card text-muted-foreground"
+							rowClassName="h-12"
+							tableClassName="w-[108rem] table-fixed border-collapse text-sm"
+						/>
+						<GroupRow />
+					</DataTableScroll>
 
-					<div className="separator-l relative w-6 shrink-0 bg-card">
-						<div className="absolute top-1/2 left-1/2 -translate-x-1/2 text-muted-foreground">
-							+
-						</div>
-					</div>
+					<DataTableRail />
 				</div>
-			</section>
+			</DataTableSurface>
 		</div>
 	);
 }
@@ -326,98 +423,24 @@ function ToolButton({ icon, label }: { icon: ReactNode; label: string }) {
 	);
 }
 
-function DataRow({ row }: { row: Row }) {
-	return (
-		<TableRow className="h-12">
-			<TableCell className="px-4">
-				<SelectBox />
-			</TableCell>
-			<TableCell className="separator-r px-3 font-medium">{row.company}</TableCell>
-			<TableCell className="px-3">{row.plan}</TableCell>
-			<TableCell className="px-3">{row.region}</TableCell>
-			<TableCell className="px-3">{row.seats}</TableCell>
-			<TableCell className="px-3">
-				<span className="inline-flex items-center gap-2">
-					<span className={`size-2 rounded-full ${statusColor(row.status)}`} />
-					{row.status}
-				</span>
-			</TableCell>
-			<TableCell className="px-3">
-				<span className="inline-flex items-center gap-2">
-					<Avatar className={ownerColors[row.owner]} size="sm">
-						<AvatarFallback className="bg-transparent text-[0.625rem] font-semibold text-white">
-							{row.initials}
-						</AvatarFallback>
-					</Avatar>
-					{row.owner}
-				</span>
-			</TableCell>
-			<TableCell className="px-3">
-				<span className="inline-flex items-center gap-2">
-					{row.health}
-					<span className={`size-2 rounded-full ${healthColor(row.health)}`} />
-				</span>
-			</TableCell>
-			<TableCell className="px-3 font-semibold">{row.revenue}</TableCell>
-			<TableCell className="px-3 text-muted-foreground">
-				<Trend trend={row.trend} />
-			</TableCell>
-			<TableCell className="px-3">
-				<span className="inline-flex items-center gap-2">
-					<IconCalendar className="size-3.5 text-muted-foreground" />
-					{row.renewal}
-				</span>
-			</TableCell>
-			<TableCell className="px-3 text-muted-foreground">—</TableCell>
-			<TableCell className="px-3 text-muted-foreground">—</TableCell>
-		</TableRow>
-	);
-}
-
 function GroupRow() {
 	return (
-		<TableRow className="h-12 font-semibold hover:bg-transparent">
-			<TableCell className="px-4 text-muted-foreground">⌄</TableCell>
-			<TableCell className="separator-r px-3">
+		<div className="grid h-12 w-[108rem] grid-cols-[2.5rem_13.75rem_1fr] items-center border-b text-sm font-semibold">
+			<div className="px-4 text-muted-foreground">⌄</div>
+			<div className="separator-r px-3">
 				Team <span className="font-normal text-muted-foreground">28</span>
-			</TableCell>
-			<TableCell colSpan={11} />
-		</TableRow>
+			</div>
+			<div />
+		</div>
 	);
 }
 
-function SelectBox() {
-	return (
-		<Checkbox className="border-green-500 data-checked:border-green-600 data-checked:bg-green-600" />
-	);
-}
-
-function Trend({ trend }: { trend: Row["trend"] }) {
-	if (trend === "up") {
-		return <IconTrendingUp className="size-3.5 text-emerald-600" />;
-	}
-	if (trend === "down") {
-		return <IconTrendingDown className="size-3.5 text-red-500" />;
-	}
-	return <IconMinus className="size-3.5" />;
-}
-
-function statusColor(status: Row["status"]): string {
+function statusTone(status: CustomerRow["status"]): StatusTone {
 	if (status === "Active") {
-		return "bg-emerald-500";
+		return "active";
 	}
 	if (status === "At risk") {
-		return "bg-red-500";
+		return "danger";
 	}
-	return "bg-violet-500";
-}
-
-function healthColor(health: number): string {
-	if (health >= 80) {
-		return "bg-sky-500";
-	}
-	if (health > 50) {
-		return "bg-amber-500";
-	}
-	return "bg-red-500";
+	return "trial";
 }

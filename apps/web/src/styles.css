@@ -267,7 +267,7 @@ body {
 		border-color: var(--rho-separator-soft);
 	}
 
-	.reference-table [data-slot="table-container"] {
+	.reference-table-wide [data-slot="table-container"] {
 		overflow: visible;
 		width: max-content;
 	}

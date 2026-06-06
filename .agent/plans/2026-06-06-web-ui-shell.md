@@ -21,18 +21,19 @@ Create two new React/TypeScript packages for rho:
 
 ## UI Package Intent
 
-The UI package should provide reusable primitives that make it easy for other people and AI agents to build components that render correctly inside rho.
+The UI package should provide reusable primitives that make it easy for other people and AI agents to build rho user extensions/apps that render correctly inside rho.
 
 It should own:
 
-- top-level app shell components
-- page/content layout primitives
-- basic reusable UI primitives needed by the first web app
-- WebView-safe sizing, scrolling, and responsive layout conventions
+- reusable components for user-built rho apps/extensions
+- content layout primitives that app authors can safely compose
+- WebView-safe sizing, scrolling, and responsive layout conventions for embedded app content
 - simple public types for rho app components
 
 It should not own:
 
+- `apps/web` shell-only components
+- the first-party web app design system
 - server API calls
 - oRPC client/server wiring
 - routing
@@ -80,6 +81,7 @@ Keep the first contract minimal. Do not add dynamic plugin loading, sandboxing, 
 - [x] Add TanStack Router web app entrypoint.
 - [x] Set up Tailwind CSS and shadcn in the Web package.
 - [x] Tune the initial theme for a tighter, squarer rho UI using Tailwind/shadcn CSS variables only.
+- [x] Add a TanStack-backed shadcn Data Table renderer, extract reusable status/avatar/trend primitives from the reference table exercise, and apply them to the dashboard.
 - [ ] Add typed server/Web API wiring with oRPC.
 - [ ] Add a first web chat surface using existing server APIs.
 - [ ] Add a small sample app/content render path to validate the UI contract.

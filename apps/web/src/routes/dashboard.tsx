@@ -5,6 +5,18 @@ import {
 	IconCode,
 	IconSettings,
 } from "@tabler/icons-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import type { ReactNode } from "react";
+import { DataTable, DataTableSurface, StatusLabel, type StatusTone } from "@/components/data-table";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+
+interface DashboardRow {
+	name: string;
+	status: string;
+	tone: StatusTone;
+	type: string;
+}
 
 const stats = [
 	{ label: "Apps", value: "0", icon: IconBox },
@@ -12,65 +24,108 @@ const stats = [
 	{ label: "Routes", value: "3", icon: IconCode },
 ];
 
-const rows = [
-	{ name: "Web shell", status: "Active", type: "First-party" },
-	{ name: "Chat rail", status: "Streaming", type: "Agent" },
-	{ name: "App surface", status: "Empty", type: "Content" },
+const rows: DashboardRow[] = [
+	{ name: "Web shell", status: "Active", tone: "active", type: "First-party" },
+	{ name: "Chat rail", status: "Streaming", tone: "trial", type: "Agent" },
+	{ name: "App surface", status: "Empty", tone: "neutral", type: "Content" },
+];
+
+const columns: ColumnDef<DashboardRow>[] = [
+	{
+		accessorKey: "name",
+		header: "Name",
+		size: 240,
+		meta: {
+			cellClassName: "px-2 font-medium",
+			headClassName: "px-2 text-muted-foreground",
+		},
+	},
+	{
+		accessorKey: "status",
+		header: "Status",
+		cell: ({ row }) => <StatusLabel tone={row.original.tone}>{row.original.status}</StatusLabel>,
+		size: 150,
+		meta: {
+			cellClassName: "px-2",
+			headClassName: "px-2 text-muted-foreground",
+		},
+	},
+	{
+		accessorKey: "type",
+		header: "Type",
+		size: 120,
+		meta: {
+			cellClassName: "px-2 text-muted-foreground",
+			headClassName: "px-2 text-muted-foreground",
+		},
+	},
+	{
+		id: "open",
+		cell: () => <IconChevronRight className="size-3.5" />,
+		enableHiding: false,
+		enableSorting: false,
+		size: 32,
+		meta: {
+			cellClassName: "px-2 text-muted-foreground",
+			headClassName: "px-2",
+		},
+	},
 ];
 
 export function Dashboard() {
 	return (
-		<section className="flex min-h-0 flex-1 flex-col border border-border bg-card shadow-sm shadow-foreground/5">
-			<header className="flex items-center justify-between border-b border-border px-3 py-2">
+		<DataTableSurface className="flex-1">
+			<header className="flex items-center justify-between px-3 py-2">
 				<div>
 					<p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
 						Admin
 					</p>
 					<h2 className="mt-1 text-sm font-semibold">Workspace</h2>
 				</div>
-				<a
-					className="inline-flex h-7 items-center gap-1 border border-border bg-background px-2 text-xs font-medium hover:bg-muted"
-					href="#settings"
-				>
-					<IconSettings className="size-3.5" />
-					Configure
-				</a>
+				<Button asChild className="h-7 gap-1 px-2 text-xs" variant="outline">
+					<a href="#settings">
+						<IconSettings className="size-3.5" />
+						Configure
+					</a>
+				</Button>
 			</header>
 
-			<div className="grid gap-2 border-b border-border p-2 sm:grid-cols-3">
+			<Separator />
+
+			<div className="grid gap-2 p-2 sm:grid-cols-3">
 				{stats.map((stat) => (
-					<div className="border border-border bg-background p-2" key={stat.label}>
-						<div className="flex items-center justify-between gap-2">
-							<p className="text-xs text-muted-foreground">{stat.label}</p>
-							<stat.icon className="size-3.5 text-muted-foreground" />
-						</div>
-						<p className="mt-2 text-xl font-semibold tracking-tight">{stat.value}</p>
-					</div>
+					<MetricCard
+						icon={<stat.icon className="size-3.5 text-muted-foreground" />}
+						key={stat.label}
+						label={stat.label}
+						value={stat.value}
+					/>
 				))}
 			</div>
 
-			<div className="min-h-0 flex-1 overflow-auto p-2">
-				<div className="min-w-[34rem] border border-border">
-					<div className="grid grid-cols-[1.4fr_0.8fr_0.8fr_2rem] border-b border-border bg-muted/60 px-2 py-1.5 text-xs font-medium text-muted-foreground">
-						<div>Name</div>
-						<div>Status</div>
-						<div>Type</div>
-						<div />
-					</div>
-					{rows.map((row) => (
-						<a
-							className="grid grid-cols-[1.4fr_0.8fr_0.8fr_2rem] items-center border-b border-border px-2 py-2 text-xs last:border-b-0 hover:bg-muted/60"
-							href="#apps"
-							key={row.name}
-						>
-							<div className="font-medium text-foreground">{row.name}</div>
-							<div className="text-muted-foreground">{row.status}</div>
-							<div className="text-muted-foreground">{row.type}</div>
-							<IconChevronRight className="size-3.5 text-muted-foreground" />
-						</a>
-					))}
-				</div>
+			<Separator />
+
+			<div className="scrollbar-thin min-h-0 flex-1 overflow-auto p-2">
+				<DataTable
+					columns={columns}
+					data={rows}
+					headerClassName="bg-muted/40 text-muted-foreground"
+					rowClassName="h-9"
+					tableClassName="min-w-[34rem] table-fixed text-xs"
+				/>
 			</div>
-		</section>
+		</DataTableSurface>
+	);
+}
+
+function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+	return (
+		<div className="bg-background p-2 ring-1 ring-border/80">
+			<div className="flex items-center justify-between gap-2">
+				<p className="text-xs text-muted-foreground">{label}</p>
+				{icon}
+			</div>
+			<p className="mt-2 text-xl font-semibold tracking-tight">{value}</p>
+		</div>
 	);
 }
