@@ -9,6 +9,7 @@ import {
 } from "@rho/channels";
 import { tc, wrapError } from "@rho/lib";
 import { type Context, Hono } from "hono";
+import { cors } from "hono/cors";
 import type { ChannelRegistry } from "./channel-registry.ts";
 import { messageFromHttp, validateHttpMessage } from "./http-message.ts";
 import { type RegistrySource, reload } from "./reload.ts";
@@ -25,6 +26,14 @@ export interface ServerDeps {
 export function createServer(deps: ServerDeps): Hono {
 	const app = new Hono();
 
+	app.use(
+		"*",
+		cors({
+			allowHeaders: ["Authorization", "Content-Type"],
+			allowMethods: ["GET", "POST", "OPTIONS"],
+			origin: "*",
+		}),
+	);
 	app.get("/health", (context) => context.json({ ok: true }));
 	app.use("*", async (context, next) => {
 		if (!deps.apiSecret || context.req.header("Authorization") === `Bearer ${deps.apiSecret}`) {

@@ -22,6 +22,10 @@
 	},
 	"files": {
 		"includes": [
+			"apps/*/src/**/*.ts",
+			"apps/*/src/**/*.tsx",
+			"apps/*/*.ts",
+			"apps/*/*.json",
 			"packages/*/src/**/*.ts",
 			"packages/*/src/**/*.tsx",
 			"packages/*/test/**/*.ts",
@@ -30,5 +34,32 @@
 			"!**/node_modules/**/*",
 			"!**/dist/**/*"
 		]
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["apps/*/src/components/ui/**/*.tsx"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noRedundantRoles": "off",
+						"useAriaPropsForRole": "off",
+						"useFocusableInteractive": "off",
+						"useKeyWithClickEvents": "off",
+						"useSemanticElements": "off"
+					},
+					"correctness": {
+						"useExhaustiveDependencies": "off"
+					},
+					"security": {
+						"noDangerouslySetInnerHtml": "off"
+					},
+					"suspicious": {
+						"noArrayIndexKey": "off",
+						"noDocumentCookie": "off",
+						"noDoubleEquals": "off"
+					}
+				}
+			}
+		}
+	]
 }
