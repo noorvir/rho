@@ -10,22 +10,28 @@ struct ChatSheetView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(messages) { message in
-                        ChatBubble(message: message)
-                    }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(messages) { message in
+                            ChatBubble(message: message)
+                                .id(message.id)
+                        }
 
-                    if let errorText {
-                        Text(errorText)
-                            .font(.system(size: 12))
-                            .foregroundStyle(.red)
+                        if let errorText {
+                            Text(errorText)
+                                .font(.system(size: 12))
+                                .foregroundStyle(.red)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 12)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
+                .onChange(of: scrollKey) { _, _ in
+                    scrollToLatestMessage(with: proxy)
+                }
             }
 
             Spacer(minLength: 0)
@@ -118,6 +124,17 @@ struct ChatSheetView: View {
         case .error(let message):
             errorText = message
             removeEmptyAssistantMessage(assistantId)
+        }
+    }
+
+    private var scrollKey: String {
+        messages.map { "\($0.id.uuidString):\($0.text.count)" }.joined(separator: "|")
+    }
+
+    private func scrollToLatestMessage(with proxy: ScrollViewProxy) {
+        guard let id = messages.last?.id else { return }
+        withAnimation(.easeOut(duration: 0.18)) {
+            proxy.scrollTo(id, anchor: .bottom)
         }
     }
 
@@ -272,28 +289,23 @@ private final class ChatClient {
                         throw ChatClientError.server("Stream failed with HTTP \(httpResponse.statusCode) at \(streamEndpoint.absoluteString)")
                     }
 
-                    var eventName: String?
-                    var dataLines: [String] = []
+                    var buffer = Data()
+                    let separator = Data("\n\n".utf8)
 
-                    for try await line in bytes.lines {
-                        let line = line.trimmingCharacters(in: .newlines)
-                        if line.isEmpty {
-                            if let event = parseEvent(name: eventName, data: dataLines.joined(separator: "\n")) {
+                    for try await byte in bytes {
+                        buffer.append(byte)
+
+                        while let range = buffer.range(of: separator) {
+                            let frame = buffer.subdata(in: buffer.startIndex..<range.lowerBound)
+                            buffer.removeSubrange(buffer.startIndex..<range.upperBound)
+
+                            if let event = parseFrame(frame) {
                                 continuation.yield(event)
                             }
-                            eventName = nil
-                            dataLines.removeAll(keepingCapacity: true)
-                            continue
-                        }
-
-                        if line.hasPrefix("event: ") {
-                            eventName = String(line.dropFirst(7))
-                        } else if line.hasPrefix("data: ") {
-                            dataLines.append(String(line.dropFirst(6)))
                         }
                     }
 
-                    if let event = parseEvent(name: eventName, data: dataLines.joined(separator: "\n")) {
+                    if let event = parseFrame(buffer) {
                         continuation.yield(event)
                     }
 
@@ -317,6 +329,26 @@ private final class ChatClient {
 
         request.setValue("Bearer \(apiSecret)", forHTTPHeaderField: "Authorization")
         return request
+    }
+
+    private func parseFrame(_ frame: Data) -> ChatEvent? {
+        guard !frame.isEmpty,
+              let text = String(data: frame, encoding: .utf8)
+        else {
+            return nil
+        }
+
+        var eventName: String?
+        var dataLines: [String] = []
+        for line in text.replacingOccurrences(of: "\r\n", with: "\n").split(separator: "\n", omittingEmptySubsequences: false) {
+            if line.hasPrefix("event: ") {
+                eventName = String(line.dropFirst(7))
+            } else if line.hasPrefix("data: ") {
+                dataLines.append(String(line.dropFirst(6)))
+            }
+        }
+
+        return parseEvent(name: eventName, data: dataLines.joined(separator: "\n"))
     }
 
     private func parseEvent(name: String?, data: String) -> ChatEvent? {
