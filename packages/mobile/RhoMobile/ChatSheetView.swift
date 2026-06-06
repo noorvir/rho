@@ -232,11 +232,12 @@ private enum ChatEvent {
 }
 
 private final class ChatClient {
-    private let streamEndpoint = URL(string: "http://127.0.0.1:7331/agent/messages:stream")!
-    private let historyEndpoint = URL(string: "http://127.0.0.1:7331/agent/conversations/mobile-chat/messages")!
+    private let apiSecret = "rho-mobile-dev"
+    private let streamEndpoint = URL(string: "https://rho-server-production.up.railway.app/agent/messages:stream")!
+    private let historyEndpoint = URL(string: "https://rho-server-production.up.railway.app/agent/conversations/mobile-chat/messages")!
 
     func history() async throws -> ChatHistory {
-        let (data, response) = try await URLSession.shared.data(from: historyEndpoint)
+        let (data, response) = try await URLSession.shared.data(for: request(url: historyEndpoint))
         guard let httpResponse = response as? HTTPURLResponse,
               (200..<300).contains(httpResponse.statusCode)
         else {
@@ -250,7 +251,7 @@ private final class ChatClient {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    var request = URLRequest(url: streamEndpoint)
+                    var request = request(url: streamEndpoint)
                     request.httpMethod = "POST"
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     request.httpBody = try JSONEncoder().encode(ChatRequest(text: text))
@@ -295,6 +296,12 @@ private final class ChatClient {
 
             continuation.onTermination = { _ in task.cancel() }
         }
+    }
+
+    private func request(url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(apiSecret)", forHTTPHeaderField: "Authorization")
+        return request
     }
 
     private func parseEvent(name: String?, data: String) -> ChatEvent? {

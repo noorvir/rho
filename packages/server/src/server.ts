@@ -19,12 +19,21 @@ export interface ServerDeps {
 	channels: ChannelRegistry;
 	files: RegistrySource;
 	state: StateManager;
+	apiSecret?: string;
 }
 
 export function createServer(deps: ServerDeps): Hono {
 	const app = new Hono();
 
 	app.get("/health", (context) => context.json({ ok: true }));
+	app.use("*", async (context, next) => {
+		if (!deps.apiSecret || context.req.header("Authorization") === `Bearer ${deps.apiSecret}`) {
+			await next();
+			return;
+		}
+
+		return context.json({ error: "Unauthorized" }, 401);
+	});
 	app.post("/reload", async (context) => context.json(await reload(deps)));
 	app.get("/agent/conversations/:id/messages", async (context) => messages(context, deps));
 	app.post("/agent/messages", async (context) => handleAgentMessage(context, deps));

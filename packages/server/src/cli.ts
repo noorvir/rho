@@ -7,7 +7,8 @@ import { ChannelRegistry } from "./channel-registry.ts";
 import { EmptyRegistrySource, reload } from "./reload.ts";
 import { createServer } from "./server.ts";
 
-const port = Number(process.env.RHO_PORT ?? "7331");
+const port = Number(process.env.PORT ?? process.env.RHO_PORT ?? "7331");
+const apiSecret = process.env.RHO_API_SECRET;
 
 const httpChannel = new HttpChannel();
 const channels = new ChannelRegistry([httpChannel]);
@@ -22,7 +23,7 @@ const runtime = new ChannelRuntime({
 await reload({ runtime, channels, httpChannel, files });
 
 const server = serve({
-	fetch: createServer({ runtime, httpChannel, channels, files, state }).fetch,
+	fetch: createServer({ runtime, httpChannel, channels, files, state, apiSecret }).fetch,
 	hostname: "0.0.0.0",
 	port,
 });
