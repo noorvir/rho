@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct RhoMobileApp: App {
+struct RhoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
