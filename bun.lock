@@ -11,6 +11,19 @@
         "typescript": "^5.9.2",
       },
     },
+    "apps/server": {
+      "name": "@rho/server",
+      "version": "0.0.0",
+      "bin": {
+        "rho-server": "./dist/cli.js",
+      },
+      "dependencies": {
+        "@hono/node-server": "^1.14.4",
+        "@rho/channels": "0.0.0",
+        "@rho/core": "0.0.0",
+        "hono": "^4.7.11",
+      },
+    },
     "apps/web": {
       "name": "@rho/web",
       "version": "0.0.0",
@@ -77,19 +90,13 @@
     "packages/core": {
       "name": "@rho/core",
       "version": "0.0.0",
-      "bin": {
-        "rho-core": "./dist/cli.js",
-      },
       "dependencies": {
-        "@hono/node-server": "^1.14.4",
         "@libsql/client": "0.17.3",
         "@prisma/adapter-libsql": "7.8.0",
         "@prisma/client": "7.8.0",
         "@rho/ai": "0.0.0",
         "@rho/channels": "0.0.0",
-        "@rho/lib": "0.0.0",
         "dotenv": "17.2.3",
-        "hono": "^4.7.11",
       },
       "devDependencies": {
         "prisma": "7.8.0",
@@ -600,6 +607,8 @@
     "@rho/core": ["@rho/core@workspace:packages/core"],
 
     "@rho/lib": ["@rho/lib@workspace:packages/lib"],
+
+    "@rho/server": ["@rho/server@workspace:apps/server"],
 
     "@rho/web": ["@rho/web@workspace:apps/web"],
 

@@ -1,30 +1,21 @@
-import { loadConversation, type StateManager } from "@rho/ai";
 import {
 	type ChannelMessage,
 	type ChannelOutput,
-	type ChannelRuntime,
 	HttpChannel,
 	messageText,
 	type SseStream,
 } from "@rho/channels";
-import { tc, wrapError } from "@rho/lib";
+import { getTableData, getTables, type RhoCore } from "@rho/core";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
-import type { ChannelRegistry } from "./channel-registry.ts";
-import { messageFromHttp, validateHttpMessage } from "./http-message.ts";
-import { type RegistrySource, reload } from "./reload.ts";
-import { getTableData, getTables } from "./tables.ts";
+import { conversationKey, messageFromHttp, validateHttpMessage } from "./http-message.ts";
 
-export interface CoreDeps {
-	runtime: ChannelRuntime;
-	httpChannel: HttpChannel;
-	channels: ChannelRegistry;
-	files: RegistrySource;
-	state: StateManager;
+export interface ServerOptions {
+	core: RhoCore;
 	apiSecret?: string;
 }
 
-export function createCoreServer(deps: CoreDeps): Hono {
+export function createServer(options: ServerOptions): Hono {
 	const app = new Hono();
 
 	app.use(
@@ -37,19 +28,22 @@ export function createCoreServer(deps: CoreDeps): Hono {
 	);
 	app.get("/health", (context) => context.json({ ok: true }));
 	app.use("*", async (context, next) => {
-		if (!deps.apiSecret || context.req.header("Authorization") === `Bearer ${deps.apiSecret}`) {
+		if (
+			!options.apiSecret ||
+			context.req.header("Authorization") === `Bearer ${options.apiSecret}`
+		) {
 			await next();
 			return;
 		}
 
 		return context.json({ error: "Unauthorized" }, 401);
 	});
-	app.post("/reload", async (context) => context.json(await reload(deps)));
+	app.post("/reload", async (context) => context.json(await options.core.reload()));
 	app.get("/tables", async (context) => context.json({ tables: await getTables() }));
 	app.get("/tables/:name", async (context) => tableData(context));
-	app.get("/agent/conversations/:id/messages", async (context) => messages(context, deps));
-	app.post("/agent/messages", async (context) => handleAgentMessage(context, deps));
-	app.post("/agent/messages:stream", async (context) => handleAgentMessageStream(context, deps));
+	app.get("/agent/conversations/:id/messages", async (context) => messages(context, options.core));
+	app.post("/agent/messages", async (context) => handleMessage(context, options.core));
+	app.post("/agent/messages:stream", async (context) => handleMessageStream(context, options.core));
 
 	return app;
 }
@@ -73,51 +67,38 @@ async function tableData(context: Context): Promise<Response> {
 	return context.json(table);
 }
 
-function numberParam(value: string | undefined): number | undefined {
-	return value ? Number(value) : undefined;
-}
-
-async function messages(context: Context, deps: CoreDeps): Promise<Response> {
+async function messages(context: Context, core: RhoCore): Promise<Response> {
 	const id = context.req.param("id");
 	if (!id) {
 		return context.json({ error: "conversation id is required" }, 400);
 	}
 
-	const result = await tc(loadConversation(deps.state, conversationKey(id)));
-	if (result.error) {
-		return context.json({ error: wrapError(result.error, "Failed to load messages").message }, 400);
+	try {
+		return context.json(await core.loadConversation(conversationKey(id)));
+	} catch (error) {
+		return context.json({ error: errorMessage(error, "Failed to load messages") }, 400);
 	}
-
-	return context.json(result.data);
 }
 
-async function handleAgentMessage(context: Context, deps: CoreDeps): Promise<Response> {
-	const result = await tc(
-		(async () => {
-			const input = validateHttpMessage(await context.req.json());
-			const output = await deps.runtime.handle(messageFromHttp(input));
-			return collectMessage(output);
-		})(),
-	);
-	if (result.error) {
-		return context.json(
-			{ error: wrapError(result.error, "Failed to handle message").message },
-			400,
-		);
+async function handleMessage(context: Context, core: RhoCore): Promise<Response> {
+	try {
+		const input = validateHttpMessage(await context.req.json());
+		const output = await core.handleMessage(messageFromHttp(input));
+		return context.json({ message: await collectMessage(output) });
+	} catch (error) {
+		return context.json({ error: errorMessage(error, "Failed to handle message") }, 400);
 	}
-
-	return context.json({ message: result.data });
 }
 
-async function handleAgentMessageStream(context: Context, deps: CoreDeps): Promise<Response> {
+async function handleMessageStream(context: Context, core: RhoCore): Promise<Response> {
 	const stream = createSseStream();
 
 	try {
 		const input = validateHttpMessage(await context.req.json());
-		const output = await deps.runtime.handle(messageFromHttp(input));
-		const channel = new HttpChannel(deps.httpChannel.id, stream);
+		const output = await core.handleMessage(messageFromHttp(input));
+		const channel = new HttpChannel("http", stream);
 
-		channel.send(output).catch((error: unknown) => {
+		void channel.send(output).catch((error: unknown) => {
 			stream.event("message.error", { error: errorMessage(error) });
 			stream.close();
 		});
@@ -190,10 +171,11 @@ function isMessageStream(output: ChannelOutput): output is AsyncIterable<Channel
 	return Symbol.asyncIterator in output;
 }
 
-function conversationKey(conversationId: string): string {
-	return `http:conversation:${conversationId}`;
+function numberParam(value: string | undefined): number | undefined {
+	return value ? Number(value) : undefined;
 }
 
-function errorMessage(error: unknown): string {
-	return error instanceof Error ? error.message : "Unknown error";
+function errorMessage(error: unknown, fallback?: string): string {
+	const message = error instanceof Error ? error.message : "Unknown error";
+	return fallback ? `${fallback}: ${message}` : message;
 }

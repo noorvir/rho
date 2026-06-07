@@ -1,7 +1,7 @@
 {
 	"name": "@rho/core",
 	"version": "0.0.0",
-	"description": "Long-running core process for rho.",
+	"description": "Importable core runtime, state, database, and channel management for rho.",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -11,9 +11,6 @@
 			"import": "./dist/index.js"
 		},
 		"./package.json": "./package.json"
-	},
-	"bin": {
-		"rho-core": "./dist/cli.js"
 	},
 	"files": [
 		"dist",
@@ -28,15 +25,12 @@
 		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
 	},
 	"dependencies": {
-		"@hono/node-server": "^1.14.4",
 		"@libsql/client": "0.17.3",
 		"@prisma/adapter-libsql": "7.8.0",
 		"@prisma/client": "7.8.0",
 		"@rho/ai": "0.0.0",
 		"@rho/channels": "0.0.0",
-		"@rho/lib": "0.0.0",
-		"dotenv": "17.2.3",
-		"hono": "^4.7.11"
+		"dotenv": "17.2.3"
 	},
 	"devDependencies": {
 		"prisma": "7.8.0"

@@ -163,7 +163,8 @@ Near-term SSE events should reflect channel message streaming, not a premature r
 - [x] Implemented persistent default HTTP channel.
 - [x] Added message-level streaming shape with `AsyncIterable<ChannelMessage>`.
 - [x] Sketched basic media and realtime channel types.
-- [ ] Replace text-only `rho/ai` agent interface with Pi-shaped message/event interface.
-- [ ] Stream agent output through `HttpChannel` as channel message chunks.
-- [ ] Render streamed SSE chunks incrementally in mobile.
-- [ ] Validate server and mobile streaming end to end.
+- [x] Replace text-only `rho/ai` agent interface with Pi-shaped message/event interface.
+- [x] Stream agent output through `HttpChannel` as channel message chunks.
+- [x] Render streamed SSE chunks incrementally in mobile.
+- [x] Validate server and mobile streaming end to end.
+- [x] Back the default rho agent with Pi config/auth/model resolution.

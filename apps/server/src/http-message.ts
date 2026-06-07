@@ -33,6 +33,10 @@ export function messageFromHttp(input: HttpMessageInput): ChannelMessage {
 	};
 }
 
+export function conversationKey(conversationId: string): string {
+	return `http:conversation:${conversationId}`;
+}
+
 function readSender(value: unknown): ChannelParticipant {
 	if (!isRecord(value)) {
 		throw new Error("sender must be an object");
