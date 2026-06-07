@@ -10,9 +10,9 @@
 	],
 	"scripts": {
 		"build": "tsgo -b",
-		"web:dev": "bun run --cwd apps/web dev",
-		"web:build": "bun run --cwd apps/web build",
-		"server": "bun run build && bun apps/server/dist/cli.js",
+		"web:dev": "bun run --cwd apps/server dev",
+		"web:build": "bun run --cwd apps/server web:build",
+		"server": "bun run --cwd apps/server build && bun apps/server/dist/cli.js",
 		"rho": "bun run build && bun packages/cli/dist/cli.js",
 		"typecheck": "tsgo -b --pretty false",
 		"check": "biome check . && bun run typecheck",

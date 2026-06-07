@@ -1,4 +1,4 @@
-const defaultCoreUrl = "http://127.0.0.1:7331";
+const defaultCoreUrl = window.location.origin;
 const conversationId = "mobile-chat";
 
 export interface ChatMessage {

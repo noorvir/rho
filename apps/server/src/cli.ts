@@ -2,14 +2,16 @@
 
 import { serve } from "@hono/node-server";
 import { createRhoCore } from "@rho/core";
+
 import { createServer } from "./server.ts";
 
 const port = Number(process.env.PORT ?? process.env.RHO_PORT ?? "7331");
 const apiSecret = process.env.RHO_API_SECRET;
+const webRoot = new URL("../web/dist/", import.meta.url).pathname;
 const core = await createRhoCore();
 
 const server = serve({
-	fetch: createServer({ core, apiSecret }).fetch,
+	fetch: createServer({ core, apiSecret, webRoot }).fetch,
 	hostname: "0.0.0.0",
 	port,
 });

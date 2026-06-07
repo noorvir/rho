@@ -2,7 +2,7 @@
 	"files": [],
 	"references": [
 		{ "path": "./apps/server" },
-		{ "path": "./apps/web" },
+		{ "path": "./apps/server/web" },
 		{ "path": "./packages/lib" },
 		{ "path": "./packages/channels" },
 		{ "path": "./packages/ai" },

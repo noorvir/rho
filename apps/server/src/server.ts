@@ -1,3 +1,5 @@
+import { relative } from "node:path";
+import { serveStatic } from "@hono/node-server/serve-static";
 import {
 	type ChannelMessage,
 	type ChannelOutput,
@@ -13,10 +15,12 @@ import { conversationKey, messageFromHttp, validateHttpMessage } from "./http-me
 export interface ServerOptions {
 	core: RhoCore;
 	apiSecret?: string;
+	webRoot?: string;
 }
 
 export function createServer(options: ServerOptions): Hono {
 	const app = new Hono();
+	const webRoot = options.webRoot ? relative(process.cwd(), options.webRoot) : undefined;
 
 	app.use(
 		"*",
@@ -27,7 +31,44 @@ export function createServer(options: ServerOptions): Hono {
 		}),
 	);
 	app.get("/health", (context) => context.json({ ok: true }));
-	app.use("*", async (context, next) => {
+
+	if (webRoot) {
+		app.use("*", serveStatic({ root: webRoot }));
+	}
+
+	app.use("/reload", apiAuth(options));
+	app.use("/tables", apiAuth(options));
+	app.use("/tables/*", apiAuth(options));
+	app.use("/agent/*", apiAuth(options));
+
+	app.post("/reload", async (context) => context.json(await options.core.reload()));
+	app.get("/tables", async (context) => context.json({ tables: await getTables() }));
+	app.get("/tables/:name", async (context) => tableData(context));
+	app.get("/agent/conversations/:id/messages", async (context) => messages(context, options.core));
+	app.post("/agent/messages", async (context) => handleMessage(context, options.core));
+	app.post("/agent/messages:stream", async (context) => handleMessageStream(context, options.core));
+
+	if (webRoot) {
+		const serveWebApp = serveStatic({ root: webRoot, path: "index.html" });
+		app.get("*", async (context) => {
+			if (!acceptsHtml(context)) {
+				return context.notFound();
+			}
+
+			const response = await serveWebApp(context, async () => {});
+			return response ?? context.notFound();
+		});
+	}
+
+	return app;
+}
+
+function acceptsHtml(context: Context): boolean {
+	return context.req.header("Accept")?.includes("text/html") ?? false;
+}
+
+function apiAuth(options: ServerOptions) {
+	return async (context: Context, next: () => Promise<void>) => {
 		if (
 			!options.apiSecret ||
 			context.req.header("Authorization") === `Bearer ${options.apiSecret}`
@@ -37,15 +78,7 @@ export function createServer(options: ServerOptions): Hono {
 		}
 
 		return context.json({ error: "Unauthorized" }, 401);
-	});
-	app.post("/reload", async (context) => context.json(await options.core.reload()));
-	app.get("/tables", async (context) => context.json({ tables: await getTables() }));
-	app.get("/tables/:name", async (context) => tableData(context));
-	app.get("/agent/conversations/:id/messages", async (context) => messages(context, options.core));
-	app.post("/agent/messages", async (context) => handleMessage(context, options.core));
-	app.post("/agent/messages:stream", async (context) => handleMessageStream(context, options.core));
-
-	return app;
+	};
 }
 
 async function tableData(context: Context): Promise<Response> {
