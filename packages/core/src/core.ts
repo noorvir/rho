@@ -14,26 +14,28 @@ import {
 	ChannelRuntime,
 	messageText,
 } from "@rho/channels";
+import type { AppExtension } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
-import { FileSystemExtensionLoader } from "./extensions/index.ts";
-import { EmptyRegistrySource, type RegistrySource, type ReloadResult, reload } from "./reload.ts";
+import { type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
+import { type ReloadResult, reload } from "./reload.ts";
 import { sqlite } from "./sqlite.ts";
 
 export interface RhoCoreOptions {
 	channels?: Channel[];
 	cwd?: string;
 	extensionPaths?: string[];
-	files?: RegistrySource;
+	extensionLoader?: ExtensionLoader;
 	state?: StateManager;
 }
 
 export interface RhoCore {
 	runtime: ChannelRuntime;
 	channels: ChannelRegistry;
-	files: RegistrySource;
+	extensionLoader: ExtensionLoader;
 	state: StateManager;
 	handleMessage(message: ChannelMessage): Promise<ChannelOutput>;
 	loadConversation(key: ConversationKey): Promise<ConversationHistory>;
+	listApps(): Promise<AppExtension[]>;
 	replaceChannels(channels: Channel[]): void;
 	reload(): Promise<ReloadResult>;
 	activeChannelIds(): string[];
@@ -41,40 +43,45 @@ export interface RhoCore {
 }
 
 export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCore> {
-	const channels = new ChannelRegistry(options.channels ?? []);
-	const extensionLoader = new FileSystemExtensionLoader({
-		cwd: options.cwd,
-		extensionPaths: options.extensionPaths,
-	});
-	const files = options.files ?? new EmptyRegistrySource();
+	const channels = options.channels ?? [];
+	const channelRegistry = new ChannelRegistry(channels);
+
 	const state = options.state ?? createFileStateManager();
+	const extensionLoader = options.extensionLoader ?? new FileSystemExtensionLoader(options);
 
 	const runtime = new ChannelRuntime({
-		channels: channels.current(),
+		channels: channelRegistry.current(),
 		handle: async (message) => agentResponse(state, message),
 	});
 
 	const replaceChannels = (nextChannels: Channel[]) => {
-		channels.replace(nextChannels);
-		runtime.replaceChannels(channels.current());
+		channelRegistry.replace(nextChannels);
+		runtime.replaceChannels(channelRegistry.current());
+	};
+
+	const handleMessage = async (message: ChannelMessage) => runtime.handle(message);
+
+	const listApps = async () => {
+		const result = await extensionLoader.load();
+		return result.extensions.flatMap((extension) => extension.apps);
 	};
 
 	const core: RhoCore = {
 		runtime,
-		channels,
-		files,
+		channels: channelRegistry,
+		extensionLoader,
 		state,
-		handleMessage: async (message) => runtime.handle(message),
+		handleMessage,
 		loadConversation: async (key) => loadConversation(state, key),
+		listApps,
 		replaceChannels,
 		reload: async () =>
 			reload({
 				extensionLoader,
 				replaceChannels,
-				activeChannelIds: () => channels.current().map((channel) => channel.id),
-				files,
+				activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 			}),
-		activeChannelIds: () => channels.current().map((channel) => channel.id),
+		activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 		close: async () => {
 			await runtime.stop();
 			sqlite.close();
@@ -85,10 +92,7 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 	return core;
 }
 
-async function* agentResponse(
-	state: StateManager,
-	message: ChannelMessage,
-): AsyncIterable<ChannelMessage> {
+async function* agentResponse(state: StateManager, message: ChannelMessage): AsyncIterable<ChannelMessage> {
 	const stream = respondInConversation({
 		state,
 		key: conversationKey(message),

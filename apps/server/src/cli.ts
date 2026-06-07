@@ -3,20 +3,19 @@
 import { serve } from "@hono/node-server";
 import { createRhoCore } from "@rho/core";
 
+import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
 
-const port = Number(process.env.PORT ?? process.env.RHO_PORT ?? "7331");
-const apiSecret = process.env.RHO_API_SECRET;
 const webRoot = new URL("../web/dist/", import.meta.url).pathname;
-const core = await createRhoCore();
+const core = await createRhoCore({ extensionPaths: env.extensionPaths });
 
 const server = serve({
-	fetch: createServer({ core, apiSecret, webRoot }).fetch,
+	fetch: createServer({ core, apiSecret: env.apiSecret, webRoot }).fetch,
 	hostname: "0.0.0.0",
-	port,
+	port: env.port,
 });
 
-console.log(`rho server listening on http://localhost:${port}`);
+console.log(`rho server listening on http://localhost:${env.port}`);
 console.log(`active channels: ${core.activeChannelIds().join(", ")}`);
 
 function shutdown(): void {

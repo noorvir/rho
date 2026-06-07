@@ -1,16 +1,10 @@
 import type { Channel } from "@rho/channels";
 import type { ExtensionDiagnostic, ExtensionLoader, LoadedExtension } from "./extensions/index.ts";
 
-export interface RegistrySource {
-	readApps(): Promise<unknown[]>;
-	readSecrets(): Promise<Record<string, string>>;
-}
-
 export interface ReloadDependencies {
 	extensionLoader: ExtensionLoader;
 	replaceChannels(channels: Channel[]): void;
 	activeChannelIds(): string[];
-	files: RegistrySource;
 }
 
 export type ReloadResult =
@@ -29,26 +23,15 @@ export type ReloadResult =
 			diagnostics: ExtensionDiagnostic[];
 	  };
 
-export class EmptyRegistrySource implements RegistrySource {
-	async readApps(): Promise<unknown[]> {
-		return [];
-	}
-
-	async readSecrets(): Promise<Record<string, string>> {
-		return {};
-	}
-}
-
 export async function reload(deps: ReloadDependencies): Promise<ReloadResult> {
-	const [_secrets, apps, loaded] = await Promise.all([
-		deps.files.readSecrets(),
-		deps.files.readApps(),
-		deps.extensionLoader.load(),
-	]);
+	const loaded = await deps.extensionLoader.load();
 	const hasErrors = loaded.diagnostics.some((diagnostic) => diagnostic.severity === "error");
 
+	const apps = loaded.extensions.flatMap((extension) => extension.apps);
+	const channels = loaded.extensions.flatMap((extension) => extension.channels);
+
 	if (!hasErrors) {
-		deps.replaceChannels(loaded.channels);
+		deps.replaceChannels(channels);
 	}
 
 	return {

@@ -5,9 +5,7 @@ export interface ExtensionPackageManifest {
 	extensions: string[];
 }
 
-export async function readExtensionPackageManifest(
-	directory: string,
-): Promise<ExtensionPackageManifest | undefined> {
+export async function readManifest(directory: string): Promise<ExtensionPackageManifest | undefined> {
 	try {
 		const content = await readFile(join(directory, "package.json"), "utf8");
 		const data = JSON.parse(content) as unknown;
@@ -18,9 +16,7 @@ export async function readExtensionPackageManifest(
 		}
 
 		const paths = extensions.filter((value): value is string => typeof value === "string");
-		return paths.length > 0
-			? { extensions: paths.map((entry) => resolve(directory, entry)) }
-			: undefined;
+		return paths.length > 0 ? { extensions: paths.map((entry) => resolve(directory, entry)) } : undefined;
 	} catch {
 		return undefined;
 	}

@@ -1,7 +1,7 @@
 import { access, readdir, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { DiscoveredExtension, ExtensionSourceOrigin, ExtensionSourceScope } from "../types.ts";
-import { readExtensionPackageManifest } from "./package.ts";
+import { readManifest } from "./manifest.ts";
 
 export function isExtensionFile(path: string): boolean {
 	return path.endsWith(".ts") || path.endsWith(".js");
@@ -48,11 +48,9 @@ async function extensionEntriesFromDirectory(
 	scope: ExtensionSourceScope,
 	origin: ExtensionSourceOrigin,
 ): Promise<DiscoveredExtension[]> {
-	const manifest = await readExtensionPackageManifest(directory);
+	const manifest = await readManifest(directory);
 	if (manifest) {
-		return manifest.extensions.map((entry) =>
-			extensionSource(entry, scope, "package", entry, directory),
-		);
+		return manifest.extensions.map((entry) => extensionSource(entry, scope, "package", entry, directory));
 	}
 
 	for (const fileName of ["index.ts", "index.js"]) {

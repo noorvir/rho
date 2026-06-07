@@ -1,0 +1,16 @@
+import { useRhoApp } from "@rho/apps-sdk/react";
+import { About } from "./routes/about.tsx";
+import { Home } from "./routes/index.tsx";
+
+export default function App() {
+	const rho = useRhoApp();
+
+	switch (rho.app.routePath) {
+		case "/":
+			return <Home />;
+		case "/about":
+			return <About />;
+		default:
+			return <main>Route not found: {rho.app.routePath}</main>;
+	}
+}

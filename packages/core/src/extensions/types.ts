@@ -1,5 +1,39 @@
 import type { Channel } from "@rho/channels";
 
+export type Extension = AppExtension | ChannelExtension;
+export type ExtensionType = Extension["type"];
+
+export interface ExtensionBase<TType extends string> {
+	type: TType;
+	id: string;
+	name: string;
+}
+
+export interface AppExtension extends ExtensionBase<"app"> {
+	slug: string;
+	client: AppClient;
+	routes: AppRoute[];
+	api?: AppApi;
+}
+
+export interface AppClient {
+	entry: string;
+}
+
+export interface AppRoute {
+	path: string;
+	label?: string;
+}
+
+export interface AppApi {
+	basePath: string;
+	entry: string;
+}
+
+export interface ChannelExtension extends ExtensionBase<"channel"> {
+	channel: Channel;
+}
+
 export interface RhoExtensionApi {
 	registerChannel(channel: Channel): void;
 }
@@ -12,12 +46,12 @@ export interface ExtensionLoader {
 
 export interface LoadExtensionsResult {
 	extensions: LoadedExtension[];
-	channels: Channel[];
 	diagnostics: ExtensionDiagnostic[];
 }
 
 export interface LoadedExtension {
 	source: ExtensionSourceInfo;
+	apps: AppExtension[];
 	channels: Channel[];
 }
 

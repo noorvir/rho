@@ -1,0 +1,46 @@
+{
+	"name": "@rho/apps-sdk",
+	"version": "0.0.0",
+	"description": "SDK helpers for rho app extensions.",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./react": {
+			"types": "./dist/react.d.ts",
+			"import": "./dist/react.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"bin": {
+		"create-rho-app-extension": "./src/init.ts"
+	},
+	"files": [
+		"dist",
+		"template"
+	],
+	"scripts": {
+		"build": "tsgo -b tsconfig.json",
+		"typecheck": "tsgo -b tsconfig.json --pretty false",
+		"init": "bun src/init.ts",
+		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
+	},
+	"dependencies": {
+		"@rho/core": "0.0.0"
+	},
+	"peerDependencies": {
+		"react": "^19.2.1"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.7",
+		"react": "^19.2.1"
+	},
+	"license": "MIT",
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}

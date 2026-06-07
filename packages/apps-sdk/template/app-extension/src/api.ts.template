@@ -1,0 +1,17 @@
+import type { RhoAppApiHandler } from "@rho/apps-sdk";
+
+const items = [
+	{ id: "first", name: "First item" },
+	{ id: "second", name: "Second item" },
+];
+
+export const fetch: RhoAppApiHandler = async (request, context) => {
+	const url = new URL(request.url);
+	const route = url.pathname.slice(context.app.apiBasePath.length) || "/";
+
+	if (request.method === "GET" && route === "/items") {
+		return Response.json({ items, platform: context.host.platform });
+	}
+
+	return Response.json({ error: "Not found" }, { status: 404 });
+};

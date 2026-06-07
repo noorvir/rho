@@ -6,13 +6,15 @@
 	"packageManager": "bun@1.3.5",
 	"workspaces": [
 		"apps/*",
-		"packages/*"
+		"packages/*",
+		"examples/extensions/*"
 	],
 	"scripts": {
 		"build": "tsgo -b",
-		"web:dev": "bun run --cwd apps/server dev",
+		"web:dev": "RHO_API_SECRET=dev RHO_EXTENSION_PATHS=../../examples/extensions bun run --cwd apps/server dev",
 		"web:build": "bun run --cwd apps/server web:build",
-		"server": "bun run --cwd apps/server build && bun apps/server/dist/cli.js",
+		"app:init": "bun packages/apps-sdk/src/init.ts",
+		"server": "bun run --cwd apps/server build && RHO_API_SECRET=dev RHO_EXTENSION_PATHS=examples/extensions bun apps/server/dist/cli.js",
 		"rho": "bun run build && bun packages/cli/dist/cli.js",
 		"typecheck": "tsgo -b --pretty false",
 		"check": "biome check . && bun run typecheck",

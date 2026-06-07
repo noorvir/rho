@@ -12,9 +12,7 @@ export interface DiscoverExtensionsResult {
 	diagnostics: ExtensionDiagnostic[];
 }
 
-export async function discoverExtensions(
-	args: ExtensionDiscoveryPaths,
-): Promise<DiscoverExtensionsResult> {
+export async function discoverExtensions(args: ExtensionDiscoveryPaths): Promise<DiscoverExtensionsResult> {
 	const dir = args.extensionsDir;
 	const paths = args.extensionPaths;
 

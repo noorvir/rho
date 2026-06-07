@@ -5,12 +5,11 @@ import { getRequestListener } from "@hono/node-server";
 import { createRhoCore } from "@rho/core";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 
+import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
 
-const port = Number(process.env.PORT ?? process.env.RHO_PORT ?? "7331");
-const apiSecret = process.env.RHO_API_SECRET;
-const core = await createRhoCore();
-const app = createServer({ core, apiSecret });
+const core = await createRhoCore({ extensionPaths: env.extensionPaths });
+const app = createServer({ core, apiSecret: env.apiSecret });
 const apiListener = getRequestListener(app.fetch);
 let vite: ViteDevServer | undefined;
 
@@ -50,8 +49,8 @@ vite = await createViteServer({
 	},
 });
 
-server.listen(port, "0.0.0.0", () => {
-	console.log(`rho dev server listening on http://localhost:${port}`);
+server.listen(env.port, "0.0.0.0", () => {
+	console.log(`rho dev server listening on http://localhost:${env.port}`);
 	console.log(`active channels: ${core.activeChannelIds().join(", ")}`);
 });
 
@@ -67,9 +66,16 @@ process.on("SIGTERM", () => void shutdown());
 function isApiPath(pathname: string): boolean {
 	return (
 		pathname === "/health" ||
+		pathname === "/apps.json" ||
 		pathname === "/reload" ||
 		pathname === "/tables" ||
 		pathname.startsWith("/tables/") ||
-		pathname.startsWith("/agent/")
+		pathname.startsWith("/agent/") ||
+		isAppApiPath(pathname)
 	);
+}
+
+function isAppApiPath(pathname: string): boolean {
+	const parts = pathname.split("/");
+	return parts[1] === "apps" && Boolean(parts[2]) && parts[3] === "api";
 }

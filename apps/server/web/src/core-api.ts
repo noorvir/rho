@@ -40,6 +40,14 @@ export interface TableSummary {
 	label: string;
 }
 
+export interface AppExtensionSummary {
+	slug: string;
+	name: string;
+	clientModuleUrl: string;
+	routes: Array<{ path: string; label?: string }>;
+	apiBasePath?: string;
+}
+
 interface ChatHistoryResponse {
 	messages: Array<{
 		role: "user" | "assistant";
@@ -49,6 +57,10 @@ interface ChatHistoryResponse {
 
 interface TablesResponse {
 	tables: TableSummary[];
+}
+
+interface AppsResponse {
+	apps: AppExtensionSummary[];
 }
 
 interface TextPayload {
@@ -124,6 +136,11 @@ export async function* streamChatMessage(text: string): AsyncGenerator<ChatEvent
 	} finally {
 		reader.releaseLock();
 	}
+}
+
+export async function loadAppExtensions(): Promise<AppExtensionSummary[]> {
+	const data = await coreJson<AppsResponse>("/apps.json", "Failed to load app extensions");
+	return data.apps;
 }
 
 export async function loadTables(): Promise<TableSummary[]> {

@@ -1,0 +1,12 @@
+import { useRhoApp } from "@rho/apps-sdk/react";
+
+export function About() {
+	const rho = useRhoApp();
+
+	return (
+		<main>
+			<h2>About __APP_NAME__</h2>
+			<p>Mounted at {rho.app.basePath}.</p>
+		</main>
+	);
+}

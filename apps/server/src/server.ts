@@ -1,5 +1,7 @@
 import { relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import { serveStatic } from "@hono/node-server/serve-static";
+import type { RhoAppApiContext, RhoAppApiHandler } from "@rho/apps-sdk";
 import {
 	type ChannelMessage,
 	type ChannelOutput,
@@ -36,17 +38,23 @@ export function createServer(options: ServerOptions): Hono {
 		app.use("*", serveStatic({ root: webRoot }));
 	}
 
+	app.use("/apps.json", apiAuth(options));
 	app.use("/reload", apiAuth(options));
 	app.use("/tables", apiAuth(options));
 	app.use("/tables/*", apiAuth(options));
 	app.use("/agent/*", apiAuth(options));
+	app.use("/apps/*/api/*", apiAuth(options));
 
+	app.get("/apps.json", async (context) =>
+		context.json({ apps: appSummaries(await options.core.listApps()) }),
+	);
 	app.post("/reload", async (context) => context.json(await options.core.reload()));
 	app.get("/tables", async (context) => context.json({ tables: await getTables() }));
 	app.get("/tables/:name", async (context) => tableData(context));
 	app.get("/agent/conversations/:id/messages", async (context) => messages(context, options.core));
 	app.post("/agent/messages", async (context) => handleMessage(context, options.core));
 	app.post("/agent/messages:stream", async (context) => handleMessageStream(context, options.core));
+	app.all("/apps/:slug/api/*", async (context) => handleAppApi(context, options.core));
 
 	if (webRoot) {
 		const serveWebApp = serveStatic({ root: webRoot, path: "index.html" });
@@ -63,16 +71,76 @@ export function createServer(options: ServerOptions): Hono {
 	return app;
 }
 
+interface AppSummary {
+	slug: string;
+	name: string;
+	clientModuleUrl: string;
+	routes: Array<{ path: string; label?: string }>;
+	apiBasePath?: string;
+}
+
+function appSummaries(apps: Awaited<ReturnType<RhoCore["listApps"]>>): AppSummary[] {
+	return apps.map((app) => ({
+		slug: app.slug,
+		name: app.name,
+		clientModuleUrl: sourceModuleUrl(app.client.entry),
+		routes: app.routes.map((route) => ({ path: route.path, label: route.label })),
+		apiBasePath: app.api ? `/apps/${app.slug}${app.api.basePath}` : undefined,
+	}));
+}
+
+function sourceModuleUrl(path: string): string {
+	return `/@fs${path}`;
+}
+
 function acceptsHtml(context: Context): boolean {
 	return context.req.header("Accept")?.includes("text/html") ?? false;
 }
 
+async function handleAppApi(context: Context, core: RhoCore): Promise<Response> {
+	const slug = context.req.param("slug");
+	const apps = await core.listApps();
+	const app = apps.find((candidate) => candidate.slug === slug);
+	if (!app?.api) {
+		return context.json({ error: "Unknown app API" }, 404);
+	}
+
+	const api = await import(pathToFileURL(app.api.entry).href);
+	if (!isAppApiModule(api)) {
+		return context.json({ error: "Invalid app API module" }, 500);
+	}
+
+	const externalApiBasePath = `/apps/${app.slug}${app.api.basePath}`;
+	const response = await api.fetch(context.req.raw, {
+		app: {
+			slug: app.slug,
+			name: app.name,
+			basePath: `/apps/${app.slug}`,
+			apiBasePath: externalApiBasePath,
+		},
+		host: {
+			platform: hostPlatform(context),
+		},
+	});
+	return response;
+}
+
+interface AppApiModule {
+	fetch: RhoAppApiHandler;
+}
+
+function isAppApiModule(value: unknown): value is AppApiModule {
+	return typeof value === "object" && value !== null && "fetch" in value && typeof value.fetch === "function";
+}
+
+function hostPlatform(context: Context): RhoAppApiContext["host"]["platform"] {
+	const value = context.req.header("X-Rho-Platform");
+	return value === "mobile" || value === "desktop" ? value : "web";
+}
+
 function apiAuth(options: ServerOptions) {
 	return async (context: Context, next: () => Promise<void>) => {
-		if (
-			!options.apiSecret ||
-			context.req.header("Authorization") === `Bearer ${options.apiSecret}`
-		) {
+		if (!options.apiSecret || context.req.header("Authorization") === `Bearer ${options.apiSecret}`) {
 			await next();
 			return;
 		}

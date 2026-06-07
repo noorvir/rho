@@ -3,6 +3,7 @@ import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tan
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { RhoApps } from "./rho-apps.tsx";
 import { AdminShell } from "./routes/admin-shell.tsx";
 import { AppsPage } from "./routes/apps.tsx";
 import { Dashboard } from "./routes/dashboard.tsx";
@@ -25,6 +26,18 @@ const appsRoute = createRoute({
 	component: AppsPage,
 });
 
+const appHomeRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/apps/$appSlug",
+	component: AppHomeRoute,
+});
+
+const appPathRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/apps/$appSlug/$",
+	component: AppPathRoute,
+});
+
 const dataRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/data",
@@ -37,7 +50,14 @@ const dataTableRoute = createRoute({
 	component: DataTableRoute,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, appsRoute, dataRoute, dataTableRoute]);
+const routeTree = rootRoute.addChildren([
+	indexRoute,
+	appsRoute,
+	appHomeRoute,
+	appPathRoute,
+	dataRoute,
+	dataTableRoute,
+]);
 const router = createRouter({ routeTree });
 const queryClient = new QueryClient();
 
@@ -45,6 +65,16 @@ declare module "@tanstack/react-router" {
 	interface Register {
 		router: typeof router;
 	}
+}
+
+function AppHomeRoute() {
+	const { appSlug } = appHomeRoute.useParams();
+	return <RhoApps appSlug={appSlug} />;
+}
+
+function AppPathRoute() {
+	const { _splat, appSlug } = appPathRoute.useParams();
+	return <RhoApps appSlug={appSlug} routePath={`/${_splat}`} />;
 }
 
 function DataTableRoute() {

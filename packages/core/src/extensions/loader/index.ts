@@ -6,7 +6,7 @@ import type {
 	LoadedExtension,
 } from "../types.ts";
 import { discoverExtensions, type ExtensionDiscoveryPaths } from "./discover.ts";
-import { loadExtensionModule } from "./source-module.ts";
+import { loadExtensionModule } from "./load.ts";
 
 export type { ExtensionDiscoveryPaths } from "./discover.ts";
 export { discoverExtensions } from "./discover.ts";
@@ -41,7 +41,6 @@ export class FileSystemExtensionLoader implements ExtensionLoader {
 
 		return {
 			extensions,
-			channels: extensions.flatMap((extension) => extension.channels),
 			diagnostics,
 		};
 	}

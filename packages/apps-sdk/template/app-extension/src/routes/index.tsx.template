@@ -1,0 +1,33 @@
+import { useEffect, useState } from "react";
+import { useRhoApp } from "@rho/apps-sdk/react";
+
+interface ItemsResponse {
+	items: Array<{ id: string; name: string }>;
+	platform: string;
+}
+
+export function Home() {
+	const rho = useRhoApp();
+	const [data, setData] = useState<ItemsResponse>();
+
+	useEffect(() => {
+		rho
+			.apiFetch("/items")
+			.then((response) => response.json() as Promise<ItemsResponse>)
+			.then(setData)
+			.catch(() => undefined);
+	}, [rho]);
+
+	return (
+		<main>
+			<h2>__APP_NAME__</h2>
+			<p>Running inside rho on {rho.host.platform}.</p>
+			<p>API sees {data?.platform ?? "—"}.</p>
+			<ul>
+				{data?.items.map((item) => (
+					<li key={item.id}>{item.name}</li>
+				))}
+			</ul>
+		</main>
+	);
+}
