@@ -21,15 +21,25 @@
 	],
 	"scripts": {
 		"build": "tsgo -b tsconfig.json",
+		"db:generate": "prisma generate --config prisma.config.ts",
+		"db:migrate": "prisma migrate dev --config prisma.config.ts",
+		"db:seed": "bun prisma/seed.ts",
 		"typecheck": "tsgo -b tsconfig.json --pretty false",
 		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
 	},
 	"dependencies": {
 		"@hono/node-server": "^1.14.4",
+		"@libsql/client": "0.17.3",
+		"@prisma/adapter-libsql": "7.8.0",
+		"@prisma/client": "7.8.0",
 		"@rho/ai": "0.0.0",
 		"@rho/channels": "0.0.0",
 		"@rho/lib": "0.0.0",
+		"dotenv": "17.2.3",
 		"hono": "^4.7.11"
+	},
+	"devDependencies": {
+		"prisma": "7.8.0"
 	},
 	"keywords": [
 		"ai",

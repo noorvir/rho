@@ -6,6 +6,7 @@ import { type ChannelMessage, ChannelRuntime, HttpChannel, messageText } from "@
 import { ChannelRegistry } from "./channel-registry.ts";
 import { EmptyRegistrySource, reload } from "./reload.ts";
 import { createServer } from "./server.ts";
+import { sqlite } from "./sqlite.ts";
 
 const port = Number(process.env.PORT ?? process.env.RHO_PORT ?? "7331");
 const apiSecret = process.env.RHO_API_SECRET;
@@ -74,6 +75,7 @@ function conversationKey(message: ChannelMessage): string {
 function shutdown(): void {
 	server.close(async () => {
 		await runtime.stop();
+		sqlite.close();
 	});
 }
 

@@ -13,6 +13,7 @@ import { cors } from "hono/cors";
 import type { ChannelRegistry } from "./channel-registry.ts";
 import { messageFromHttp, validateHttpMessage } from "./http-message.ts";
 import { type RegistrySource, reload } from "./reload.ts";
+import { getTableData } from "./tables.ts";
 
 export interface ServerDeps {
 	runtime: ChannelRuntime;
@@ -44,11 +45,35 @@ export function createServer(deps: ServerDeps): Hono {
 		return context.json({ error: "Unauthorized" }, 401);
 	});
 	app.post("/reload", async (context) => context.json(await reload(deps)));
+	app.get("/tables/:name", async (context) => tableData(context));
 	app.get("/agent/conversations/:id/messages", async (context) => messages(context, deps));
 	app.post("/agent/messages", async (context) => handleAgentMessage(context, deps));
 	app.post("/agent/messages:stream", async (context) => handleAgentMessageStream(context, deps));
 
 	return app;
+}
+
+async function tableData(context: Context): Promise<Response> {
+	const name = context.req.param("name");
+	if (!name) {
+		return context.json({ error: "table name is required" }, 400);
+	}
+
+	const table = await getTableData(name, {
+		limit: numberParam(context.req.query("limit")),
+		offset: numberParam(context.req.query("offset")),
+		orderBy: context.req.query("orderBy"),
+		order: context.req.query("order"),
+	});
+	if (!table) {
+		return context.json({ error: "Unknown table" }, 404);
+	}
+
+	return context.json(table);
+}
+
+function numberParam(value: string | undefined): number | undefined {
+	return value ? Number(value) : undefined;
 }
 
 async function messages(context: Context, deps: ServerDeps): Promise<Response> {

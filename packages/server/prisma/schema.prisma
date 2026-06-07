@@ -1,0 +1,52 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "bun"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Relationship {
+  BookClub
+  Family
+  Friend
+  Gym
+  Neighbor
+  RunningGroup
+}
+
+model Contact {
+  id              Int          @id @default(autoincrement())
+  name            String
+  relationship    Relationship
+  email           String?   @unique
+  phone           String?
+  city            String?
+  region          String?
+  country         String?
+  birthday        DateTime?
+  notes           String?
+  favorite        Boolean   @default(false)
+  lastContactedAt DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  orgs Org[]
+
+  @@map("contacts")
+}
+
+model Org {
+  id Int   @id @default(autoincrement())
+  name String @unique
+  url String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members Contact[]
+
+  @@map("orgs")
+}
