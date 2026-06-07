@@ -4,6 +4,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AdminShell } from "./routes/admin-shell.tsx";
+import { AppsPage } from "./routes/apps.tsx";
 import { Dashboard } from "./routes/dashboard.tsx";
 import { DataPage } from "./routes/data.tsx";
 import "./styles.css";
@@ -18,6 +19,12 @@ const indexRoute = createRoute({
 	component: Dashboard,
 });
 
+const appsRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/apps",
+	component: AppsPage,
+});
+
 const dataRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/data",
@@ -30,7 +37,7 @@ const dataTableRoute = createRoute({
 	component: DataTableRoute,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, dataRoute, dataTableRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, appsRoute, dataRoute, dataTableRoute]);
 const router = createRouter({ routeTree });
 const queryClient = new QueryClient();
 

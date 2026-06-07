@@ -2,7 +2,8 @@ import { Link, Outlet } from "@tanstack/react-router";
 import { ChatPanel } from "./chat-panel.tsx";
 
 const navigationItems = [
-  { href: "/", label: "Apps" },
+  { href: "/", label: "Dashboard" },
+  { href: "/apps", label: "Apps" },
   { href: "/data", label: "Data" },
   { href: "#chat", label: "Chat" },
   { href: "#settings", label: "Settings" },
