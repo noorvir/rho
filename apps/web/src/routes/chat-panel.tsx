@@ -1,36 +1,20 @@
 import { IconCircle, IconRobot, IconSparkles } from "@tabler/icons-react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { type ChatMessage, loadChatHistory, streamChatMessage } from "@/chat-client";
 import { Chat } from "@/components/chat";
+import { type ChatMessage, loadChatHistory, streamChatMessage } from "@/core-api";
 import { cn } from "@/lib/utils";
 
 export function ChatPanel() {
 	const [draft, setDraft] = useState("");
-	const [messages, setMessages] = useState<ChatMessage[]>([]);
+	const [sessionMessages, setSessionMessages] = useState<ChatMessage[]>();
 	const [isSending, setIsSending] = useState(false);
-	const [error, setError] = useState<string>();
+	const [streamError, setStreamError] = useState<string>();
+	const historyQuery = useQuery({ queryKey: ["chat-history"], queryFn: loadChatHistory });
+	const messages = sessionMessages ?? historyQuery.data ?? [];
+	const error = streamError ?? (historyQuery.error ? errorMessage(historyQuery.error) : undefined);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const scrollKey = messages.map((message) => `${message.id}:${message.text.length}`).join("|");
-
-	useEffect(() => {
-		let cancelled = false;
-
-		loadChatHistory()
-			.then((history) => {
-				if (!cancelled) {
-					setMessages(history);
-				}
-			})
-			.catch((nextError: unknown) => {
-				if (!cancelled) {
-					setError(errorMessage(nextError));
-				}
-			});
-
-		return () => {
-			cancelled = true;
-		};
-	}, []);
 
 	useEffect(() => {
 		if (!scrollKey) {
@@ -47,12 +31,12 @@ export function ChatPanel() {
 		}
 
 		setDraft("");
-		setError(undefined);
+		setStreamError(undefined);
 		setIsSending(true);
 
 		const assistantId = crypto.randomUUID();
-		setMessages((current) => [
-			...current,
+		setSessionMessages((current) => [
+			...(current ?? historyQuery.data ?? []),
 			{ id: crypto.randomUUID(), role: "user", text },
 			{ id: assistantId, role: "assistant", text: "" },
 		]);
@@ -60,20 +44,28 @@ export function ChatPanel() {
 		try {
 			for await (const event of streamChatMessage(text)) {
 				if (event.type === "delta") {
-					setMessages((current) => appendToMessage(current, assistantId, event.text));
+					setSessionMessages((current) =>
+						appendToMessage(current ?? historyQuery.data ?? [], assistantId, event.text),
+					);
 				} else if (event.type === "completed" && event.text) {
-					setMessages((current) => fillEmptyMessage(current, assistantId, event.text));
+					setSessionMessages((current) =>
+						fillEmptyMessage(current ?? historyQuery.data ?? [], assistantId, event.text),
+					);
 				} else if (event.type === "error") {
-					setError(event.error);
-					setMessages((current) =>
-						current.filter((message) => message.id !== assistantId || message.text),
+					setStreamError(event.error);
+					setSessionMessages((current) =>
+						(current ?? historyQuery.data ?? []).filter(
+							(message) => message.id !== assistantId || message.text,
+						),
 					);
 				}
 			}
 		} catch (nextError) {
-			setError(errorMessage(nextError));
-			setMessages((current) =>
-				current.filter((message) => message.id !== assistantId || message.text),
+			setStreamError(errorMessage(nextError));
+			setSessionMessages((current) =>
+				(current ?? historyQuery.data ?? []).filter(
+					(message) => message.id !== assistantId || message.text,
+				),
 			);
 		} finally {
 			setIsSending(false);
@@ -109,7 +101,8 @@ export function ChatPanel() {
 					ref={scrollRef}
 				>
 					<div className="space-y-2">
-						{messages.length === 0 ? <EmptyChat /> : null}
+						{historyQuery.isLoading ? <LoadingChat /> : null}
+						{messages.length === 0 && !historyQuery.isLoading ? <EmptyChat /> : null}
 						{messages.map((message) => (
 							<ChatBubble key={message.id} message={message} />
 						))}
@@ -134,6 +127,10 @@ export function ChatPanel() {
 	);
 }
 
+function LoadingChat() {
+	return <div className="p-3 text-xs text-muted-foreground">Loading chat...</div>;
+}
+
 function EmptyChat() {
 	return (
 		<div className="border border-dashed border-border bg-background p-3 text-xs leading-relaxed text-muted-foreground">
@@ -141,7 +138,7 @@ function EmptyChat() {
 				<IconSparkles className="size-3.5" />
 				Start a session
 			</div>
-			Messages stream from the same rho server endpoint used by mobile.
+			Messages stream from the same rho core endpoint used by mobile.
 		</div>
 	);
 }

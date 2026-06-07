@@ -13,7 +13,7 @@ import { cors } from "hono/cors";
 import type { ChannelRegistry } from "./channel-registry.ts";
 import { messageFromHttp, validateHttpMessage } from "./http-message.ts";
 import { type RegistrySource, reload } from "./reload.ts";
-import { getTableData } from "./tables.ts";
+import { getTableData, getTables } from "./tables.ts";
 
 export interface CoreDeps {
 	runtime: ChannelRuntime;
@@ -45,6 +45,7 @@ export function createCoreServer(deps: CoreDeps): Hono {
 		return context.json({ error: "Unauthorized" }, 401);
 	});
 	app.post("/reload", async (context) => context.json(await reload(deps)));
+	app.get("/tables", async (context) => context.json({ tables: await getTables() }));
 	app.get("/tables/:name", async (context) => tableData(context));
 	app.get("/agent/conversations/:id/messages", async (context) => messages(context, deps));
 	app.post("/agent/messages", async (context) => handleAgentMessage(context, deps));

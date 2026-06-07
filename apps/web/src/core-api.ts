@@ -1,4 +1,4 @@
-const defaultServerUrl = "http://127.0.0.1:7331";
+const defaultCoreUrl = "http://127.0.0.1:7331";
 const conversationId = "mobile-chat";
 
 export interface ChatMessage {
@@ -13,11 +13,42 @@ export type ChatEvent =
 	| { type: "completed"; text: string }
 	| { type: "error"; error: string };
 
+export type TableValueKind = "boolean" | "date" | "enum" | "number" | "text";
+export type TableValue = null | string | number | boolean;
+export type TableRow = Record<string, TableValue>;
+
+export interface TableColumnInfo {
+	id: string;
+	label: string;
+	kind: TableValueKind;
+	declaredType: string;
+	nullable: boolean;
+	primaryKey: boolean;
+	defaultValue: TableValue;
+}
+
+export interface TableData {
+	name: string;
+	columns: TableColumnInfo[];
+	rows: TableRow[];
+	limit: number;
+	offset: number;
+}
+
+export interface TableSummary {
+	name: string;
+	label: string;
+}
+
 interface ChatHistoryResponse {
 	messages: Array<{
 		role: "user" | "assistant";
 		text: string;
 	}>;
+}
+
+interface TablesResponse {
+	tables: TableSummary[];
 }
 
 interface TextPayload {
@@ -29,14 +60,11 @@ interface ErrorPayload {
 }
 
 export async function loadChatHistory(): Promise<ChatMessage[]> {
-	const response = await fetch(chatUrl(`/agent/conversations/${conversationId}/messages`), {
-		headers: authHeaders(),
-	});
-	if (!response.ok) {
-		throw new Error(await responseError(response, "Failed to load chat history"));
-	}
+	const history = await coreJson<ChatHistoryResponse>(
+		`/agent/conversations/${conversationId}/messages`,
+		"Failed to load chat history",
+	);
 
-	const history = (await response.json()) as ChatHistoryResponse;
 	return history.messages.map((message, index) => ({
 		id: `history-${index}`,
 		role: message.role,
@@ -45,21 +73,22 @@ export async function loadChatHistory(): Promise<ChatMessage[]> {
 }
 
 export async function* streamChatMessage(text: string): AsyncGenerator<ChatEvent> {
-	const response = await fetch(chatUrl("/agent/messages:stream"), {
-		method: "POST",
-		headers: {
-			...authHeaders(),
-			"Content-Type": "application/json",
+	const response = await coreResponse(
+		"/agent/messages:stream",
+		{
+			method: "POST",
+			headers: {
+				...authHeaders(),
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				conversationId,
+				sender: { id: "web-user", name: "Web User" },
+				text,
+			}),
 		},
-		body: JSON.stringify({
-			conversationId,
-			sender: { id: "web-user", name: "Web User" },
-			text,
-		}),
-	});
-	if (!response.ok) {
-		throw new Error(await responseError(response, "Failed to send chat message"));
-	}
+		"Failed to send chat message",
+	);
 	if (!response.body) {
 		throw new Error("Chat stream response did not include a body");
 	}
@@ -97,12 +126,33 @@ export async function* streamChatMessage(text: string): AsyncGenerator<ChatEvent
 	}
 }
 
-function chatUrl(path: string): string {
-	const baseUrl = import.meta.env.VITE_RHO_SERVER_URL || defaultServerUrl;
-	return new URL(path, baseUrl).toString();
+export async function loadTables(): Promise<TableSummary[]> {
+	const data = await coreJson<TablesResponse>("/tables", "Failed to load tables");
+	return data.tables;
 }
 
-function authHeaders(): HeadersInit {
+export async function loadTable(name: string): Promise<TableData> {
+	return coreJson<TableData>(`/tables/${name}`, `Failed to load ${name}`);
+}
+
+async function coreJson<T>(path: string, fallback: string): Promise<T> {
+	const response = await coreResponse(path, { headers: authHeaders() }, fallback);
+	return (await response.json()) as T;
+}
+
+async function coreResponse(path: string, init: RequestInit, fallback: string): Promise<Response> {
+	const response = await fetch(coreUrl(path), init);
+	if (!response.ok) {
+		throw new Error(await responseError(response, fallback));
+	}
+	return response;
+}
+
+function coreUrl(path: string): string {
+	return new URL(path, import.meta.env.VITE_RHO_CORE_URL || defaultCoreUrl).toString();
+}
+
+function authHeaders(): Record<string, string> {
 	const secret = import.meta.env.VITE_RHO_API_SECRET;
 	return secret ? { Authorization: `Bearer ${secret}` } : {};
 }
@@ -140,7 +190,7 @@ function parseFrame(frame: string): ChatEvent | undefined {
 		case "message.error":
 			return {
 				type: "error",
-				error: decodeJson<ErrorPayload>(data)?.error ?? "Unknown server error",
+				error: decodeJson<ErrorPayload>(data)?.error ?? "Unknown core error",
 			};
 		default:
 			return undefined;

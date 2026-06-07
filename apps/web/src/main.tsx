@@ -1,17 +1,11 @@
-import {
-	createRootRoute,
-	createRoute,
-	createRouter,
-	Outlet,
-	RouterProvider,
-	useRouterState,
-} from "@tanstack/react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createRootRoute, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AdminShell } from "./routes/admin-shell.tsx";
 import { Dashboard } from "./routes/dashboard.tsx";
-import { TablePage } from "./routes/table.tsx";
+import { DataPage } from "./routes/data.tsx";
 import "./styles.css";
 
 const rootRoute = createRootRoute({
@@ -24,14 +18,21 @@ const indexRoute = createRoute({
 	component: Dashboard,
 });
 
-const tableRoute = createRoute({
+const dataRoute = createRoute({
 	getParentRoute: () => rootRoute,
-	path: "/table",
-	component: TablePage,
+	path: "/data",
+	component: () => <DataPage />,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, tableRoute]);
+const dataTableRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/data/$tableName",
+	component: DataTableRoute,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, dataRoute, dataTableRoute]);
 const router = createRouter({ routeTree });
+const queryClient = new QueryClient();
 
 declare module "@tanstack/react-router" {
 	interface Register {
@@ -39,13 +40,12 @@ declare module "@tanstack/react-router" {
 	}
 }
 
+function DataTableRoute() {
+	const { tableName } = dataTableRoute.useParams();
+	return <DataPage tableName={tableName} />;
+}
+
 function Root() {
-	const pathname = useRouterState({ select: (state) => state.location.pathname });
-
-	if (pathname === "/table") {
-		return <Outlet />;
-	}
-
 	return <AdminShell />;
 }
 
@@ -57,8 +57,10 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
 	<StrictMode>
-		<TooltipProvider>
-			<RouterProvider router={router} />
-		</TooltipProvider>
+		<QueryClientProvider client={queryClient}>
+			<TooltipProvider>
+				<RouterProvider router={router} />
+			</TooltipProvider>
+		</QueryClientProvider>
 	</StrictMode>,
 );

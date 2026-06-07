@@ -5,6 +5,11 @@ type TableValueKind = "boolean" | "date" | "enum" | "number" | "text";
 type JsonScalar = null | string | number | boolean;
 export type TableRow = Record<string, JsonScalar>;
 
+export interface TableSummary {
+	name: string;
+	label: string;
+}
+
 interface TableInfoRow {
 	cid: number;
 	name: string;
@@ -41,6 +46,17 @@ interface TableOptions {
 
 const defaultLimit = 100;
 const maxLimit = 500;
+
+export async function getTables(): Promise<TableSummary[]> {
+	const result = await sqlite.execute(
+		"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != '_prisma_migrations' ORDER BY name",
+	);
+
+	return result.rows.map((row) => {
+		const name = String(row.name);
+		return { name, label: titleLabel(name) };
+	});
+}
 
 export async function getTableData(
 	name: string,
@@ -188,6 +204,7 @@ function validColumnName(columns: TableInfoRow[], name: string | undefined): nam
 
 function titleLabel(value: string): string {
 	return value
+		.replace(/^_+/, "")
 		.replace(/([a-z0-9])([A-Z])/g, "$1 $2")
 		.split(" ")
 		.map((word) => word.slice(0, 1).toUpperCase() + word.slice(1).toLowerCase())
