@@ -1,29 +1,35 @@
-import type { ChannelRuntime } from "@rho/channels";
-import type { ChannelRegistry } from "./channel-registry.ts";
+import type { Channel } from "@rho/channels";
+import type { ExtensionDiagnostic, ExtensionLoader, LoadedExtension } from "./extensions/index.ts";
 
 export interface RegistrySource {
-	readChannels(): Promise<unknown[]>;
 	readApps(): Promise<unknown[]>;
 	readSecrets(): Promise<Record<string, string>>;
 }
 
 export interface ReloadDependencies {
-	runtime: ChannelRuntime;
-	channels: ChannelRegistry;
+	extensionLoader: ExtensionLoader;
+	replaceChannels(channels: Channel[]): void;
+	activeChannelIds(): string[];
 	files: RegistrySource;
 }
 
-export interface ReloadResult {
-	ok: true;
-	channels: string[];
-	apps: number;
-}
+export type ReloadResult =
+	| {
+			ok: true;
+			channels: string[];
+			apps: number;
+			extensions: LoadedExtension[];
+			diagnostics: ExtensionDiagnostic[];
+	  }
+	| {
+			ok: false;
+			channels: string[];
+			apps: number;
+			extensions: LoadedExtension[];
+			diagnostics: ExtensionDiagnostic[];
+	  };
 
 export class EmptyRegistrySource implements RegistrySource {
-	async readChannels(): Promise<unknown[]> {
-		return [];
-	}
-
 	async readApps(): Promise<unknown[]> {
 		return [];
 	}
@@ -34,17 +40,22 @@ export class EmptyRegistrySource implements RegistrySource {
 }
 
 export async function reload(deps: ReloadDependencies): Promise<ReloadResult> {
-	const [_secrets, _channelDefinitions, apps] = await Promise.all([
+	const [_secrets, apps, loaded] = await Promise.all([
 		deps.files.readSecrets(),
-		deps.files.readChannels(),
 		deps.files.readApps(),
+		deps.extensionLoader.load(),
 	]);
+	const hasErrors = loaded.diagnostics.some((diagnostic) => diagnostic.severity === "error");
 
-	deps.runtime.replaceChannels(deps.channels.current());
+	if (!hasErrors) {
+		deps.replaceChannels(loaded.channels);
+	}
 
 	return {
-		ok: true,
-		channels: deps.channels.current().map((channel) => channel.id),
+		ok: !hasErrors,
+		channels: deps.activeChannelIds(),
 		apps: apps.length,
+		extensions: loaded.extensions,
+		diagnostics: loaded.diagnostics,
 	};
 }

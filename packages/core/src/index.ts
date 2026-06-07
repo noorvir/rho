@@ -1,6 +1,12 @@
 export { ChannelRegistry } from "./channel-registry.ts";
 export { createRhoCore, type RhoCore, type RhoCoreOptions } from "./core.ts";
 export {
+	FileSystemExtensionLoader,
+	type FileSystemExtensionLoaderOptions,
+	type RhoExtension,
+	type RhoExtensionApi,
+} from "./extensions/index.ts";
+export {
 	EmptyRegistrySource,
 	type RegistrySource,
 	type ReloadDependencies,

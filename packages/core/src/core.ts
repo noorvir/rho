@@ -15,11 +15,14 @@ import {
 	messageText,
 } from "@rho/channels";
 import { ChannelRegistry } from "./channel-registry.ts";
+import { FileSystemExtensionLoader } from "./extensions/index.ts";
 import { EmptyRegistrySource, type RegistrySource, type ReloadResult, reload } from "./reload.ts";
 import { sqlite } from "./sqlite.ts";
 
 export interface RhoCoreOptions {
 	channels?: Channel[];
+	cwd?: string;
+	extensionPaths?: string[];
 	files?: RegistrySource;
 	state?: StateManager;
 }
@@ -39,6 +42,10 @@ export interface RhoCore {
 
 export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCore> {
 	const channels = new ChannelRegistry(options.channels ?? []);
+	const extensionLoader = new FileSystemExtensionLoader({
+		cwd: options.cwd,
+		extensionPaths: options.extensionPaths,
+	});
 	const files = options.files ?? new EmptyRegistrySource();
 	const state = options.state ?? createFileStateManager();
 
@@ -60,7 +67,13 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 		handleMessage: async (message) => runtime.handle(message),
 		loadConversation: async (key) => loadConversation(state, key),
 		replaceChannels,
-		reload: async () => reload({ runtime, channels, files }),
+		reload: async () =>
+			reload({
+				extensionLoader,
+				replaceChannels,
+				activeChannelIds: () => channels.current().map((channel) => channel.id),
+				files,
+			}),
 		activeChannelIds: () => channels.current().map((channel) => channel.id),
 		close: async () => {
 			await runtime.stop();
