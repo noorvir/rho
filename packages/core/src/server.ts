@@ -15,7 +15,7 @@ import { messageFromHttp, validateHttpMessage } from "./http-message.ts";
 import { type RegistrySource, reload } from "./reload.ts";
 import { getTableData } from "./tables.ts";
 
-export interface ServerDeps {
+export interface CoreDeps {
 	runtime: ChannelRuntime;
 	httpChannel: HttpChannel;
 	channels: ChannelRegistry;
@@ -24,7 +24,7 @@ export interface ServerDeps {
 	apiSecret?: string;
 }
 
-export function createServer(deps: ServerDeps): Hono {
+export function createCoreServer(deps: CoreDeps): Hono {
 	const app = new Hono();
 
 	app.use(
@@ -76,7 +76,7 @@ function numberParam(value: string | undefined): number | undefined {
 	return value ? Number(value) : undefined;
 }
 
-async function messages(context: Context, deps: ServerDeps): Promise<Response> {
+async function messages(context: Context, deps: CoreDeps): Promise<Response> {
 	const id = context.req.param("id");
 	if (!id) {
 		return context.json({ error: "conversation id is required" }, 400);
@@ -90,7 +90,7 @@ async function messages(context: Context, deps: ServerDeps): Promise<Response> {
 	return context.json(result.data);
 }
 
-async function handleAgentMessage(context: Context, deps: ServerDeps): Promise<Response> {
+async function handleAgentMessage(context: Context, deps: CoreDeps): Promise<Response> {
 	const result = await tc(
 		(async () => {
 			const input = validateHttpMessage(await context.req.json());
@@ -108,7 +108,7 @@ async function handleAgentMessage(context: Context, deps: ServerDeps): Promise<R
 	return context.json({ message: result.data });
 }
 
-async function handleAgentMessageStream(context: Context, deps: ServerDeps): Promise<Response> {
+async function handleAgentMessageStream(context: Context, deps: CoreDeps): Promise<Response> {
 	const stream = createSseStream();
 
 	try {

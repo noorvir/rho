@@ -13,7 +13,7 @@
 		"web:dev": "bun run --cwd apps/web dev",
 		"web:build": "bun run --cwd apps/web build",
 		"rho": "bun run build && bun packages/cli/dist/cli.js",
-		"server": "bun run build && bun packages/server/dist/cli.js",
+		"core": "bun run build && bun packages/core/dist/cli.js",
 		"typecheck": "tsgo -b --pretty false",
 		"check": "biome check . && bun run typecheck",
 		"format": "biome check --write .",

@@ -6,4 +6,4 @@ export {
 	type ReloadResult,
 	reload,
 } from "./reload.ts";
-export { createServer, type ServerDeps } from "./server.ts";
+export { type CoreDeps, createCoreServer } from "./server.ts";

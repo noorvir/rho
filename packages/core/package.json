@@ -1,7 +1,7 @@
 {
-	"name": "@rho/server",
+	"name": "@rho/core",
 	"version": "0.0.0",
-	"description": "Local HTTP server for rho.",
+	"description": "Long-running core process for rho.",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -13,7 +13,7 @@
 		"./package.json": "./package.json"
 	},
 	"bin": {
-		"rho-server": "./dist/cli.js"
+		"rho-core": "./dist/cli.js"
 	},
 	"files": [
 		"dist",
@@ -44,7 +44,7 @@
 	"keywords": [
 		"ai",
 		"agents",
-		"server"
+		"core"
 	],
 	"license": "MIT",
 	"engines": {

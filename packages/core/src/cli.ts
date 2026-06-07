@@ -5,7 +5,7 @@ import { agentEventTextDelta, createFileStateManager, respondInConversation } fr
 import { type ChannelMessage, ChannelRuntime, HttpChannel, messageText } from "@rho/channels";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { EmptyRegistrySource, reload } from "./reload.ts";
-import { createServer } from "./server.ts";
+import { createCoreServer } from "./server.ts";
 import { sqlite } from "./sqlite.ts";
 
 const port = Number(process.env.PORT ?? process.env.RHO_PORT ?? "7331");
@@ -24,12 +24,12 @@ const runtime = new ChannelRuntime({
 await reload({ runtime, channels, httpChannel, files });
 
 const server = serve({
-	fetch: createServer({ runtime, httpChannel, channels, files, state, apiSecret }).fetch,
+	fetch: createCoreServer({ runtime, httpChannel, channels, files, state, apiSecret }).fetch,
 	hostname: "0.0.0.0",
 	port,
 });
 
-console.log(`rho server listening on http://localhost:${port}`);
+console.log(`rho core listening on http://localhost:${port}`);
 console.log(
 	`active channels: ${channels
 		.current()

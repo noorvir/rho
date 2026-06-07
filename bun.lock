@@ -73,15 +73,11 @@
         "@rho/channels": "workspace:*",
       },
     },
-    "packages/lib": {
-      "name": "@rho/lib",
-      "version": "0.0.0",
-    },
-    "packages/server": {
-      "name": "@rho/server",
+    "packages/core": {
+      "name": "@rho/core",
       "version": "0.0.0",
       "bin": {
-        "rho-server": "./dist/cli.js",
+        "rho-core": "./dist/cli.js",
       },
       "dependencies": {
         "@hono/node-server": "^1.14.4",
@@ -97,6 +93,10 @@
       "devDependencies": {
         "prisma": "7.8.0",
       },
+    },
+    "packages/lib": {
+      "name": "@rho/lib",
+      "version": "0.0.0",
     },
   },
   "packages": {
@@ -596,9 +596,9 @@
 
     "@rho/cli": ["@rho/cli@workspace:packages/cli"],
 
-    "@rho/lib": ["@rho/lib@workspace:packages/lib"],
+    "@rho/core": ["@rho/core@workspace:packages/core"],
 
-    "@rho/server": ["@rho/server@workspace:packages/server"],
+    "@rho/lib": ["@rho/lib@workspace:packages/lib"],
 
     "@rho/web": ["@rho/web@workspace:apps/web"],
 

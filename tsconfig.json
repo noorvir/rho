@@ -5,7 +5,7 @@
 		{ "path": "./packages/lib" },
 		{ "path": "./packages/channels" },
 		{ "path": "./packages/ai" },
-		{ "path": "./packages/server" },
+		{ "path": "./packages/core" },
 		{ "path": "./packages/cli" }
 	]
 }
