@@ -385,7 +385,10 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Contact: 'Contact',
-  Org: 'Org'
+  Org: 'Org',
+  SystemOwner: 'SystemOwner',
+  SystemSession: 'SystemSession',
+  SystemApiToken: 'SystemApiToken'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -401,7 +404,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "contact" | "org"
+    modelProps: "contact" | "org" | "systemOwner" | "systemSession" | "systemApiToken"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -553,6 +556,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    SystemOwner: {
+      payload: Prisma.$SystemOwnerPayload<ExtArgs>
+      fields: Prisma.SystemOwnerFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SystemOwnerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SystemOwnerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+        }
+        findFirst: {
+          args: Prisma.SystemOwnerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SystemOwnerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+        }
+        findMany: {
+          args: Prisma.SystemOwnerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>[]
+        }
+        create: {
+          args: Prisma.SystemOwnerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+        }
+        createMany: {
+          args: Prisma.SystemOwnerCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SystemOwnerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>[]
+        }
+        delete: {
+          args: Prisma.SystemOwnerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+        }
+        update: {
+          args: Prisma.SystemOwnerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+        }
+        deleteMany: {
+          args: Prisma.SystemOwnerDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SystemOwnerUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SystemOwnerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>[]
+        }
+        upsert: {
+          args: Prisma.SystemOwnerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+        }
+        aggregate: {
+          args: Prisma.SystemOwnerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemOwner>
+        }
+        groupBy: {
+          args: Prisma.SystemOwnerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemOwnerGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SystemOwnerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemOwnerCountAggregateOutputType> | number
+        }
+      }
+    }
+    SystemSession: {
+      payload: Prisma.$SystemSessionPayload<ExtArgs>
+      fields: Prisma.SystemSessionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SystemSessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SystemSessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+        }
+        findFirst: {
+          args: Prisma.SystemSessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SystemSessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+        }
+        findMany: {
+          args: Prisma.SystemSessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>[]
+        }
+        create: {
+          args: Prisma.SystemSessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+        }
+        createMany: {
+          args: Prisma.SystemSessionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SystemSessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>[]
+        }
+        delete: {
+          args: Prisma.SystemSessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+        }
+        update: {
+          args: Prisma.SystemSessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+        }
+        deleteMany: {
+          args: Prisma.SystemSessionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SystemSessionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SystemSessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>[]
+        }
+        upsert: {
+          args: Prisma.SystemSessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+        }
+        aggregate: {
+          args: Prisma.SystemSessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemSession>
+        }
+        groupBy: {
+          args: Prisma.SystemSessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemSessionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SystemSessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemSessionCountAggregateOutputType> | number
+        }
+      }
+    }
+    SystemApiToken: {
+      payload: Prisma.$SystemApiTokenPayload<ExtArgs>
+      fields: Prisma.SystemApiTokenFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SystemApiTokenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SystemApiTokenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+        }
+        findFirst: {
+          args: Prisma.SystemApiTokenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SystemApiTokenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+        }
+        findMany: {
+          args: Prisma.SystemApiTokenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>[]
+        }
+        create: {
+          args: Prisma.SystemApiTokenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+        }
+        createMany: {
+          args: Prisma.SystemApiTokenCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SystemApiTokenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>[]
+        }
+        delete: {
+          args: Prisma.SystemApiTokenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+        }
+        update: {
+          args: Prisma.SystemApiTokenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+        }
+        deleteMany: {
+          args: Prisma.SystemApiTokenDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SystemApiTokenUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SystemApiTokenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>[]
+        }
+        upsert: {
+          args: Prisma.SystemApiTokenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+        }
+        aggregate: {
+          args: Prisma.SystemApiTokenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemApiToken>
+        }
+        groupBy: {
+          args: Prisma.SystemApiTokenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemApiTokenGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SystemApiTokenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SystemApiTokenCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -618,6 +843,38 @@ export const OrgScalarFieldEnum = {
 } as const
 
 export type OrgScalarFieldEnum = (typeof OrgScalarFieldEnum)[keyof typeof OrgScalarFieldEnum]
+
+
+export const SystemOwnerScalarFieldEnum = {
+  id: 'id',
+  passwordHash: 'passwordHash',
+  setupCompletedAt: 'setupCompletedAt'
+} as const
+
+export type SystemOwnerScalarFieldEnum = (typeof SystemOwnerScalarFieldEnum)[keyof typeof SystemOwnerScalarFieldEnum]
+
+
+export const SystemSessionScalarFieldEnum = {
+  id: 'id',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SystemSessionScalarFieldEnum = (typeof SystemSessionScalarFieldEnum)[keyof typeof SystemSessionScalarFieldEnum]
+
+
+export const SystemApiTokenScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  tokenHash: 'tokenHash',
+  tokenPrefix: 'tokenPrefix',
+  revokedAt: 'revokedAt',
+  lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SystemApiTokenScalarFieldEnum = (typeof SystemApiTokenScalarFieldEnum)[keyof typeof SystemApiTokenScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -795,6 +1052,9 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   contact?: Prisma.ContactOmit
   org?: Prisma.OrgOmit
+  systemOwner?: Prisma.SystemOwnerOmit
+  systemSession?: Prisma.SystemSessionOmit
+  systemApiToken?: Prisma.SystemApiTokenOmit
 }
 
 /* Types for Logging */

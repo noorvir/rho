@@ -1,5 +1,7 @@
-import { createClient } from "@libsql/client/node";
+import { type Client, createClient } from "@libsql/client/node";
 
-const databaseUrl = process.env.DATABASE_URL ?? new URL("../dev.db", import.meta.url).href;
+export type RhoDatabase = Client;
 
-export const sqlite = createClient({ url: databaseUrl });
+export function createRhoDatabase(databaseUrl: string): RhoDatabase {
+	return createClient({ url: databaseUrl });
+}

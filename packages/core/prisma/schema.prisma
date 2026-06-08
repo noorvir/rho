@@ -50,3 +50,32 @@ model Org {
 
   @@map("orgs")
 }
+
+model SystemOwner {
+  id               Int      @id
+  passwordHash     String
+  setupCompletedAt DateTime
+
+  @@map("_rho_system_owner")
+}
+
+model SystemSession {
+  id        String   @id
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("_rho_system_sessions")
+}
+
+model SystemApiToken {
+  id          String    @id
+  name        String
+  tokenHash   String    @unique
+  tokenPrefix String
+  revokedAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("_rho_system_api_tokens")
+}

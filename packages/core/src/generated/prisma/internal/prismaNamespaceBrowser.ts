@@ -52,7 +52,10 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Contact: 'Contact',
-  Org: 'Org'
+  Org: 'Org',
+  SystemOwner: 'SystemOwner',
+  SystemSession: 'SystemSession',
+  SystemApiToken: 'SystemApiToken'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -97,6 +100,38 @@ export const OrgScalarFieldEnum = {
 } as const
 
 export type OrgScalarFieldEnum = (typeof OrgScalarFieldEnum)[keyof typeof OrgScalarFieldEnum]
+
+
+export const SystemOwnerScalarFieldEnum = {
+  id: 'id',
+  passwordHash: 'passwordHash',
+  setupCompletedAt: 'setupCompletedAt'
+} as const
+
+export type SystemOwnerScalarFieldEnum = (typeof SystemOwnerScalarFieldEnum)[keyof typeof SystemOwnerScalarFieldEnum]
+
+
+export const SystemSessionScalarFieldEnum = {
+  id: 'id',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SystemSessionScalarFieldEnum = (typeof SystemSessionScalarFieldEnum)[keyof typeof SystemSessionScalarFieldEnum]
+
+
+export const SystemApiTokenScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  tokenHash: 'tokenHash',
+  tokenPrefix: 'tokenPrefix',
+  revokedAt: 'revokedAt',
+  lastUsedAt: 'lastUsedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type SystemApiTokenScalarFieldEnum = (typeof SystemApiTokenScalarFieldEnum)[keyof typeof SystemApiTokenScalarFieldEnum]
 
 
 export const SortOrder = {

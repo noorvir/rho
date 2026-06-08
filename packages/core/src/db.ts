@@ -1,5 +1,5 @@
 import type { Row, Value } from "@libsql/client/node";
-import { sqlite } from "./sqlite.ts";
+import { createRhoDatabase, type RhoDatabase } from "./sqlite.ts";
 
 type TableValueKind = "boolean" | "date" | "enum" | "number" | "text";
 type JsonScalar = null | string | number | boolean;
@@ -37,7 +37,7 @@ export interface TableData {
 	offset: number;
 }
 
-interface TableOptions {
+export interface TableOptions {
 	limit?: number;
 	offset?: number;
 	orderBy?: string;
@@ -47,57 +47,72 @@ interface TableOptions {
 const defaultLimit = 100;
 const maxLimit = 500;
 
-export async function getTables(): Promise<TableSummary[]> {
-	const result = await sqlite.execute(
-		"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != '_prisma_migrations' ORDER BY name",
-	);
+export async function getTables(databaseUrl: string): Promise<TableSummary[]> {
+	return withDatabase(databaseUrl, async (database) => {
+		const result = await database.execute(
+			"SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name != '_prisma_migrations' ORDER BY name",
+		);
 
-	return result.rows.map((row) => {
-		const name = String(row.name);
-		return { name, label: titleLabel(name) };
+		return result.rows.map((row) => {
+			const name = String(row.name);
+			return { name, label: titleLabel(name) };
+		});
 	});
 }
 
 export async function getTableData(
+	databaseUrl: string,
 	name: string,
 	options: TableOptions = {},
 ): Promise<TableData | undefined> {
-	if (!(await tableExists(name))) {
-		return undefined;
-	}
+	return withDatabase(databaseUrl, async (database) => {
+		if (!(await tableExists(database, name))) {
+			return undefined;
+		}
 
-	const tableInfo = await getTableInfo(name);
-	const limit = clampLimit(options.limit);
-	const offset = Math.max(0, options.offset ?? 0);
+		const tableInfo = await getTableInfo(database, name);
+		const limit = clampLimit(options.limit);
+		const offset = Math.max(0, options.offset ?? 0);
 
-	return {
-		name,
-		columns: tableInfo.map(tableColumn),
-		rows: await tableRows(name, tableInfo, {
+		return {
+			name,
+			columns: tableInfo.map(tableColumn),
+			rows: await tableRows(database, name, tableInfo, {
+				limit,
+				offset,
+				orderBy: validColumnName(tableInfo, options.orderBy) ? options.orderBy : undefined,
+				order: options.order?.toLowerCase() === "desc" ? "desc" : "asc",
+			}),
 			limit,
 			offset,
-			orderBy: validColumnName(tableInfo, options.orderBy) ? options.orderBy : undefined,
-			order: options.order?.toLowerCase() === "desc" ? "desc" : "asc",
-		}),
-		limit,
-		offset,
-	};
+		};
+	});
 }
 
-async function tableExists(name: string): Promise<boolean> {
-	const result = await sqlite.execute({
+async function withDatabase<T>(databaseUrl: string, use: (database: RhoDatabase) => Promise<T>): Promise<T> {
+	const database = createRhoDatabase(databaseUrl);
+	try {
+		return await use(database);
+	} finally {
+		database.close();
+	}
+}
+
+async function tableExists(database: RhoDatabase, name: string): Promise<boolean> {
+	const result = await database.execute({
 		sql: "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? AND name NOT LIKE 'sqlite_%'",
 		args: [name],
 	});
 	return result.rows.length > 0;
 }
 
-async function getTableInfo(table: string): Promise<TableInfoRow[]> {
-	const result = await sqlite.execute(`PRAGMA table_info(${quoteIdentifier(table)})`);
+async function getTableInfo(database: RhoDatabase, table: string): Promise<TableInfoRow[]> {
+	const result = await database.execute(`PRAGMA table_info(${quoteIdentifier(table)})`);
 	return result.rows.map(tableInfoRow);
 }
 
 async function tableRows(
+	database: RhoDatabase,
 	table: string,
 	columns: TableInfoRow[],
 	options: { limit: number; offset: number; order: "asc" | "desc"; orderBy?: string },
@@ -105,7 +120,7 @@ async function tableRows(
 	const orderClause = options.orderBy
 		? `ORDER BY ${quoteIdentifier(options.orderBy)} ${options.order.toUpperCase()}`
 		: "";
-	const result = await sqlite.execute({
+	const result = await database.execute({
 		sql: `SELECT * FROM ${quoteIdentifier(table)} ${orderClause} LIMIT ? OFFSET ?`,
 		args: [options.limit, options.offset],
 	});
@@ -168,12 +183,7 @@ function columnKind(declaredType: string): TableValueKind {
 	if (type.includes("DATE") || type.includes("TIME")) {
 		return "date";
 	}
-	if (
-		type.includes("INT") ||
-		type.includes("REAL") ||
-		type.includes("FLOA") ||
-		type.includes("DOUB")
-	) {
+	if (type.includes("INT") || type.includes("REAL") || type.includes("FLOA") || type.includes("DOUB")) {
 		return "number";
 	}
 	if (isTextType(type) || type === "") {
@@ -183,12 +193,7 @@ function columnKind(declaredType: string): TableValueKind {
 }
 
 function isTextType(type: string): boolean {
-	return (
-		type.includes("CHAR") ||
-		type.includes("CLOB") ||
-		type.includes("TEXT") ||
-		type.includes("VARCHAR")
-	);
+	return type.includes("CHAR") || type.includes("CLOB") || type.includes("TEXT") || type.includes("VARCHAR");
 }
 
 function clampLimit(limit: number | undefined): number {

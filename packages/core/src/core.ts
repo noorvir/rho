@@ -18,7 +18,6 @@ import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import { type ReloadResult, reload } from "./reload.ts";
-import { sqlite } from "./sqlite.ts";
 
 export interface RhoCoreOptions {
 	channels?: Channel[];
@@ -91,7 +90,6 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 		activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 		close: async () => {
 			await runtime.stop();
-			sqlite.close();
 		},
 	};
 

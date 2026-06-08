@@ -27,3 +27,18 @@ export type Contact = Prisma.ContactModel
  * 
  */
 export type Org = Prisma.OrgModel
+/**
+ * Model SystemOwner
+ * 
+ */
+export type SystemOwner = Prisma.SystemOwnerModel
+/**
+ * Model SystemSession
+ * 
+ */
+export type SystemSession = Prisma.SystemSessionModel
+/**
+ * Model SystemApiToken
+ * 
+ */
+export type SystemApiToken = Prisma.SystemApiTokenModel

@@ -10,4 +10,7 @@
  */
 export type * from './models/Contact.ts'
 export type * from './models/Org.ts'
+export type * from './models/SystemOwner.ts'
+export type * from './models/SystemSession.ts'
+export type * from './models/SystemApiToken.ts'
 export type * from './commonInputTypes.ts'

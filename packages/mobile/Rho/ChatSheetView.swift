@@ -321,13 +321,13 @@ private final class ChatClient {
 
     private func request(url: URL) -> URLRequest {
         var request = URLRequest(url: url)
-        guard let apiSecret = Bundle.main.object(forInfoDictionaryKey: "RHO_API_SECRET") as? String,
-              !apiSecret.isEmpty
+        guard let apiToken = Bundle.main.object(forInfoDictionaryKey: "RHO_API_TOKEN") as? String,
+              !apiToken.isEmpty
         else {
             return request
         }
 
-        request.setValue("Bearer \(apiSecret)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         return request
     }
 

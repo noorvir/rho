@@ -27,8 +27,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>RHO_API_SECRET</key>
-	<string>$(RHO_API_SECRET)</string>
+	<key>RHO_API_TOKEN</key>
+	<string>$(RHO_API_TOKEN)</string>
+	<key>RHO_CHAT_BASE_URL</key>
+	<string>$(RHO_CHAT_BASE_URL)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

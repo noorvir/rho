@@ -13,8 +13,14 @@
 
 ## Server runtime
 
+- Runtime configuration must be loaded through runtime-package env modules, not core internals. Do not read `process.env` outside an `env.ts` boundary. Env object fields should use the uppercase runtime variable name, such as `env.RHO_DATABASE_URL`, not one-off exported aliases. Core packages should receive runtime configuration through explicit options.
 - `apps/server` extension paths are runtime configuration. Load them through `RHO_EXTENSION_PATHS` or a server env helper; keep example extension paths in root/dev scripts or docs, not in server entrypoints.
 - Browser app/API auth is not implemented yet. Do not treat `VITE_*` secrets as real browser auth; add a proper shell/app session or capability model before considering app APIs production-ready.
+
+## Server HTTP
+
+- In `apps/server/src/http`, feature files should export `*Router()` functions with route definitions, schemas, handlers, local auth middleware, and small helpers kept in the same file. Keep `index.ts` as composition only.
+- In `apps/server/src/http` routers, await service/core calls into named variables and wrap them with `tc(...)`; map failures to `ORPCError` at the HTTP boundary. Do not inline awaited calls in returned objects, conditions, or handler arguments.
 
 ## Package boundaries
 

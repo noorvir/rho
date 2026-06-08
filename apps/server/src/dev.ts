@@ -5,11 +5,20 @@ import { getRequestListener } from "@hono/node-server";
 import { createRhoCore } from "@rho/core";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 
+import { createRhoAuth } from "./auth.ts";
 import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
 
-const core = await createRhoCore({ extensionPaths: env.extensionPaths });
-const app = createServer({ core, apiSecret: env.apiSecret });
+const core = await createRhoCore({ extensionPaths: env.RHO_EXTENSION_PATHS });
+const auth = createRhoAuth({
+	databaseUrl: env.RHO_DATABASE_URL,
+	ownerToken: env.RHO_OWNER_TOKEN,
+});
+const app = createServer({
+	core,
+	auth,
+	databaseUrl: env.RHO_DATABASE_URL,
+});
 const apiListener = getRequestListener(app.fetch);
 let vite: ViteDevServer | undefined;
 
@@ -49,8 +58,8 @@ vite = await createViteServer({
 	},
 });
 
-server.listen(env.port, "0.0.0.0", () => {
-	console.log(`rho dev server listening on http://localhost:${env.port}`);
+server.listen(env.RHO_PORT, "0.0.0.0", () => {
+	console.log(`rho dev server listening on http://localhost:${env.RHO_PORT}`);
 	console.log(`active channels: ${core.activeChannelIds().join(", ")}`);
 });
 
@@ -69,6 +78,7 @@ function isApiPath(pathname: string): boolean {
 		pathname === "/apps.json" ||
 		pathname === "/reload" ||
 		pathname === "/tables" ||
+		pathname.startsWith("/api/auth/") ||
 		pathname.startsWith("/tables/") ||
 		pathname.startsWith("/agent/") ||
 		isAppApiPath(pathname)

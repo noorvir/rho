@@ -3,11 +3,22 @@ import Foundation
 enum MobileBuildInfo {
     #if targetEnvironment(simulator)
     static let chatEnvironment = "Local simulator"
-    static let chatBaseURL = URL(string: "http://127.0.0.1:7331")!
+    static let chatBaseURL = configuredChatBaseURL(defaultValue: "http://127.0.0.1:7331")
     #else
     static let chatEnvironment = "Railway production"
-    static let chatBaseURL = URL(string: "https://rho-server-production.up.railway.app")!
+    static let chatBaseURL = configuredChatBaseURL(defaultValue: "https://rho-server-production.up.railway.app")
     #endif
+
+    private static func configuredChatBaseURL(defaultValue: String) -> URL {
+        let configuredValue = Bundle.main.object(forInfoDictionaryKey: "RHO_CHAT_BASE_URL") as? String
+        var value = defaultValue
+
+        if let configuredValue, !configuredValue.isEmpty {
+            value = configuredValue
+        }
+
+        return URL(string: value)!
+    }
 
     static var version: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
