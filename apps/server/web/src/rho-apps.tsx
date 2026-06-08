@@ -113,6 +113,7 @@ function isAppComponent(value: unknown): value is AppComponent {
 function appContext(app: AppExtensionSummary, routePath: string): RhoAppContext {
 	const apiBasePath = app.apiBasePath ?? `/apps/${app.slug}/api`;
 	const platform = hostPlatform();
+	const apiHeaders = () => ({ "X-Rho-Platform": platform });
 	return {
 		app: {
 			slug: app.slug,
@@ -128,12 +129,13 @@ function appContext(app: AppExtensionSummary, routePath: string): RhoAppContext 
 			const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 			return `${apiBasePath}${normalizedPath}`;
 		},
+		apiHeaders,
 		apiFetch(path, init) {
 			return fetch(this.apiUrl(path), {
 				...init,
 				headers: {
+					...apiHeaders(),
 					...init?.headers,
-					"X-Rho-Platform": platform,
 				},
 			});
 		},

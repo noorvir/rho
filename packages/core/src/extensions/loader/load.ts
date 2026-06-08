@@ -2,50 +2,51 @@ import { dirname, resolve } from "node:path";
 import { tc, wrapError } from "@rho/lib";
 import { createJiti } from "jiti";
 import type {
-	AppApi,
-	AppClient,
 	AppExtension,
-	AppRoute,
 	DiscoveredExtension,
-	Extension,
 	ExtensionDiagnostic,
 	LoadedExtension,
+	RhoExtensionContext,
+	RhoExtensionDefinition,
 } from "../types.ts";
+import { appApiProcedure } from "../types.ts";
 
 const jiti = createJiti(import.meta.url, { moduleCache: false });
 
 type LoadExtensionModuleResult = { extension: LoadedExtension } | { diagnostics: ExtensionDiagnostic[] };
 
+type ExtensionDefinitionFn = (context: RhoExtensionContext) => Promise<RhoExtensionDefinition>;
+
 export async function loadExtensionModule(
-	extension: DiscoveredExtension,
+	discovered: DiscoveredExtension,
 ): Promise<LoadExtensionModuleResult> {
-	const imported = await tc(jiti.import(extension.source.resolvedPath, { default: true }));
+	const imported = await tc(jiti.import(discovered.source.resolvedPath, { default: true }));
 	if (imported.error) {
-		return failure(extension, wrapError(imported.error, "Failed to import extension"));
+		return failure(discovered, wrapError(imported.error, "Failed to import extension"));
 	}
 
-	if (!isExtension(imported.data)) {
-		return failure(extension, new Error("Extension must default-export an extension object"));
+	if (!isExtensionDefinitionFn(imported.data)) {
+		return failure(discovered, new Error("Extension must default-export an extension definition function"));
 	}
+
+	const define = imported.data;
+
+	const definitionRes = await tc(async () => define({ api: appApiProcedure }));
+	if (definitionRes.error) {
+		return failure(discovered, wrapError(definitionRes.error, "Failed to define extension"));
+	}
+
+	const definition = definitionRes.data;
+
+	const apps = definition.apps ?? [];
+	const channels = definition.channels ?? [];
 
 	return {
-		extension: loadedExtension(extension, imported.data),
-	};
-}
-
-function loadedExtension(discovered: DiscoveredExtension, extension: Extension): LoadedExtension {
-	if (extension.type === "app") {
-		return {
+		extension: {
 			source: discovered.source,
-			apps: [normalizeAppExtension(extension, dirname(discovered.source.resolvedPath))],
-			channels: [],
-		};
-	}
-
-	return {
-		source: discovered.source,
-		apps: [],
-		channels: [extension.channel],
+			apps: apps.map((app) => normalizeAppExtension(app, dirname(discovered.source.resolvedPath))),
+			channels,
+		},
 	};
 }
 
@@ -55,85 +56,17 @@ function normalizeAppExtension(extension: AppExtension, baseDir: string): AppExt
 		client: {
 			entry: resolve(baseDir, extension.client.entry),
 		},
-		routes: extension.routes,
 		api: extension.api
 			? {
-					...extension.api,
-					entry: resolve(baseDir, extension.api.entry),
+					basePath: extension.api.basePath,
+					router: extension.api.router,
 				}
 			: undefined,
 	};
 }
 
-function isExtension(value: unknown): value is Extension {
-	return isAppExtension(value) || isChannelExtension(value);
-}
-
-function isAppExtension(value: unknown): value is AppExtension {
-	const app = readRecord(value);
-	return Boolean(
-		app &&
-			app.type === "app" &&
-			isNonEmptyString(app.id) &&
-			isNonEmptyString(app.slug) &&
-			isNonEmptyString(app.name) &&
-			isAppClient(app.client) &&
-			Array.isArray(app.routes) &&
-			app.routes.every(isAppRoute) &&
-			(app.api === undefined || isAppApi(app.api)),
-	);
-}
-
-function isChannelExtension(value: unknown): value is Extract<Extension, { type: "channel" }> {
-	const extension = readRecord(value);
-	return Boolean(
-		extension &&
-			extension.type === "channel" &&
-			isNonEmptyString(extension.id) &&
-			isNonEmptyString(extension.name) &&
-			isChannel(extension.channel),
-	);
-}
-
-function isAppClient(value: unknown): value is AppClient {
-	const client = readRecord(value);
-	return Boolean(client && isNonEmptyString(client.entry));
-}
-
-function isAppRoute(value: unknown): value is AppRoute {
-	const route = readRecord(value);
-	return Boolean(
-		route && isNonEmptyString(route.path) && (route.label === undefined || typeof route.label === "string"),
-	);
-}
-
-function isAppApi(value: unknown): value is AppApi {
-	const api = readRecord(value);
-	return Boolean(api && isNonEmptyString(api.basePath) && isNonEmptyString(api.entry));
-}
-
-function isChannel(value: unknown): value is Extract<Extension, { type: "channel" }>["channel"] {
-	const channel = readRecord(value);
-	return Boolean(
-		channel &&
-			isNonEmptyString(channel.id) &&
-			isNonEmptyString(channel.kind) &&
-			typeof channel.start === "function" &&
-			typeof channel.stop === "function" &&
-			typeof channel.send === "function",
-	);
-}
-
-function isNonEmptyString(value: unknown): value is string {
-	return typeof value === "string" && value.trim() !== "";
-}
-
-function readRecord(value: unknown): Record<string, unknown> | undefined {
-	return isRecord(value) ? value : undefined;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
+function isExtensionDefinitionFn(value: unknown): value is ExtensionDefinitionFn {
+	return typeof value === "function";
 }
 
 function failure(extension: DiscoveredExtension, error: Error): LoadExtensionModuleResult {

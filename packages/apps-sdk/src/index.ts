@@ -1,8 +1,23 @@
-import type { AppExtension, AppRoute } from "@rho/core";
+import type { AnyRouter } from "@orpc/server";
+import type {
+	AppClient,
+	AppExtension,
+	AppRoute,
+	RhoExtensionContext,
+	RhoExtensionDefinition,
+	RhoHostPlatform,
+} from "@rho/core";
 
-export type { AppApi, AppClient, AppExtension, AppRoute } from "@rho/core";
-
-export type RhoHostPlatform = "web" | "mobile" | "desktop";
+export type {
+	AppClient,
+	AppExtension,
+	AppRoute,
+	RhoAppApiBuilderContext,
+	RhoAppApiContext,
+	RhoExtensionContext,
+	RhoExtensionDefinition,
+	RhoHostPlatform,
+} from "@rho/core";
 
 export interface RhoAppContext {
 	app: {
@@ -16,28 +31,39 @@ export interface RhoAppContext {
 		platform: RhoHostPlatform;
 	};
 	apiUrl(path: string): string;
+	apiHeaders(): Record<string, string>;
 	apiFetch(path: string, init?: RequestInit): Promise<Response>;
 }
 
-export interface RhoAppApiContext {
-	app: {
-		slug: string;
-		name: string;
-		basePath: string;
-		apiBasePath: string;
-	};
-	host: {
-		platform: RhoHostPlatform;
+export interface AppExtensionInput {
+	slug: string;
+	name: string;
+	client: AppClient;
+	routes: AppRoute[];
+	api?: {
+		basePath?: string;
+		router: AnyRouter;
 	};
 }
 
-export type RhoAppApiHandler = (request: Request, context: RhoAppApiContext) => Response | Promise<Response>;
-
-export type AppExtensionInput = Omit<AppExtension, "type" | "id">;
+export function defineExtension<T extends (rho: RhoExtensionContext) => Promise<RhoExtensionDefinition>>(
+	define: T,
+): T {
+	return define;
+}
 
 export function createAppExtension(extension: AppExtensionInput): AppExtension {
 	const slug = cleanSlug(extension.slug);
 	const routes = extension.routes.map(cleanRoute);
+
+	let api: { basePath: string; router: AnyRouter } | undefined;
+
+	if (extension.api) {
+		const basePath = cleanPath(extension.api.basePath ?? "/api", "api.basePath");
+		const router = extension.api.router;
+		api = { basePath, router };
+	}
+
 	ensureUniqueRoutes(routes);
 
 	return {
@@ -49,12 +75,7 @@ export function createAppExtension(extension: AppExtensionInput): AppExtension {
 			entry: nonEmpty(extension.client.entry, "client.entry"),
 		},
 		routes,
-		api: extension.api
-			? {
-					basePath: cleanPath(extension.api.basePath, "api.basePath"),
-					entry: nonEmpty(extension.api.entry, "api.entry"),
-				}
-			: undefined,
+		api,
 	};
 }
 

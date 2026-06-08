@@ -1,26 +1,12 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRhoApp } from "@rho/apps-sdk/react";
-
-interface SummaryResponse {
-	summary: {
-		week: string;
-		completed: number;
-		planned: number;
-	};
-	platform: string;
-}
+import { useApi } from "../client.ts";
 
 export function Home() {
 	const rho = useRhoApp();
-	const [data, setData] = useState<SummaryResponse>();
-
-	useEffect(() => {
-		rho
-			.apiFetch("/summary")
-			.then((response) => response.json() as Promise<SummaryResponse>)
-			.then(setData)
-			.catch(() => undefined);
-	}, [rho]);
+	const api = useApi();
+	const summary = useQuery(api.summary.queryOptions());
+	const data = summary.data;
 
 	return (
 		<main className="space-y-4">

@@ -1,28 +1,9 @@
-import { useEffect, useState } from "react";
-import { useRhoApp } from "@rho/apps-sdk/react";
-
-interface Workout {
-	id: string;
-	name: string;
-	minutes: number;
-	focus: string;
-}
-
-interface WorkoutsResponse {
-	workouts: Workout[];
-}
+import { useQuery } from "@tanstack/react-query";
+import { useApi } from "../client.ts";
 
 export function Workouts() {
-	const rho = useRhoApp();
-	const [workouts, setWorkouts] = useState<Workout[]>([]);
-
-	useEffect(() => {
-		rho
-			.apiFetch("/workouts")
-			.then((response) => response.json() as Promise<WorkoutsResponse>)
-			.then((data) => setWorkouts(data.workouts))
-			.catch(() => setWorkouts([]));
-	}, [rho]);
+	const api = useApi();
+	const workouts = useQuery(api.workouts.queryOptions());
 
 	return (
 		<main>
@@ -34,7 +15,7 @@ export function Workouts() {
 			</div>
 
 			<div className="mt-4 grid gap-2">
-				{workouts.map((workout) => (
+				{(workouts.data?.workouts ?? []).map((workout) => (
 					<article className="bg-background p-3 ring-1 ring-border/80" key={workout.id}>
 						<div className="flex items-center justify-between gap-3">
 							<h3 className="text-sm font-semibold">{workout.name}</h3>

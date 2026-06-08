@@ -9,7 +9,7 @@ Design a file-based extension mechanism for rho so installed source-code extensi
 Pi's extension model has three durable ideas worth copying:
 
 - Extensions are source modules loaded from conventional filesystem locations and optional configured paths.
-- Each extension exports a default factory function that receives a narrow registration API.
+- Each extension default-exports an async function that receives a narrow registration API.
 - Loading, registration, runtime application, and reload lifecycle are separate phases.
 
 Pi discovery shape:
@@ -33,7 +33,7 @@ Relevant Pi constraints to preserve conceptually:
 Use extensions as code that registers capabilities with rho core. For now, keep the API intentionally small and channel-focused.
 
 ```ts
-export type RhoExtension = (rho: RhoExtensionApi) => void | Promise<void>;
+export type RhoExtension = (rho: RhoExtensionApi) => Promise<void>;
 
 export interface RhoExtensionApi {
   registerChannel(channel: Channel): void;
@@ -127,26 +127,19 @@ async function reloadExtensions(core: RhoCore, loader: ExtensionLoader) {
 ```
 
 ```ts
-class ExtensionCollector implements RhoExtensionApi {
-  channels: Channel[] = [];
-
-  registerChannel(channel: Channel) {
-    this.channels.push(channel);
-  }
-}
-```
-
-```ts
 async function loadExtension(path: string) {
   const mod = await importSourceModule(path);
   if (typeof mod.default !== "function") {
-    return { diagnostics: ["missing default extension factory"] };
+    return { diagnostics: ["missing default extension definition function"] };
   }
 
-  const collector = new ExtensionCollector();
-  await mod.default(collector);
+  const definition = await mod.default({ api: appApiProcedure });
 
-  return { channels: collector.channels, diagnostics: [] };
+  return {
+    apps: definition.apps ?? [],
+    channels: definition.channels ?? [],
+    diagnostics: [],
+  };
 }
 ```
 
@@ -155,11 +148,27 @@ async function loadExtension(path: string) {
 - Create `packages/core/src/extensions/` and `packages/core/src/extensions/loader/` as the extension boundary.
 - Support project-local source-file extensions first.
 - Mirror Pi's entrypoint shapes at the design level: direct files, folder index files, and package manifest entries.
-- Support a single default-export factory shape.
-- Support `registerChannel` only.
+- Support a single default-export extension definition function shape.
+- Support returned `channels` and `apps` definitions.
 - Keep HTTP server code out of core extension APIs.
 - Keep table/admin routes unrelated to extension loading.
 - Leave package installation, dependency management, settings UI, and marketplace-style distribution for later.
+
+## Status
+
+First slice implemented:
+
+- Core exposes a narrow extension definition context for app API procedures.
+- Loader supports direct files, folder entrypoints, and package manifest entrypoints.
+- Source modules are imported at runtime with a TS-aware loader.
+- Reload loads extensions and applies app/channel definitions only when loading succeeds.
+- App extensions can return UI client entry metadata and in-memory oRPC routers.
+- Core keeps a current app registry so app listing reads applied extension state instead of reloading on every read.
+- HTTP/server-owned channels remain outside core extension loading.
+
+Still intentionally not implemented: browser app/API auth, package installation, global extension locations, dependency install management, settings UI, and standalone browser bundle dependency resolution for app UI artifacts. Browser app/API auth needs to be implemented soon with a real shell/app session or capability model; `VITE_*` secrets are not real browser auth.
+
+Later package/dependency work should be a separate package-management layer, similar to Pi's `pi install`: install npm/git/local packages, run dependency installation when needed, then hand already-installed package directories to the loader. The current loader only reads local package manifests and assumes dependencies already exist.
 
 ## Open Questions
 

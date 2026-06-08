@@ -1,7 +1,9 @@
+import { type AnyRouter, os } from "@orpc/server";
 import type { Channel } from "@rho/channels";
 
 export type Extension = AppExtension | ChannelExtension;
 export type ExtensionType = Extension["type"];
+export type RhoHostPlatform = "web" | "mobile" | "desktop";
 
 export interface ExtensionBase<TType extends string> {
 	type: TType;
@@ -27,18 +29,37 @@ export interface AppRoute {
 
 export interface AppApi {
 	basePath: string;
-	entry: string;
+	router: AnyRouter;
 }
 
 export interface ChannelExtension extends ExtensionBase<"channel"> {
 	channel: Channel;
 }
 
-export interface RhoExtensionApi {
-	registerChannel(channel: Channel): void;
+export interface RhoAppApiContext {
+	app: {
+		slug: string;
+		name: string;
+		basePath: string;
+		apiBasePath: string;
+	};
+	host: {
+		platform: RhoHostPlatform;
+	};
 }
 
-export type RhoExtension = (rho: RhoExtensionApi) => Promise<void>;
+export const appApiProcedure = os.$context<RhoAppApiContext>();
+
+export interface RhoAppApiBuilderContext {
+	api: typeof appApiProcedure;
+}
+
+export interface RhoExtensionContext extends RhoAppApiBuilderContext {}
+
+export interface RhoExtensionDefinition {
+	apps?: AppExtension[];
+	channels?: Channel[];
+}
 
 export interface ExtensionLoader {
 	load(): Promise<LoadExtensionsResult>;

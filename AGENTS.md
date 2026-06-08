@@ -11,7 +11,13 @@
 - Keep the table viewer plain: display the actual SQLite columns and row values. Do not add relation expansion, domain-specific column combining, semantic column ordering, or custom display fields. Add only generic table mechanics such as pagination, filtering, ordering, and type-based cell rendering.
 - Table viewer booleans render as checkboxes, green when checked. Enum columns render as pills.
 
+## Server runtime
+
+- `apps/server` extension paths are runtime configuration. Load them through `RHO_EXTENSION_PATHS` or a server env helper; keep example extension paths in root/dev scripts or docs, not in server entrypoints.
+- Browser app/API auth is not implemented yet. Do not treat `VITE_*` secrets as real browser auth; add a proper shell/app session or capability model before considering app APIs production-ready.
+
 ## Package boundaries
 
 - `packages/ui` is for reusable components that help people build rho user extensions/apps. Do not use it as the dumping ground for `apps/server/web` shell-only components or the first-party web app design system.
 - `packages/core` owns native rho runtime/state/db/channel orchestration APIs. Keep Hono routes, HTTP payload validation/conversion, HTTP conversation keys, SSE streaming, and `HttpChannel` ownership in `apps/server`.
+- Shared extension/app types must have one canonical owner. Do not redeclare `AppExtension`, `AppRoute`, `AppApi`, or `AppClient` mirrors in `packages/apps-sdk`; import/re-export the canonical types, or extract a shared types package only when the dependency boundary requires it.

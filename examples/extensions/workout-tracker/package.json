@@ -4,7 +4,11 @@
 	"private": true,
 	"type": "module",
 	"dependencies": {
+		"@orpc/client": "^1.12.0",
+		"@orpc/react-query": "^1.12.0",
+		"@orpc/server": "^1.12.0",
 		"@rho/apps-sdk": "0.0.0",
+		"@tanstack/react-query": "^5.90.12",
 		"react": "^19.2.1"
 	},
 	"devDependencies": {

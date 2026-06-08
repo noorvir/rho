@@ -1,7 +1,6 @@
 import { relative } from "node:path";
-import { pathToFileURL } from "node:url";
 import { serveStatic } from "@hono/node-server/serve-static";
-import type { RhoAppApiContext, RhoAppApiHandler } from "@rho/apps-sdk";
+import { RPCHandler } from "@orpc/server/fetch";
 import {
 	type ChannelMessage,
 	type ChannelOutput,
@@ -9,7 +8,7 @@ import {
 	messageText,
 	type SseStream,
 } from "@rho/channels";
-import { getTableData, getTables, type RhoCore } from "@rho/core";
+import { getTableData, getTables, type RhoAppApiContext, type RhoCore } from "@rho/core";
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import { conversationKey, messageFromHttp, validateHttpMessage } from "./http-message.ts";
@@ -43,7 +42,6 @@ export function createServer(options: ServerOptions): Hono {
 	app.use("/tables", apiAuth(options));
 	app.use("/tables/*", apiAuth(options));
 	app.use("/agent/*", apiAuth(options));
-	app.use("/apps/*/api/*", apiAuth(options));
 
 	app.get("/apps.json", async (context) =>
 		context.json({ apps: appSummaries(await options.core.listApps()) }),
@@ -105,32 +103,24 @@ async function handleAppApi(context: Context, core: RhoCore): Promise<Response> 
 		return context.json({ error: "Unknown app API" }, 404);
 	}
 
-	const api = await import(pathToFileURL(app.api.entry).href);
-	if (!isAppApiModule(api)) {
-		return context.json({ error: "Invalid app API module" }, 500);
-	}
-
-	const externalApiBasePath = `/apps/${app.slug}${app.api.basePath}`;
-	const response = await api.fetch(context.req.raw, {
-		app: {
-			slug: app.slug,
-			name: app.name,
-			basePath: `/apps/${app.slug}`,
-			apiBasePath: externalApiBasePath,
-		},
-		host: {
-			platform: hostPlatform(context),
+	const externalApiBasePath: `/${string}` = `/apps/${app.slug}${app.api.basePath}`;
+	const handler = new RPCHandler<RhoAppApiContext>(app.api.router);
+	const result = await handler.handle(context.req.raw, {
+		prefix: externalApiBasePath,
+		context: {
+			app: {
+				slug: app.slug,
+				name: app.name,
+				basePath: `/apps/${app.slug}`,
+				apiBasePath: externalApiBasePath,
+			},
+			host: {
+				platform: hostPlatform(context),
+			},
 		},
 	});
-	return response;
-}
 
-interface AppApiModule {
-	fetch: RhoAppApiHandler;
-}
-
-function isAppApiModule(value: unknown): value is AppApiModule {
-	return typeof value === "object" && value !== null && "fetch" in value && typeof value.fetch === "function";
+	return result.matched ? result.response : context.json({ error: "Unknown app procedure" }, 404);
 }
 
 function hostPlatform(context: Context): RhoAppApiContext["host"]["platform"] {

@@ -1,8 +1,10 @@
 import type { Channel } from "@rho/channels";
+import type { AppExtension } from "./apps/index.ts";
 import type { ExtensionDiagnostic, ExtensionLoader, LoadedExtension } from "./extensions/index.ts";
 
 export interface ReloadDependencies {
 	extensionLoader: ExtensionLoader;
+	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
 	activeChannelIds(): string[];
 }
@@ -31,6 +33,7 @@ export async function reload(deps: ReloadDependencies): Promise<ReloadResult> {
 	const channels = loaded.extensions.flatMap((extension) => extension.channels);
 
 	if (!hasErrors) {
+		deps.replaceApps(apps);
 		deps.replaceChannels(channels);
 	}
 

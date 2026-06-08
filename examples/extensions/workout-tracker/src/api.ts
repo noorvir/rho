@@ -1,4 +1,4 @@
-import type { RhoAppApiHandler } from "@rho/apps-sdk";
+import type { RhoAppApiBuilderContext } from "@rho/apps-sdk";
 
 const workouts = [
 	{ id: "push", name: "Push Day", minutes: 45, focus: "Chest, shoulders, triceps" },
@@ -12,17 +12,11 @@ const summary = {
 	planned: 4,
 };
 
-export const fetch: RhoAppApiHandler = async (request, context) => {
-	const url = new URL(request.url);
-	const route = url.pathname.slice(context.app.apiBasePath.length) || "/";
+export type WorkoutRouter = ReturnType<typeof createRouter>;
 
-	if (request.method === "GET" && route === "/summary") {
-		return Response.json({ summary, platform: context.host.platform });
-	}
-
-	if (request.method === "GET" && route === "/workouts") {
-		return Response.json({ workouts });
-	}
-
-	return Response.json({ error: "Not found" }, { status: 404 });
-};
+export function createRouter({ api }: RhoAppApiBuilderContext) {
+	return {
+		summary: api.handler(({ context }) => ({ summary, platform: context.host.platform })),
+		workouts: api.handler(() => ({ workouts })),
+	};
+}

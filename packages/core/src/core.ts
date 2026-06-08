@@ -14,7 +14,7 @@ import {
 	ChannelRuntime,
 	messageText,
 } from "@rho/channels";
-import type { AppExtension } from "./apps/index.ts";
+import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import { type ReloadResult, reload } from "./reload.ts";
@@ -30,12 +30,14 @@ export interface RhoCoreOptions {
 
 export interface RhoCore {
 	runtime: ChannelRuntime;
+	apps: AppRegistry;
 	channels: ChannelRegistry;
 	extensionLoader: ExtensionLoader;
 	state: StateManager;
 	handleMessage(message: ChannelMessage): Promise<ChannelOutput>;
 	loadConversation(key: ConversationKey): Promise<ConversationHistory>;
 	listApps(): Promise<AppExtension[]>;
+	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
 	reload(): Promise<ReloadResult>;
 	activeChannelIds(): string[];
@@ -44,6 +46,7 @@ export interface RhoCore {
 
 export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCore> {
 	const channels = options.channels ?? [];
+	const appRegistry = new AppRegistry();
 	const channelRegistry = new ChannelRegistry(channels);
 
 	const state = options.state ?? createFileStateManager();
@@ -54,6 +57,10 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 		handle: async (message) => agentResponse(state, message),
 	});
 
+	const replaceApps = (nextApps: AppExtension[]) => {
+		appRegistry.replace(nextApps);
+	};
+
 	const replaceChannels = (nextChannels: Channel[]) => {
 		channelRegistry.replace(nextChannels);
 		runtime.replaceChannels(channelRegistry.current());
@@ -61,23 +68,23 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 
 	const handleMessage = async (message: ChannelMessage) => runtime.handle(message);
 
-	const listApps = async () => {
-		const result = await extensionLoader.load();
-		return result.extensions.flatMap((extension) => extension.apps);
-	};
+	const listApps = async () => appRegistry.current();
 
 	const core: RhoCore = {
 		runtime,
+		apps: appRegistry,
 		channels: channelRegistry,
 		extensionLoader,
 		state,
 		handleMessage,
 		loadConversation: async (key) => loadConversation(state, key),
 		listApps,
+		replaceApps,
 		replaceChannels,
 		reload: async () =>
 			reload({
 				extensionLoader,
+				replaceApps,
 				replaceChannels,
 				activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 			}),

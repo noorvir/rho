@@ -11,7 +11,7 @@
 	],
 	"scripts": {
 		"build": "tsgo -b",
-		"web:dev": "RHO_API_SECRET=dev RHO_EXTENSION_PATHS=../../examples/extensions bun run --cwd apps/server dev",
+		"web:dev": "RHO_API_SECRET=dev VITE_RHO_API_SECRET=dev RHO_EXTENSION_PATHS=../../examples/extensions bun run --cwd apps/server dev",
 		"web:build": "bun run --cwd apps/server web:build",
 		"app:init": "bun packages/apps-sdk/src/init.ts",
 		"server": "bun run --cwd apps/server build && RHO_API_SECRET=dev RHO_EXTENSION_PATHS=examples/extensions bun apps/server/dist/cli.js",

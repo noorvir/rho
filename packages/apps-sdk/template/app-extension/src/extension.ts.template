@@ -1,17 +1,21 @@
-import { createAppExtension } from "@rho/apps-sdk";
+import { createAppExtension, defineExtension } from "@rho/apps-sdk";
+import { createRouter } from "./api.ts";
 
-export default createAppExtension({
-	slug: "__APP_SLUG__",
-	name: "__APP_NAME__",
-	client: {
-		entry: "./app.tsx",
-	},
-	routes: [
-		{ path: "/", label: "Home" },
-		{ path: "/about", label: "About" },
+export default defineExtension(async (rho) => ({
+	apps: [
+		createAppExtension({
+			slug: "__APP_SLUG__",
+			name: "__APP_NAME__",
+			client: {
+				entry: "./app.tsx",
+			},
+			routes: [
+				{ path: "/", label: "Home" },
+				{ path: "/about", label: "About" },
+			],
+			api: {
+				router: createRouter(rho),
+			},
+		}),
 	],
-	api: {
-		basePath: "/api",
-		entry: "./api.ts",
-	},
-});
+}));
