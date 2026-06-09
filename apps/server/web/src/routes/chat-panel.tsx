@@ -2,7 +2,7 @@ import { IconCircle, IconRobot, IconSparkles } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Chat } from "@/components/chat";
-import { type ChatMessage, loadChatHistory, streamChatMessage } from "@/core-api";
+import { type ChatMessage, loadChatHistory, streamChatMessage } from "@/api";
 import { cn } from "@/lib/utils";
 
 export function ChatPanel() {

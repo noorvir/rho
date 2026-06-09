@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct ChatSheetView: View {
+    let authStore: AuthStore
+
     @State private var draft = ""
     @State private var messages: [ChatMessage] = []
     @State private var isSending = false
     @State private var errorText: String?
-
-    private let chatClient = ChatClient()
 
     var body: some View {
         VStack(spacing: 0) {
@@ -64,7 +64,7 @@ struct ChatSheetView: View {
 
     private func loadHistory() async {
         do {
-            let history = try await chatClient.history()
+            let history = try await ChatClient(authStore: authStore).history()
             await MainActor.run {
                 messages = history.messages.map { message in
                     ChatMessage(role: message.role.chatRole, text: message.text)
@@ -91,7 +91,7 @@ struct ChatSheetView: View {
 
         Task {
             do {
-                for try await event in chatClient.send(text: text) {
+                for try await event in ChatClient(authStore: authStore).send(text: text) {
                     await MainActor.run {
                         apply(event, to: assistantId)
                     }
@@ -248,8 +248,17 @@ private enum ChatEvent {
     case error(String)
 }
 
+@MainActor
 private final class ChatClient {
-    private let baseURL = MobileBuildInfo.chatBaseURL
+    private let authStore: AuthStore
+
+    init(authStore: AuthStore) {
+        self.authStore = authStore
+    }
+
+    private var baseURL: URL {
+        authStore.baseURL
+    }
 
     private var streamEndpoint: URL {
         baseURL.appendingPathComponent("agent/messages:stream")
@@ -260,15 +269,7 @@ private final class ChatClient {
     }
 
     func history() async throws -> ChatHistory {
-        let (data, response) = try await URLSession.shared.data(for: request(url: historyEndpoint))
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw ChatClientError.server("No HTTP response from \(historyEndpoint.absoluteString)")
-        }
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw ChatClientError.server("History failed with HTTP \(httpResponse.statusCode): \(body)")
-        }
-
+        let data = try await data(for: historyEndpoint)
         return try JSONDecoder().decode(ChatHistory.self, from: data)
     }
 
@@ -276,18 +277,7 @@ private final class ChatClient {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    var request = request(url: streamEndpoint)
-                    request.httpMethod = "POST"
-                    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                    request.httpBody = try JSONEncoder().encode(ChatRequest(text: text))
-
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                    guard let httpResponse = response as? HTTPURLResponse else {
-                        throw ChatClientError.server("No HTTP response from \(streamEndpoint.absoluteString)")
-                    }
-                    guard (200..<300).contains(httpResponse.statusCode) else {
-                        throw ChatClientError.server("Stream failed with HTTP \(httpResponse.statusCode) at \(streamEndpoint.absoluteString)")
-                    }
+                    let bytes = try await bytes(for: streamEndpoint, text: text)
 
                     var buffer = Data()
                     let separator = Data("\n\n".utf8)
@@ -319,16 +309,67 @@ private final class ChatClient {
         }
     }
 
-    private func request(url: URL) -> URLRequest {
-        var request = URLRequest(url: url)
-        guard let apiToken = Bundle.main.object(forInfoDictionaryKey: "RHO_API_TOKEN") as? String,
-              !apiToken.isEmpty
-        else {
-            return request
+    private func data(for url: URL) async throws -> Data {
+        let response = try await dataResponse(for: url)
+        if response.status == 401 {
+            try await authStore.refresh()
+            let refreshed = try await dataResponse(for: url)
+            return try checkedData(refreshed, fallback: "Request failed")
         }
 
-        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
-        return request
+        return try checkedData(response, fallback: "Request failed")
+    }
+
+    private func dataResponse(for url: URL) async throws -> (data: Data, status: Int) {
+        let request = authStore.authorizedRequest(url: url)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ChatClientError.server("No HTTP response from \(url.absoluteString)")
+        }
+
+        return (data, httpResponse.statusCode)
+    }
+
+    private func checkedData(_ response: (data: Data, status: Int), fallback: String) throws -> Data {
+        guard (200..<300).contains(response.status) else {
+            let body = String(data: response.data, encoding: .utf8) ?? ""
+            throw ChatClientError.server("\(fallback) with HTTP \(response.status): \(body)")
+        }
+
+        return response.data
+    }
+
+    private func bytes(for url: URL, text: String) async throws -> URLSession.AsyncBytes {
+        let response = try await bytesResponse(for: url, text: text)
+        if response.status == 401 {
+            try await authStore.refresh()
+            let refreshed = try await bytesResponse(for: url, text: text)
+            return try checkedBytes(refreshed, fallback: "Stream failed")
+        }
+
+        return try checkedBytes(response, fallback: "Stream failed")
+    }
+
+    private func bytesResponse(for url: URL, text: String) async throws -> (bytes: URLSession.AsyncBytes, status: Int) {
+        var request = authStore.authorizedRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(ChatRequest(text: text))
+
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ChatClientError.server("No HTTP response from \(url.absoluteString)")
+        }
+
+        return (bytes, httpResponse.statusCode)
+    }
+
+    private func checkedBytes(_ response: (bytes: URLSession.AsyncBytes, status: Int), fallback: String) throws -> URLSession.AsyncBytes {
+        guard (200..<300).contains(response.status) else {
+            throw ChatClientError.server("\(fallback) with HTTP \(response.status) at \(streamEndpoint.absoluteString)")
+        }
+
+        return response.bytes
     }
 
     private func parseFrame(_ frame: Data) -> ChatEvent? {
@@ -426,5 +467,5 @@ private struct ChatSender: Encodable {
 }
 
 #Preview {
-    ChatSheetView()
+    ChatSheetView(authStore: AuthStore())
 }

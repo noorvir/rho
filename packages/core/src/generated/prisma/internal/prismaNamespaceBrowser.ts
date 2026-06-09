@@ -113,8 +113,12 @@ export type SystemOwnerScalarFieldEnum = (typeof SystemOwnerScalarFieldEnum)[key
 
 export const SystemSessionScalarFieldEnum = {
   id: 'id',
-  tokenHash: 'tokenHash',
-  expiresAt: 'expiresAt',
+  accessTokenHash: 'accessTokenHash',
+  refreshTokenHash: 'refreshTokenHash',
+  accessExpiresAt: 'accessExpiresAt',
+  refreshExpiresAt: 'refreshExpiresAt',
+  revokedAt: 'revokedAt',
+  lastUsedAt: 'lastUsedAt',
   createdAt: 'createdAt'
 } as const
 

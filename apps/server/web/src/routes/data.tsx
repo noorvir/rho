@@ -35,7 +35,7 @@ import {
 	type TableColumnInfo,
 	type TableData,
 	type TableRow,
-} from "@/core-api";
+} from "@/api";
 
 export function DataPage({ tableName }: { tableName?: string }) {
 	const tablesQuery = useQuery({ queryKey: ["tables"], queryFn: loadTables });

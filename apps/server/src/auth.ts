@@ -38,11 +38,22 @@ export interface CreatedApiToken {
 	apiToken: Pick<ApiTokenSummary, "id" | "name" | "tokenPrefix" | "createdAt">;
 }
 
+export interface RhoTokenSession {
+	accessToken: string;
+	refreshToken: string;
+	accessExpiresAt: Date;
+	refreshExpiresAt: Date;
+	principal: RhoAuthPrincipal;
+}
+
 export interface RhoAuth {
 	setupRequired(): Promise<boolean>;
 	setup(input: { ownerToken: string; password: string }): Promise<RhoAuthSetupResult>;
 	login(input: { password: string }): Promise<RhoAuthSession | undefined>;
 	logout(sessionToken: string | undefined): Promise<void>;
+	getToken(input: { password: string }): Promise<RhoTokenSession | undefined>;
+	refreshToken(refreshToken: string): Promise<RhoTokenSession | undefined>;
+	revokeToken(refreshToken: string): Promise<void>;
 	authorize(input: { bearerToken?: string; sessionToken?: string }): Promise<RhoAuthPrincipal | undefined>;
 	listApiTokens(): Promise<ApiTokenSummary[]>;
 	createApiToken(input: { name: string }): Promise<CreatedApiToken>;
@@ -52,6 +63,8 @@ export interface RhoAuth {
 const scryptAsync = promisify(scrypt);
 export const authSessionCookieName = "rho_session";
 const sessionMaxAgeSeconds = 60 * 60 * 24 * 7;
+const accessTokenMaxAgeSeconds = 60 * 15;
+const refreshTokenMaxAgeSeconds = 60 * 60 * 24 * 30;
 const apiTokenPrefix = "rho_";
 const passwordHashPrefix = "scrypt";
 
@@ -62,6 +75,9 @@ export function createRhoAuth(options: RhoAuthOptions): RhoAuth {
 		setupRequired: () => setupRequired(prisma),
 		setup: (input) => setup(prisma, options.ownerToken, input),
 		login: (input) => login(prisma, options.ownerToken, input),
+		getToken: (input) => getToken(prisma, options.ownerToken, input),
+		refreshToken: (token) => refreshToken(prisma, options.ownerToken, token),
+		revokeToken: (token) => revokeToken(prisma, options.ownerToken, token),
 		logout: (sessionToken) => logout(prisma, options.ownerToken, sessionToken),
 		authorize: (input) => authorize(prisma, options.ownerToken, input),
 		listApiTokens: () => listApiTokens(prisma),
@@ -113,14 +129,98 @@ async function login(
 	return createSession(prisma, ownerToken);
 }
 
+async function getToken(
+	prisma: RhoPrisma,
+	ownerToken: string,
+	input: { password: string },
+): Promise<RhoTokenSession | undefined> {
+	const owner = await prisma.systemOwner.findUnique({ where: { id: 1 } });
+	if (!owner) {
+		return undefined;
+	}
+	if (!(await verifyPassword(ownerToken, input.password, owner.passwordHash))) {
+		return undefined;
+	}
+
+	return createToken(prisma, ownerToken);
+}
+
+async function createToken(prisma: RhoPrisma, ownerToken: string): Promise<RhoTokenSession> {
+	const accessToken = randomToken();
+	const refreshToken = randomToken();
+	const accessExpiresAt = new Date(Date.now() + accessTokenMaxAgeSeconds * 1000);
+	const refreshExpiresAt = new Date(Date.now() + refreshTokenMaxAgeSeconds * 1000);
+	const session = await prisma.systemSession.create({
+		data: {
+			id: crypto.randomUUID(),
+			accessTokenHash: tokenHash(ownerToken, "session-access", accessToken),
+			refreshTokenHash: tokenHash(ownerToken, "session-refresh", refreshToken),
+			accessExpiresAt,
+			refreshExpiresAt,
+		},
+	});
+
+	return {
+		accessToken,
+		refreshToken,
+		accessExpiresAt,
+		refreshExpiresAt,
+		principal: { kind: "session", id: session.id },
+	};
+}
+
+async function refreshToken(
+	prisma: RhoPrisma,
+	ownerToken: string,
+	refreshToken: string,
+): Promise<RhoTokenSession | undefined> {
+	const session = await prisma.systemSession.findUnique({
+		where: { refreshTokenHash: tokenHash(ownerToken, "session-refresh", refreshToken) },
+		select: { id: true, refreshExpiresAt: true, revokedAt: true },
+	});
+	if (!session || session.revokedAt || !session.refreshExpiresAt || session.refreshExpiresAt <= new Date()) {
+		return undefined;
+	}
+
+	const nextAccessToken = randomToken();
+	const nextRefreshToken = randomToken();
+	const accessExpiresAt = new Date(Date.now() + accessTokenMaxAgeSeconds * 1000);
+	const refreshExpiresAt = new Date(Date.now() + refreshTokenMaxAgeSeconds * 1000);
+	await prisma.systemSession.update({
+		where: { id: session.id },
+		data: {
+			accessTokenHash: tokenHash(ownerToken, "session-access", nextAccessToken),
+			refreshTokenHash: tokenHash(ownerToken, "session-refresh", nextRefreshToken),
+			accessExpiresAt,
+			refreshExpiresAt,
+			lastUsedAt: new Date(),
+		},
+	});
+
+	return {
+		accessToken: nextAccessToken,
+		refreshToken: nextRefreshToken,
+		accessExpiresAt,
+		refreshExpiresAt,
+		principal: { kind: "session", id: session.id },
+	};
+}
+
+async function revokeToken(prisma: RhoPrisma, ownerToken: string, refreshToken: string): Promise<void> {
+	await prisma.systemSession.updateMany({
+		where: { refreshTokenHash: tokenHash(ownerToken, "session-refresh", refreshToken) },
+		data: { revokedAt: new Date() },
+	});
+}
+
 async function createSession(prisma: RhoPrisma, ownerToken: string): Promise<RhoAuthSession> {
 	const token = randomToken();
 	const expiresAt = new Date(Date.now() + sessionMaxAgeSeconds * 1000);
 	const session = await prisma.systemSession.create({
 		data: {
 			id: crypto.randomUUID(),
-			tokenHash: tokenHash(ownerToken, "session", token),
-			expiresAt,
+			accessTokenHash: tokenHash(ownerToken, "session", token),
+			accessExpiresAt: expiresAt,
 		},
 	});
 
@@ -142,7 +242,7 @@ async function logout(
 	}
 
 	await prisma.systemSession.deleteMany({
-		where: { tokenHash: tokenHash(ownerToken, "session", sessionToken) },
+		where: { accessTokenHash: tokenHash(ownerToken, "session", sessionToken) },
 	});
 }
 
@@ -152,7 +252,12 @@ async function authorize(
 	input: { bearerToken?: string; sessionToken?: string },
 ): Promise<RhoAuthPrincipal | undefined> {
 	if (input.bearerToken) {
-		return authorizeApiToken(prisma, ownerToken, input.bearerToken);
+		const apiPrincipal = await authorizeApiToken(prisma, ownerToken, input.bearerToken);
+		if (apiPrincipal) {
+			return apiPrincipal;
+		}
+
+		return authorizeTokenSession(prisma, ownerToken, input.bearerToken);
 	}
 	if (input.sessionToken) {
 		return authorizeSession(prisma, ownerToken, input.sessionToken);
@@ -219,14 +324,14 @@ async function authorizeSession(
 	sessionToken: string,
 ): Promise<RhoAuthPrincipal | undefined> {
 	const session = await prisma.systemSession.findUnique({
-		where: { tokenHash: tokenHash(ownerToken, "session", sessionToken) },
-		select: { id: true, expiresAt: true },
+		where: { accessTokenHash: tokenHash(ownerToken, "session", sessionToken) },
+		select: { id: true, accessExpiresAt: true },
 	});
 	if (!session) {
 		return undefined;
 	}
 
-	if (session.expiresAt <= new Date()) {
+	if (session.accessExpiresAt <= new Date()) {
 		await prisma.systemSession.delete({ where: { id: session.id } });
 		return undefined;
 	}
@@ -255,6 +360,32 @@ async function authorizeApiToken(
 	return { kind: "api-token", id: token.id };
 }
 
+async function authorizeTokenSession(
+	prisma: RhoPrisma,
+	ownerToken: string,
+	accessToken: string,
+): Promise<RhoAuthPrincipal | undefined> {
+	const session = await prisma.systemSession.findUnique({
+		where: { accessTokenHash: tokenHash(ownerToken, "session-access", accessToken) },
+		select: { id: true, accessExpiresAt: true, refreshExpiresAt: true, revokedAt: true },
+	});
+	if (!session || session.revokedAt) {
+		return undefined;
+	}
+
+	const now = new Date();
+	if (session.accessExpiresAt <= now || !session.refreshExpiresAt || session.refreshExpiresAt <= now) {
+		return undefined;
+	}
+
+	await prisma.systemSession.update({
+		where: { id: session.id },
+		data: { lastUsedAt: now },
+	});
+
+	return { kind: "session", id: session.id };
+}
+
 async function ownerExists(prisma: RhoPrisma): Promise<boolean> {
 	return Boolean(await prisma.systemOwner.findUnique({ where: { id: 1 }, select: { id: true } }));
 }
@@ -281,14 +412,14 @@ async function verifyPassword(ownerToken: string, password: string, hash: string
 }
 
 function passwordSecret(ownerToken: string, password: string): string {
-	return createHmac("sha256", ownerToken)
-		.update("password")
-		.update("\0")
-		.update(password)
-		.digest("base64url");
+	return createHmac("sha256", ownerToken).update("password").update("\0").update(password).digest("base64url");
 }
 
-function tokenHash(ownerToken: string, purpose: "api" | "session", token: string): string {
+function tokenHash(
+	ownerToken: string,
+	purpose: "api" | "session" | "session-access" | "session-refresh",
+	token: string,
+): string {
 	return createHmac("sha256", ownerToken).update(purpose).update("\0").update(token).digest("base64url");
 }
 

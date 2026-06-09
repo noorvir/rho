@@ -6,7 +6,7 @@ const navigationItems = [
   { href: "/apps", label: "Apps" },
   { href: "/data", label: "Data" },
   { href: "#chat", label: "Chat" },
-  { href: "#settings", label: "Settings" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export function AdminShell() {

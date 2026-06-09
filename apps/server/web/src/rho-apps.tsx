@@ -7,7 +7,7 @@ import { DataTableSurface } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { loadAppExtensions, type AppExtensionSummary } from "./core-api.ts";
+import { loadAppExtensions, type AppExtensionSummary } from "./api.ts";
 
 interface RhoAppsProps {
 	appSlug?: string;

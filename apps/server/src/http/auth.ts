@@ -93,6 +93,71 @@ export function authRouter() {
 				return { authenticated: true, principal: session.principal };
 			}),
 
+		getToken: p
+			.route({
+				method: "POST",
+				path: "/api/auth/token/login",
+			})
+			.input(
+				z.object({
+					password: z.string().min(1),
+				}),
+			)
+			.handler(async ({ input, context }) => {
+				const res = await tc(context.auth.getToken(input));
+				if (res.error) {
+					throw new ORPCError("INTERNAL_SERVER_ERROR", {
+						message: "Failed to log in",
+					});
+				}
+
+				const tokens = res.data;
+				if (!tokens) {
+					throw new ORPCError("UNAUTHORIZED");
+				}
+
+				return tokens;
+			}),
+
+		refreshToken: p
+			.route({
+				method: "POST",
+				path: "/api/auth/token/refresh",
+			})
+			.input(z.object({ refreshToken: z.string().min(1) }))
+			.handler(async ({ input, context }) => {
+				const res = await tc(context.auth.refreshToken(input.refreshToken));
+				if (res.error) {
+					throw new ORPCError("INTERNAL_SERVER_ERROR", {
+						message: "Failed to refresh session",
+					});
+				}
+
+				const tokens = res.data;
+				if (!tokens) {
+					throw new ORPCError("UNAUTHORIZED");
+				}
+
+				return tokens;
+			}),
+
+		revokeToken: p
+			.route({
+				method: "POST",
+				path: "/api/auth/token/logout",
+			})
+			.input(z.object({ refreshToken: z.string().min(1) }))
+			.handler(async ({ input, context }) => {
+				const res = await tc(context.auth.revokeToken(input.refreshToken));
+				if (res.error) {
+					throw new ORPCError("INTERNAL_SERVER_ERROR", {
+						message: "Failed to log out",
+					});
+				}
+
+				return { authenticated: false };
+			}),
+
 		session: p
 			.route({
 				method: "GET",
