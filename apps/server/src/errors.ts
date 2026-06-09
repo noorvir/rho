@@ -34,50 +34,56 @@ export interface RhoErrorOptions {
 	details?: RhoErrorDetails;
 }
 
-export interface RhoErrorResponseBody {
-	error: RhoErrorData | { code: string; message: string };
+export interface RhoProblemDetails {
+	type: string;
+	title: string;
+	status: number;
+	detail: string;
+	code: string;
+	action?: RhoErrorAction;
+	details?: RhoErrorDetails;
 }
 
 const rhoErrorDefinitions: Record<RhoErrorCode, { orpcCode: ORPCErrorCode; message: string }> = {
 	"auth.setup_required": {
 		orpcCode: "CONFLICT",
-		message: "This rho deployment has not been set up yet. Claim it with the owner token before logging in.",
+		message: "Set up rho before logging in.",
 	},
 	"auth.setup_already_complete": {
 		orpcCode: "CONFLICT",
-		message: "This rho deployment has already been set up. Log in with the owner password.",
+		message: "rho is already set up. Log in with the password.",
 	},
 	"auth.invalid_owner_token": {
 		orpcCode: "UNAUTHORIZED",
-		message: "The owner token is incorrect. Use the RHO_OWNER_TOKEN configured for this server.",
+		message: "The root secret is incorrect.",
 	},
 	"auth.invalid_password": {
 		orpcCode: "UNAUTHORIZED",
-		message: "The owner password is incorrect.",
+		message: "The password is incorrect.",
 	},
 	"auth.session_required": {
 		orpcCode: "UNAUTHORIZED",
-		message: "Log in to rho before continuing.",
+		message: "Log in to continue.",
 	},
 	"request.invalid": {
 		orpcCode: "BAD_REQUEST",
-		message: "rho could not understand the request. Check the request and try again.",
+		message: "Check the request and try again.",
 	},
 	"data.table_not_found": {
 		orpcCode: "NOT_FOUND",
-		message: "rho could not find that table.",
+		message: "Table not found.",
 	},
 	"apps.api_not_found": {
 		orpcCode: "NOT_FOUND",
-		message: "rho could not find that app API.",
+		message: "App API not found.",
 	},
 	"apps.procedure_not_found": {
 		orpcCode: "NOT_FOUND",
-		message: "rho could not find that app procedure.",
+		message: "App procedure not found.",
 	},
 	"server.internal": {
 		orpcCode: "INTERNAL_SERVER_ERROR",
-		message: "rho could not complete the request. Try again, or check the server logs if the problem continues.",
+		message: "rho could not complete the request. Try again.",
 	},
 };
 
@@ -100,17 +106,50 @@ export function throwRhoError(code: RhoErrorCode, options?: RhoErrorOptions): ne
 	throw rhoError(code, options);
 }
 
-export function rhoErrorResponseBody(error: ORPCError<ORPCErrorCode, unknown>): RhoErrorResponseBody {
+export function rhoErrorResponseBody(error: ORPCError<ORPCErrorCode, unknown>): RhoProblemDetails {
 	if (isRhoErrorData(error.data)) {
-		return { error: error.data };
+		return {
+			type: rhoProblemType(error.data.code),
+			title: statusTitle(error.status),
+			status: error.status,
+			detail: error.data.message,
+			code: error.data.code,
+			action: error.data.action,
+			details: error.data.details,
+		};
 	}
 
 	return {
-		error: {
-			code: error.code,
-			message: error.message,
-		},
+		type: rhoProblemType(error.code),
+		title: statusTitle(error.status),
+		status: error.status,
+		detail: error.message,
+		code: error.code,
 	};
+}
+
+function rhoProblemType(code: string): string {
+	return `https://rho.dev/errors/${code}`;
+}
+
+function statusTitle(status: number): string {
+	if (status === 400) {
+		return "Bad Request";
+	}
+	if (status === 401) {
+		return "Unauthorized";
+	}
+	if (status === 404) {
+		return "Not Found";
+	}
+	if (status === 409) {
+		return "Conflict";
+	}
+	if (status >= 500) {
+		return "Internal Server Error";
+	}
+
+	return "Error";
 }
 
 function isRhoErrorData(data: unknown): data is RhoErrorData {

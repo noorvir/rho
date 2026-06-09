@@ -1,9 +1,19 @@
-import { createORPCClient } from "@orpc/client";
+import { createORPCClient, ORPCError, type ORPCErrorCode } from "@orpc/client";
 import type { ContractRouterClient } from "@orpc/contract";
 import type { JsonifiedClient } from "@orpc/openapi-client";
 import { OpenAPILink } from "@orpc/openapi-client/fetch";
 import { createORPCReactQueryUtils } from "@orpc/react-query";
 import { httpContract } from "../../src/http/contract.ts";
+
+interface RhoProblemDetails {
+	type: string;
+	title: string;
+	status: number;
+	detail: string;
+	code: string;
+	action?: unknown;
+	details?: unknown;
+}
 
 const defaultCoreUrl = window.location.origin;
 const conversationId = "mobile-chat";
@@ -12,6 +22,18 @@ const apiBaseUrl = import.meta.env.VITE_RHO_CORE_URL || defaultCoreUrl;
 const link = new OpenAPILink(httpContract, {
 	url: apiBaseUrl,
 	fetch: (request, init) => fetch(request, { ...init, credentials: "include" }),
+	customErrorResponseBodyDecoder: (body, response) => {
+		const problem = parseProblemDetails(body);
+		if (!problem) {
+			return undefined;
+		}
+
+		return new ORPCError(orpcCodeFromStatus(problem.status || response.status), {
+			status: problem.status || response.status,
+			message: problem.detail,
+			data: problem,
+		});
+	},
 });
 export const api: JsonifiedClient<ContractRouterClient<typeof httpContract>> = createORPCClient(link);
 export const orpc = createORPCReactQueryUtils(api);
@@ -44,4 +66,59 @@ export async function* streamChatMessage(text: string): AsyncGenerator<ChatEvent
 	for await (const event of events) {
 		yield event;
 	}
+}
+
+function parseProblemDetails(body: unknown): RhoProblemDetails | undefined {
+	if (!isRecord(body)) {
+		return undefined;
+	}
+
+	const type = body.type;
+	const title = body.title;
+	const status = body.status;
+	const detail = body.detail;
+	const code = body.code;
+	if (
+		typeof type !== "string" ||
+		typeof title !== "string" ||
+		typeof status !== "number" ||
+		typeof detail !== "string" ||
+		typeof code !== "string"
+	) {
+		return undefined;
+	}
+
+	return {
+		type,
+		title,
+		status,
+		detail,
+		code,
+		action: body.action,
+		details: body.details,
+	};
+}
+
+function orpcCodeFromStatus(status: number): ORPCErrorCode {
+	if (status === 400) {
+		return "BAD_REQUEST";
+	}
+	if (status === 401) {
+		return "UNAUTHORIZED";
+	}
+	if (status === 404) {
+		return "NOT_FOUND";
+	}
+	if (status === 409) {
+		return "CONFLICT";
+	}
+	if (status >= 500) {
+		return "INTERNAL_SERVER_ERROR";
+	}
+
+	return "INTERNAL_SERVER_ERROR";
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === "object";
 }

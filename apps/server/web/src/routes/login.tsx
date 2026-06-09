@@ -14,6 +14,7 @@ import { api } from "../api.ts";
 export function LoginPage() {
   const navigate = useNavigate();
   const [checkingSession, setCheckingSession] = useState(true);
+  const [setupRequired, setSetupRequired] = useState(false);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -23,10 +24,14 @@ export function LoginPage() {
 
     async function load() {
       try {
-        const session = await api.auth.session();
+        const [status, session] = await Promise.all([
+          api.auth.status(),
+          api.auth.session(),
+        ]);
         if (cancelled) {
           return;
         }
+        setSetupRequired(status.setupRequired);
         if (session.authenticated) {
           void navigate({ to: redirectPath() });
         }
@@ -88,16 +93,18 @@ export function LoginPage() {
           {submitting ? "Logging in…" : "Log in"}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        Need to claim this deployment?{" "}
-        <Link
-          className="font-medium text-foreground underline underline-offset-4"
-          search={{ redirect: redirectPath() }}
-          to="/setup"
-        >
-          Go to setup
-        </Link>
-      </p>
+      {setupRequired ? (
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Need to claim this deployment?{" "}
+          <Link
+            className="font-medium text-foreground underline underline-offset-4"
+            search={{ redirect: redirectPath() }}
+            to="/setup"
+          >
+            Go to setup
+          </Link>
+        </p>
+      ) : null}
     </AuthLayout>
   );
 }
