@@ -1,6 +1,7 @@
-import { implement, ORPCError } from "@orpc/server";
+import { implement } from "@orpc/server";
 import { type ChannelMessage, type ChannelOutput, messageText } from "@rho/channels";
 import { tc } from "@rho/lib";
+import { throwRhoError } from "../errors.ts";
 import { conversationKey, messageFromHttp, validateHttpMessage } from "../http-message.ts";
 import { requireAuth } from "./auth.ts";
 import { httpContract } from "./contract.ts";
@@ -123,8 +124,8 @@ function isMessageStream(output: ChannelOutput): output is AsyncIterable<Channel
 	return Symbol.asyncIterator in output;
 }
 
-function badRequest(error: unknown, fallback: string): ORPCError<"BAD_REQUEST", undefined> {
-	return new ORPCError("BAD_REQUEST", { message: errorMessage(error, fallback) });
+function badRequest(error: unknown, fallback: string): never {
+	throwRhoError("request.invalid", { message: errorMessage(error, fallback) });
 }
 
 function errorMessage(error: unknown, fallback?: string): string {

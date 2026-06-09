@@ -1,6 +1,7 @@
-import { implement, ORPCError } from "@orpc/server";
+import { implement } from "@orpc/server";
 import { getTableData, getTables } from "@rho/core";
 import { tc } from "@rho/lib";
+import { throwRhoError } from "../errors.ts";
 import { requireAuth } from "./auth.ts";
 import { httpContract } from "./contract.ts";
 import type { HttpContext } from "./types.ts";
@@ -13,9 +14,7 @@ export function dataRouter() {
 				await requireAuth(context);
 				const res = await tc(getTables(context.databaseUrl));
 				if (res.error) {
-					throw new ORPCError("INTERNAL_SERVER_ERROR", {
-						message: "Failed to list tables",
-					});
+					throwRhoError("server.internal", { message: "Failed to list tables." });
 				}
 
 				return { tables: res.data };
@@ -32,14 +31,12 @@ export function dataRouter() {
 					}),
 				);
 				if (res.error) {
-					throw new ORPCError("INTERNAL_SERVER_ERROR", {
-						message: "Failed to load table data",
-					});
+					throwRhoError("server.internal", { message: "Failed to load table data." });
 				}
 
 				const table = res.data;
 				if (!table) {
-					throw new ORPCError("NOT_FOUND", { message: "Unknown table" });
+					throwRhoError("data.table_not_found", { details: { table: input.name } });
 				}
 
 				return table;

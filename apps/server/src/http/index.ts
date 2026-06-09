@@ -3,6 +3,7 @@ import { RequestHeadersPlugin, ResponseHeadersPlugin } from "@orpc/server/plugin
 import type { RhoCore } from "@rho/core";
 import type { MiddlewareHandler } from "hono";
 import type { RhoAuth } from "../auth.ts";
+import { rhoErrorResponseBody } from "../errors.ts";
 import { agentRouter } from "./agent.ts";
 import { appsRouter } from "./apps.ts";
 import { authRouter } from "./auth.ts";
@@ -27,7 +28,7 @@ export type HttpRouter = typeof httpRouter;
 export function createHttpMiddleware(options: HttpOptions): MiddlewareHandler {
 	const handler = new OpenAPIHandler<HttpContext>(httpRouter, {
 		plugins: [new RequestHeadersPlugin(), new ResponseHeadersPlugin()],
-		customErrorResponseBodyEncoder: (error) => ({ error: error.message }),
+		customErrorResponseBodyEncoder: rhoErrorResponseBody,
 	});
 
 	return async (context, next) => {
