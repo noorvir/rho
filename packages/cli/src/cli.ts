@@ -1,69 +1,48 @@
 #!/usr/bin/env node
 
-import { agentEventTextDelta, createRhoAgent, type RhoAgent } from "@rho/ai";
-import { type ChannelMessage, ChannelRuntime, CliChannel, messageText } from "@rho/channels";
+import { runAgentCommand, runOneShot } from "./agent-command.ts";
+import { formatAgentError } from "./errors.ts";
+import { runModelCommand } from "./model-command.ts";
+import { runProviderCommand } from "./provider-command.ts";
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
-	const text = args.join(" ").trim();
+	const [command, ...rest] = args;
 
-	if (!text) {
-		console.error("Usage: rho <message>");
-		process.exitCode = 1;
+	if (command === "agent") {
+		await runAgentCommand(rest);
+		return;
+	}
+	if (command === "provider") {
+		await runProviderCommand(rest);
+		return;
+	}
+	if (command === "model") {
+		await runModelCommand(rest);
 		return;
 	}
 
-	const agent = await createRhoAgent();
-	const runtime = new ChannelRuntime({
-		channels: [new CliChannel()],
-		handle: async (message) => agentResponse(agent, message),
-	});
-
-	await runtime.receive({
-		id: `msg:${crypto.randomUUID()}`,
-		channelId: "cli",
-		target: { type: "conversation", id: "cli" },
-		from: { id: "cli-user", role: "user" },
-		content: [{ type: "text", text }],
-		timestamp: new Date(),
-		replyTo: null,
-		attachments: [],
-		metadata: {},
-		raw: null,
-	});
-}
-
-async function* agentResponse(
-	agent: RhoAgent,
-	message: ChannelMessage,
-): AsyncIterable<ChannelMessage> {
-	const stream = agent.respond({
-		messages: [
-			{
-				role: "user",
-				content: messageText(message),
-				timestamp: message.timestamp.getTime(),
-			},
-		],
-		signal: new AbortController().signal,
-	});
-
-	for await (const event of stream) {
-		const delta = agentEventTextDelta(event);
-		if (delta) {
-			yield {
-				id: `msg:${crypto.randomUUID()}`,
-				channelId: message.channelId,
-				target: message.target,
-				from: { id: "assistant", role: "assistant" },
-				content: [{ type: "text", text: delta }],
-				timestamp: new Date(),
-				replyTo: message.id,
-				attachments: [],
-				metadata: message.metadata,
-				raw: null,
-			};
-		}
+	const text = args.join(" ").trim();
+	if (text) {
+		await runOneShot(text);
+		return;
 	}
+
+	printUsage();
+	process.exitCode = 1;
 }
 
-await main();
+function printUsage(): void {
+	console.error(`Usage:
+  rho agent
+  rho agent -p "message"
+  rho agent "message"
+  rho provider login codex
+  rho model
+  rho model provider/model
+  rho "message"`);
+}
+
+await main().catch((error: unknown) => {
+	console.error(`Rho agent error: ${formatAgentError(error)}`);
+	process.exitCode = 1;
+});

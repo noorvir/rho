@@ -119,8 +119,9 @@
         "rho": "./dist/cli.js",
       },
       "dependencies": {
-        "@rho/ai": "workspace:*",
-        "@rho/channels": "workspace:*",
+        "@rho/ai": "0.0.0",
+        "@rho/channels": "0.0.0",
+        "@rho/lib": "0.0.0",
       },
     },
     "packages/core": {

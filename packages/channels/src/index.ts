@@ -1,4 +1,3 @@
-export { CliChannel } from "./cli.ts";
 export { HttpChannel, type SseStream } from "./http.ts";
 export { messageText } from "./message.ts";
 export { type ChannelHandler, ChannelRuntime, type ChannelRuntimeOptions } from "./runtime.ts";

@@ -10,6 +10,24 @@ export {
 export { PiEchoAgent } from "./echo.ts";
 export { agentEventTextDelta } from "./messages.ts";
 export {
+	listRhoModels,
+	loginRhoProvider,
+	type RhoAgentProviderConfig,
+	type RhoModelInfo,
+	type RhoModelReference,
+	type RhoModelSelectionResult,
+	type RhoProviderLoginResult,
+	type RhoSubscriptionProvider,
+	selectRhoModel,
+} from "./providers.ts";
+export {
+	createRhoAgentSession,
+	type RhoAgentExtensionSource,
+	type RhoAgentPromptOptions,
+	type RhoAgentSession,
+	type RhoAgentSessionOptions,
+} from "./session.ts";
+export {
 	createFileStateManager,
 	FileStateManager,
 	type FileStateManagerOptions,

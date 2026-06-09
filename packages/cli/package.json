@@ -26,7 +26,8 @@
 	},
 	"dependencies": {
 		"@rho/ai": "0.0.0",
-		"@rho/channels": "0.0.0"
+		"@rho/channels": "0.0.0",
+		"@rho/lib": "0.0.0"
 	},
 	"keywords": [
 		"ai",
