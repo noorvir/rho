@@ -1,24 +1,16 @@
-import { ORPCError, os } from "@orpc/server";
+import { implement, ORPCError } from "@orpc/server";
 import { getTableData, getTables } from "@rho/core";
 import { tc } from "@rho/lib";
-import * as z from "zod";
 import { requireAuth } from "./auth.ts";
+import { httpContract } from "./contract.ts";
 import type { HttpContext } from "./types.ts";
 
-const p = os.$context<HttpContext>();
-const authenticated = p.use(async ({ context, next }) => {
-	await requireAuth(context);
-	return next();
-});
+const p = implement(httpContract).$context<HttpContext>();
 
 export function dataRouter() {
 	return {
-		listTables: authenticated
-			.route({
-				method: "GET",
-				path: "/tables",
-			})
-			.handler(async ({ context }) => {
+		listTables: p.data.listTables.handler(async ({ context }) => {
+				await requireAuth(context);
 				const res = await tc(getTables(context.databaseUrl));
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -29,21 +21,8 @@ export function dataRouter() {
 				return { tables: res.data };
 			}),
 
-		table: authenticated
-			.route({
-				method: "GET",
-				path: "/tables/{name}",
-			})
-			.input(
-				z.object({
-					name: z.string().min(1),
-					limit: z.coerce.number().int().min(1).optional(),
-					offset: z.coerce.number().int().min(0).optional(),
-					orderBy: z.string().optional(),
-					order: z.string().optional(),
-				}),
-			)
-			.handler(async ({ input, context }) => {
+		table: p.data.table.handler(async ({ input, context }) => {
+				await requireAuth(context);
 				const res = await tc(
 					getTableData(context.databaseUrl, input.name, {
 						limit: input.limit,

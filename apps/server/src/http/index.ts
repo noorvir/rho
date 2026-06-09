@@ -15,12 +15,14 @@ export interface HttpOptions {
 	databaseUrl: string;
 }
 
-const httpRouter = {
+export const httpRouter = {
 	apps: appsRouter(),
 	auth: authRouter(),
 	data: dataRouter(),
 	agent: agentRouter(),
 };
+
+export type HttpRouter = typeof httpRouter;
 
 export function createHttpMiddleware(options: HttpOptions): MiddlewareHandler {
 	const handler = new OpenAPIHandler<HttpContext>(httpRouter, {
@@ -29,14 +31,14 @@ export function createHttpMiddleware(options: HttpOptions): MiddlewareHandler {
 	});
 
 	return async (context, next) => {
-		const result = await handler.handle(context.req.raw, {
-			context: {
-				auth: options.auth,
-				core: options.core,
-				databaseUrl: options.databaseUrl,
-				requestUrl: context.req.url,
-			},
-		});
+		const requestContext = {
+			auth: options.auth,
+			core: options.core,
+			databaseUrl: options.databaseUrl,
+			requestUrl: context.req.url,
+		};
+
+		const result = await handler.handle(context.req.raw, { context: requestContext });
 		if (result.matched) {
 			return result.response;
 		}

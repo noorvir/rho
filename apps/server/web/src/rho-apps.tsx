@@ -7,7 +7,7 @@ import { DataTableSurface } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { loadAppExtensions, type AppExtensionSummary } from "./api.ts";
+import { orpc, type AppExtensionSummary } from "./api.ts";
 
 interface RhoAppsProps {
 	appSlug?: string;
@@ -17,10 +17,7 @@ interface RhoAppsProps {
 type AppComponent = () => ReactNode;
 
 export function RhoApps({ appSlug, routePath = "/" }: RhoAppsProps) {
-	const apps = useQuery({
-		queryKey: ["app-extensions"],
-		queryFn: loadAppExtensions,
-	});
+	const apps = useQuery(orpc.apps.list.queryOptions());
 
 	return (
 		<DataTableSurface className="flex-1">
@@ -41,12 +38,12 @@ export function RhoApps({ appSlug, routePath = "/" }: RhoAppsProps) {
 			<div className="scrollbar-thin min-h-0 flex-1 overflow-auto p-2">
 				{apps.isPending ? <EmptyState title="Loading app extensions" /> : null}
 				{apps.isError ? <EmptyState title="Failed to load app extensions" /> : null}
-				{apps.isSuccess && apps.data.length === 0 ? (
+				{apps.isSuccess && apps.data.apps.length === 0 ? (
 					<EmptyState title="No app extensions loaded" />
 				) : null}
-				{apps.isSuccess && apps.data.length > 0 && !appSlug ? <AppList apps={apps.data} /> : null}
+				{apps.isSuccess && apps.data.apps.length > 0 && !appSlug ? <AppList apps={apps.data.apps} /> : null}
 				{apps.isSuccess && appSlug ? (
-					<AppRuntime appSlug={appSlug} apps={apps.data} routePath={routePath} />
+					<AppRuntime appSlug={appSlug} apps={apps.data.apps} routePath={routePath} />
 				) : null}
 			</div>
 		</DataTableSurface>

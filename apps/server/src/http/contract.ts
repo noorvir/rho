@@ -1,0 +1,136 @@
+import { eventIterator, oc } from "@orpc/contract";
+import * as z from "zod";
+
+const principalSchema = z.object({
+	kind: z.enum(["session", "api-token"]),
+	id: z.string(),
+});
+
+const authSessionSchema = z.object({
+	authenticated: z.boolean(),
+	principal: principalSchema.nullable(),
+});
+
+const appSummarySchema = z.object({
+	slug: z.string(),
+	name: z.string(),
+	clientModuleUrl: z.string(),
+	routes: z.array(z.object({ path: z.string(), label: z.string().optional() })),
+	apiBasePath: z.string().optional(),
+});
+
+const tableValueSchema = z.union([z.string(), z.number(), z.boolean(), z.null()]);
+const tableColumnSchema = z.object({
+	id: z.string(),
+	label: z.string(),
+	kind: z.enum(["boolean", "date", "enum", "number", "text"]),
+	declaredType: z.string(),
+	nullable: z.boolean(),
+	primaryKey: z.boolean(),
+	defaultValue: tableValueSchema,
+});
+const tableSchema = z.object({
+	name: z.string(),
+	columns: z.array(tableColumnSchema),
+	rows: z.array(z.record(z.string(), tableValueSchema)),
+	limit: z.number(),
+	offset: z.number(),
+});
+
+const messageSchema = z.object({
+	role: z.enum(["user", "assistant"]),
+	text: z.string(),
+});
+
+const chatEventSchema = z.discriminatedUnion("type", [
+	z.object({ type: z.literal("started") }),
+	z.object({ type: z.literal("delta"), text: z.string() }),
+	z.object({ type: z.literal("completed"), text: z.string() }),
+	z.object({ type: z.literal("error"), error: z.string() }),
+]);
+
+const messageInputSchema = z.object({
+	conversationId: z.string().min(1),
+	sender: z.object({ id: z.string().min(1) }).passthrough(),
+	text: z.string().min(1),
+});
+
+export const httpContract = {
+	apps: {
+		list: oc.route({ method: "GET", path: "/apps.json" }).output(z.object({ apps: z.array(appSummarySchema) })),
+		reload: oc.route({ method: "POST", path: "/reload" }),
+	},
+	auth: {
+		status: oc
+			.route({ method: "GET", path: "/api/auth/setup" })
+			.output(z.object({ setupRequired: z.boolean() })),
+		setup: oc
+			.route({ method: "POST", path: "/api/auth/setup" })
+			.input(z.object({ ownerToken: z.string().min(1), password: z.string().min(1) }))
+			.output(z.object({ authenticated: z.boolean(), principal: principalSchema })),
+		login: oc
+			.route({ method: "POST", path: "/api/auth/login" })
+			.input(z.object({ password: z.string().min(1) }))
+			.output(z.object({ authenticated: z.boolean(), principal: principalSchema })),
+		session: oc.route({ method: "GET", path: "/api/auth/session" }).output(authSessionSchema),
+		logout: oc
+			.route({ method: "POST", path: "/api/auth/logout" })
+			.output(z.object({ authenticated: z.boolean() })),
+		listApiTokens: oc
+			.route({ method: "GET", path: "/api/auth/api-tokens" })
+			.output(z.object({ tokens: z.array(z.unknown()) })),
+		createApiToken: oc
+			.route({ method: "POST", path: "/api/auth/api-tokens" })
+			.input(z.object({ name: z.string().trim().min(1) }))
+			.output(z.unknown()),
+		revokeApiToken: oc
+			.route({ method: "DELETE", path: "/api/auth/api-tokens/{id}" })
+			.input(z.object({ id: z.string().min(1) }))
+			.output(z.object({ revoked: z.boolean() })),
+		getToken: oc
+			.route({ method: "POST", path: "/api/auth/token/login" })
+			.input(z.object({ password: z.string().min(1) }))
+			.output(z.unknown()),
+		refreshToken: oc
+			.route({ method: "POST", path: "/api/auth/token/refresh" })
+			.input(z.object({ refreshToken: z.string().min(1) }))
+			.output(z.unknown()),
+		revokeToken: oc
+			.route({ method: "POST", path: "/api/auth/token/logout" })
+			.input(z.object({ refreshToken: z.string().min(1) }))
+			.output(z.object({ authenticated: z.boolean() })),
+	},
+	data: {
+		listTables: oc
+			.route({ method: "GET", path: "/tables" })
+			.output(z.object({ tables: z.array(z.object({ name: z.string(), label: z.string() })) })),
+		table: oc
+			.route({ method: "GET", path: "/tables/{name}" })
+			.input(
+				z.object({
+					name: z.string().min(1),
+					limit: z.coerce.number().int().min(1).optional(),
+					offset: z.coerce.number().int().min(0).optional(),
+					orderBy: z.string().optional(),
+					order: z.string().optional(),
+				}),
+			)
+			.output(tableSchema),
+	},
+	agent: {
+		messages: oc
+			.route({ method: "GET", path: "/agent/conversations/{id}/messages" })
+			.input(z.object({ id: z.string().min(1) }))
+			.output(z.object({ messages: z.array(messageSchema) })),
+		handleMessage: oc
+			.route({ method: "POST", path: "/agent/messages" })
+			.input(messageInputSchema)
+			.output(z.object({ message: z.unknown() })),
+		handleMessageStream: oc
+			.route({ method: "POST", path: "/agent/messages:stream" })
+			.input(messageInputSchema)
+			.output(eventIterator(chatEventSchema)),
+	},
+};
+
+export type HttpContract = typeof httpContract;

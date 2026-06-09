@@ -3,12 +3,14 @@ import { createRootRoute, createRoute, createRouter, RouterProvider, useLocation
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { LoginPage, ProtectedShell, SetupPage } from "./auth.tsx";
+import { ProtectedShell } from "./auth.tsx";
 import { RhoApps } from "./rho-apps.tsx";
 import { AppsPage } from "./routes/apps.tsx";
 import { Dashboard } from "./routes/dashboard.tsx";
 import { DataPage } from "./routes/data.tsx";
+import { LoginPage } from "./routes/login.tsx";
 import { SettingsPage } from "./routes/settings.tsx";
+import { SetupPage } from "./routes/setup.tsx";
 import "./styles.css";
 
 const rootRoute = createRootRoute({

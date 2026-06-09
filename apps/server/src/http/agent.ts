@@ -1,36 +1,17 @@
-import { ORPCError, os } from "@orpc/server";
-import {
-	type ChannelMessage,
-	type ChannelOutput,
-	HttpChannel,
-	messageText,
-	type SseStream,
-} from "@rho/channels";
+import { implement, ORPCError } from "@orpc/server";
+import { type ChannelMessage, type ChannelOutput, messageText } from "@rho/channels";
 import { tc } from "@rho/lib";
-import * as z from "zod";
 import { conversationKey, messageFromHttp, validateHttpMessage } from "../http-message.ts";
 import { requireAuth } from "./auth.ts";
+import { httpContract } from "./contract.ts";
 import type { HttpContext } from "./types.ts";
 
-const p = os.$context<HttpContext>();
-const authenticated = p.use(async ({ context, next }) => {
-	await requireAuth(context);
-	return next();
-});
+const p = implement(httpContract).$context<HttpContext>();
 
 export function agentRouter() {
 	return {
-		messages: authenticated
-			.route({
-				method: "GET",
-				path: "/agent/conversations/{id}/messages",
-			})
-			.input(
-				z.object({
-					id: z.string().min(1),
-				}),
-			)
-			.handler(async ({ input, context }) => {
+		messages: p.agent.messages.handler(async ({ input, context }) => {
+				await requireAuth(context);
 				const key = conversationKey(input.id);
 				const res = await tc(context.core.loadConversation(key));
 				if (res.error) {
@@ -40,13 +21,8 @@ export function agentRouter() {
 				return res.data;
 			}),
 
-		handleMessage: authenticated
-			.route({
-				method: "POST",
-				path: "/agent/messages",
-			})
-			.input(messageInputSchema())
-			.handler(async ({ input, context }) => {
+		handleMessage: p.agent.handleMessage.handler(async ({ input, context }) => {
+				await requireAuth(context);
 				const messageInput = tc(() => validateHttpMessage(input));
 				if (messageInput.error) {
 					throw badRequest(messageInput.error, "Failed to handle message");
@@ -66,83 +42,55 @@ export function agentRouter() {
 				return { message: collected.data };
 			}),
 
-		handleMessageStream: authenticated
-			.route({
-				method: "POST",
-				path: "/agent/messages:stream",
-				outputStructure: "detailed",
-			})
-			.input(messageInputSchema())
-			.handler(async ({ input, context }) => {
-				const stream = createSseStream();
-				const messageInput = tc(() => validateHttpMessage(input));
-				if (messageInput.error) {
-					stream.event("message.error", { error: errorMessage(messageInput.error) });
-					stream.close();
-					return streamResponse(stream);
-				}
+		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {
+			await requireAuth(context);
+			const messageInput = tc(() => validateHttpMessage(input));
+			if (messageInput.error) {
+				yield { type: "error" as const, error: errorMessage(messageInput.error) };
+				return;
+			}
 
-				const message = messageFromHttp(messageInput.data);
-				const output = await tc(context.core.handleMessage(message));
-				if (output.error) {
-					stream.event("message.error", { error: errorMessage(output.error) });
-					stream.close();
-					return streamResponse(stream);
-				}
+			const message = messageFromHttp(messageInput.data);
+			const output = await tc(context.core.handleMessage(message));
+			if (output.error) {
+				yield { type: "error" as const, error: errorMessage(output.error) };
+				return;
+			}
 
-				const channel = new HttpChannel("http", stream);
-				void channel.send(output.data).catch((error: unknown) => {
-					stream.event("message.error", { error: errorMessage(error) });
-					stream.close();
-				});
-
-				return streamResponse(stream);
-			}),
+			yield* streamOutput(output.data);
+		}),
 	};
 }
 
-function messageInputSchema() {
-	return z.object({
-		conversationId: z.string().min(1),
-		sender: z.object({ id: z.string().min(1) }).passthrough(),
-		text: z.string().min(1),
-	});
-}
+async function* streamOutput(output: ChannelOutput) {
+	if (!isMessageStream(output)) {
+		const text = messageText(output);
+		yield { type: "started" as const };
+		yield { type: "delta" as const, text };
+		yield { type: "completed" as const, text };
+		return;
+	}
 
-interface ServerSseStream extends SseStream {
-	body: ReadableStream<Uint8Array>;
-}
+	let text = "";
+	let started = false;
 
-function createSseStream(): ServerSseStream {
-	let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
-	const encoder = new TextEncoder();
-	const body = new ReadableStream<Uint8Array>({
-		start(nextController) {
-			controller = nextController;
-		},
-	});
+	for await (const message of output) {
+		if (!started) {
+			yield { type: "started" as const };
+			started = true;
+		}
 
-	return {
-		body,
-		event(name, data) {
-			controller?.enqueue(encoder.encode(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`));
-		},
-		close() {
-			controller?.close();
-			controller = undefined;
-		},
-	};
-}
+		const delta = messageText(message);
+		text += delta;
+		yield { type: "delta" as const, text: delta };
+	}
 
-function streamResponse(stream: ServerSseStream) {
-	return {
-		headers: {
-			"Cache-Control": "no-cache",
-			Connection: "keep-alive",
-			"Content-Type": "text/event-stream",
-		},
-		body: stream.body,
-	};
+	if (!started) {
+		yield { type: "error" as const, error: "Missing HTTP message" };
+		return;
+	}
+
+	yield { type: "completed" as const, text };
 }
 
 async function collectMessage(output: ChannelOutput): Promise<ChannelMessage> {

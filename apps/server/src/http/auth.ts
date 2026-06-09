@@ -1,24 +1,15 @@
-import { ORPCError, os } from "@orpc/server";
+import { implement, ORPCError } from "@orpc/server";
 import { deleteCookie, getCookie, setCookie } from "@orpc/server/helpers";
 import { tc } from "@rho/lib";
-import * as z from "zod";
 import { authSessionCookieName, type RhoAuthSession } from "../auth.ts";
+import { httpContract } from "./contract.ts";
 import type { HttpContext } from "./types.ts";
 
-const p = os.$context<HttpContext>();
-const authenticated = p.use(async ({ context, next }) => {
-	await requireAuth(context);
-	return next();
-});
+const p = implement(httpContract).$context<HttpContext>();
 
 export function authRouter() {
 	return {
-		status: p
-			.route({
-				method: "GET",
-				path: "/api/auth/setup",
-			})
-			.handler(async ({ context }) => {
+		status: p.auth.status.handler(async ({ context }) => {
 				const res = await tc(context.auth.setupRequired());
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -29,18 +20,7 @@ export function authRouter() {
 				return { setupRequired: res.data };
 			}),
 
-		setup: p
-			.route({
-				method: "POST",
-				path: "/api/auth/setup",
-			})
-			.input(
-				z.object({
-					ownerToken: z.string().min(1),
-					password: z.string().min(1),
-				}),
-			)
-			.handler(async ({ input, context }) => {
+		setup: p.auth.setup.handler(async ({ input, context }) => {
 				const res = await tc(context.auth.setup(input));
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -60,13 +40,7 @@ export function authRouter() {
 				return { authenticated: true, principal: result.session.principal };
 			}),
 
-		login: p
-			.route({
-				method: "POST",
-				path: "/api/auth/login",
-			})
-			.input(z.object({ password: z.string().min(1) }))
-			.handler(async ({ input, context }) => {
+		login: p.auth.login.handler(async ({ input, context }) => {
 				const setupRequired = await tc(context.auth.setupRequired());
 				if (setupRequired.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -93,17 +67,7 @@ export function authRouter() {
 				return { authenticated: true, principal: session.principal };
 			}),
 
-		getToken: p
-			.route({
-				method: "POST",
-				path: "/api/auth/token/login",
-			})
-			.input(
-				z.object({
-					password: z.string().min(1),
-				}),
-			)
-			.handler(async ({ input, context }) => {
+		getToken: p.auth.getToken.handler(async ({ input, context }) => {
 				const res = await tc(context.auth.getToken(input));
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -119,13 +83,7 @@ export function authRouter() {
 				return tokens;
 			}),
 
-		refreshToken: p
-			.route({
-				method: "POST",
-				path: "/api/auth/token/refresh",
-			})
-			.input(z.object({ refreshToken: z.string().min(1) }))
-			.handler(async ({ input, context }) => {
+		refreshToken: p.auth.refreshToken.handler(async ({ input, context }) => {
 				const res = await tc(context.auth.refreshToken(input.refreshToken));
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -141,13 +99,7 @@ export function authRouter() {
 				return tokens;
 			}),
 
-		revokeToken: p
-			.route({
-				method: "POST",
-				path: "/api/auth/token/logout",
-			})
-			.input(z.object({ refreshToken: z.string().min(1) }))
-			.handler(async ({ input, context }) => {
+		revokeToken: p.auth.revokeToken.handler(async ({ input, context }) => {
 				const res = await tc(context.auth.revokeToken(input.refreshToken));
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -158,22 +110,12 @@ export function authRouter() {
 				return { authenticated: false };
 			}),
 
-		session: p
-			.route({
-				method: "GET",
-				path: "/api/auth/session",
-			})
-			.handler(async ({ context }) => {
+		session: p.auth.session.handler(async ({ context }) => {
 				const principal = await authorize(context);
 				return { authenticated: Boolean(principal), principal: principal ?? null };
 			}),
 
-		logout: p
-			.route({
-				method: "POST",
-				path: "/api/auth/logout",
-			})
-			.handler(async ({ context }) => {
+		logout: p.auth.logout.handler(async ({ context }) => {
 				const sessionToken = getCookie(context.reqHeaders, authSessionCookieName);
 				const res = await tc(context.auth.logout(sessionToken));
 				if (res.error) {
@@ -186,12 +128,8 @@ export function authRouter() {
 				return { authenticated: false };
 			}),
 
-		listApiTokens: authenticated
-			.route({
-				method: "GET",
-				path: "/api/auth/api-tokens",
-			})
-			.handler(async ({ context }) => {
+		listApiTokens: p.auth.listApiTokens.handler(async ({ context }) => {
+				await requireAuth(context);
 				const res = await tc(context.auth.listApiTokens());
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -202,13 +140,8 @@ export function authRouter() {
 				return { tokens: res.data };
 			}),
 
-		createApiToken: authenticated
-			.route({
-				method: "POST",
-				path: "/api/auth/api-tokens",
-			})
-			.input(z.object({ name: z.string().trim().min(1) }))
-			.handler(async ({ input, context }) => {
+		createApiToken: p.auth.createApiToken.handler(async ({ input, context }) => {
+				await requireAuth(context);
 				const res = await tc(context.auth.createApiToken(input));
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -219,13 +152,8 @@ export function authRouter() {
 				return res.data;
 			}),
 
-		revokeApiToken: authenticated
-			.route({
-				method: "DELETE",
-				path: "/api/auth/api-tokens/{id}",
-			})
-			.input(z.object({ id: z.string().min(1) }))
-			.handler(async ({ input, context }) => {
+		revokeApiToken: p.auth.revokeApiToken.handler(async ({ input, context }) => {
+				await requireAuth(context);
 				const res = await tc(context.auth.revokeApiToken(input.id));
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {

@@ -1,4 +1,4 @@
-import { ORPCError, os } from "@orpc/server";
+import { implement, ORPCError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
 import type { RhoAppApiContext, RhoCore } from "@rho/core";
 import { tc } from "@rho/lib";
@@ -6,22 +6,15 @@ import { type Context, Hono, type MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 import { authSessionCookieName, type RhoAuth } from "../auth.ts";
 import { requireAuth } from "./auth.ts";
+import { httpContract } from "./contract.ts";
 import type { HttpContext } from "./types.ts";
 
-const p = os.$context<HttpContext>();
-const authenticated = p.use(async ({ context, next }) => {
-	await requireAuth(context);
-	return next();
-});
+const p = implement(httpContract).$context<HttpContext>();
 
 export function appsRouter() {
 	return {
-		list: authenticated
-			.route({
-				method: "GET",
-				path: "/apps.json",
-			})
-			.handler(async ({ context }) => {
+		list: p.apps.list.handler(async ({ context }) => {
+				await requireAuth(context);
 				const res = await tc(context.core.listApps());
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {
@@ -43,12 +36,8 @@ export function appsRouter() {
 				return { apps };
 			}),
 
-		reload: authenticated
-			.route({
-				method: "POST",
-				path: "/reload",
-			})
-			.handler(async ({ context }) => {
+		reload: p.apps.reload.handler(async ({ context }) => {
+				await requireAuth(context);
 				const res = await tc(context.core.reload());
 				if (res.error) {
 					throw new ORPCError("INTERNAL_SERVER_ERROR", {

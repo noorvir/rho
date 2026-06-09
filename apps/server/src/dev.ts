@@ -78,7 +78,6 @@ function isApiPath(pathname: string): boolean {
 		pathname === "/apps.json" ||
 		pathname === "/reload" ||
 		pathname === "/tables" ||
-		pathname.startsWith("/rpc/") ||
 		pathname.startsWith("/api/auth/") ||
 		pathname.startsWith("/tables/") ||
 		pathname.startsWith("/agent/") ||

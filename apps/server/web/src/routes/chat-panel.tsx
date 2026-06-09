@@ -2,7 +2,7 @@ import { IconCircle, IconRobot, IconSparkles } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Chat } from "@/components/chat";
-import { type ChatMessage, loadChatHistory, streamChatMessage } from "@/api";
+import { type ChatMessage, orpc, streamChatMessage } from "@/api";
 import { cn } from "@/lib/utils";
 
 export function ChatPanel() {
@@ -10,7 +10,17 @@ export function ChatPanel() {
 	const [sessionMessages, setSessionMessages] = useState<ChatMessage[]>();
 	const [isSending, setIsSending] = useState(false);
 	const [streamError, setStreamError] = useState<string>();
-	const historyQuery = useQuery({ queryKey: ["chat-history"], queryFn: loadChatHistory });
+	const historyQuery = useQuery(
+		orpc.agent.messages.queryOptions({
+			input: { id: "mobile-chat" },
+			select: (history) =>
+				history.messages.map((message, index) => ({
+					id: `history-${index}`,
+					role: message.role,
+					text: message.text,
+				})),
+		}),
+	);
 	const messages = sessionMessages ?? historyQuery.data ?? [];
 	const error = streamError ?? (historyQuery.error ? errorMessage(historyQuery.error) : undefined);
 	const scrollRef = useRef<HTMLDivElement>(null);

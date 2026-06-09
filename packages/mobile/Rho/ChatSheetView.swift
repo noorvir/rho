@@ -393,6 +393,10 @@ private final class ChatClient {
     }
 
     private func parseEvent(name: String?, data: String) -> ChatEvent? {
+        if name == "message", let event = decode(StreamPayload.self, from: data)?.chatEvent {
+            return event
+        }
+
         switch name {
         case "message.started":
             return .started
@@ -410,6 +414,32 @@ private final class ChatClient {
     private func decode<T: Decodable>(_ type: T.Type, from data: String) -> T? {
         guard let jsonData = data.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode(type, from: jsonData)
+    }
+}
+
+private struct StreamPayload: Decodable {
+    enum Kind: String, Decodable {
+        case started
+        case delta
+        case completed
+        case error
+    }
+
+    let type: Kind
+    let text: String?
+    let error: String?
+
+    var chatEvent: ChatEvent {
+        switch type {
+        case .started:
+            return .started
+        case .delta:
+            return .delta(text ?? "")
+        case .completed:
+            return .completed(text ?? "")
+        case .error:
+            return .error(error ?? "Unknown server error")
+        }
     }
 }
 

@@ -1,16 +1,23 @@
-import { type FormEvent, type ReactNode, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { loadAuthSession, loadAuthSetup, loginAuth, setupAuth } from "./core-api.ts";
+import { useLocation, useNavigate } from "@tanstack/react-router";
+import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
+import { api } from "./api.ts";
+import { AdminShell } from "./routes/admin-shell.tsx";
 
 type AuthStatus =
 	| { state: "loading" }
-	| { state: "setup" }
-	| { state: "login" }
 	| { state: "authenticated" }
+	| { state: "unauthenticated" }
 	| { state: "error"; message: string };
 
-export function AuthGate({ children }: { children: ReactNode }) {
+interface AuthContextValue {
+	logout(): Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export function ProtectedShell() {
+	const location = useLocation();
+	const navigate = useNavigate();
 	const [status, setStatus] = useState<AuthStatus>({ state: "loading" });
 
 	useEffect(() => {
@@ -18,7 +25,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
 		async function load() {
 			try {
-				const [setupRequired, session] = await Promise.all([loadAuthSetup(), loadAuthSession()]);
+				const session = await api.auth.session();
 				if (cancelled) {
 					return;
 				}
@@ -28,7 +35,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
 					return;
 				}
 
-				setStatus({ state: setupRequired ? "setup" : "login" });
+				setStatus({ state: "unauthenticated" });
+				void navigate({ to: "/login", search: { redirect: currentPath(location) } });
 			} catch (error) {
 				if (!cancelled) {
 					setStatus({ state: "error", message: errorMessage(error) });
@@ -40,144 +48,39 @@ export function AuthGate({ children }: { children: ReactNode }) {
 		return () => {
 			cancelled = true;
 		};
-	}, []);
+	}, [location, navigate]);
+
+	async function logout() {
+		await api.auth.logout();
+		setStatus({ state: "unauthenticated" });
+		await navigate({ to: "/login" });
+	}
 
 	if (status.state === "authenticated") {
-		return children;
+		return (
+			<AuthContext.Provider value={{ logout }}>
+				<AdminShell />
+			</AuthContext.Provider>
+		);
 	}
 
-	if (status.state === "loading") {
-		return <AuthLayout title="Loading rho" description="Checking this workspace session." />;
+	if (status.state === "error") {
+		return <AuthLayout title="Could not load rho" description={status.message} />;
 	}
 
-	if (status.state === "setup") {
-		return <SetupForm onAuthenticated={() => setStatus({ state: "authenticated" })} />;
-	}
-
-	if (status.state === "login") {
-		return <LoginForm onAuthenticated={() => setStatus({ state: "authenticated" })} />;
-	}
-
-	return <AuthLayout title="Could not load rho" description={status.message} />;
+	return <AuthLayout title="Loading rho" description="Checking this workspace session." />;
 }
 
-function SetupForm({ onAuthenticated }: { onAuthenticated: () => void }) {
-	const [ownerToken, setOwnerToken] = useState("");
-	const [password, setPassword] = useState("");
-	const [confirmPassword, setConfirmPassword] = useState("");
-	const [error, setError] = useState<string>();
-	const [submitting, setSubmitting] = useState(false);
-
-	async function submit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		if (password.length < 8) {
-			setError("Password must be at least 8 characters.");
-			return;
-		}
-		if (password !== confirmPassword) {
-			setError("Passwords do not match.");
-			return;
-		}
-
-		setSubmitting(true);
-		setError(undefined);
-		try {
-			await setupAuth({ ownerToken, password });
-			onAuthenticated();
-		} catch (error) {
-			setError(errorMessage(error));
-		} finally {
-			setSubmitting(false);
-		}
+export function useAuth() {
+	const auth = useContext(AuthContext);
+	if (!auth) {
+		throw new Error("useAuth must be used inside ProtectedShell");
 	}
 
-	return (
-		<AuthLayout
-			title="Set up rho"
-			description="Enter the deployment root secret once, then choose the owner password you will use for future browser logins."
-		>
-			<form className="mt-6 space-y-4" onSubmit={submit}>
-				<Field label="Root secret">
-					<Input
-						autoComplete="off"
-						name="ownerToken"
-						onChange={(event) => setOwnerToken(event.target.value)}
-						required
-						type="password"
-						value={ownerToken}
-					/>
-				</Field>
-				<Field label="New password">
-					<Input
-						autoComplete="new-password"
-						name="password"
-						onChange={(event) => setPassword(event.target.value)}
-						required
-						type="password"
-						value={password}
-					/>
-				</Field>
-				<Field label="Confirm password">
-					<Input
-						autoComplete="new-password"
-						name="confirmPassword"
-						onChange={(event) => setConfirmPassword(event.target.value)}
-						required
-						type="password"
-						value={confirmPassword}
-					/>
-				</Field>
-				<AuthError message={error} />
-				<Button className="w-full" disabled={submitting} type="submit">
-					{submitting ? "Setting up…" : "Set password"}
-				</Button>
-			</form>
-		</AuthLayout>
-	);
+	return auth;
 }
 
-function LoginForm({ onAuthenticated }: { onAuthenticated: () => void }) {
-	const [password, setPassword] = useState("");
-	const [error, setError] = useState<string>();
-	const [submitting, setSubmitting] = useState(false);
-
-	async function submit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setSubmitting(true);
-		setError(undefined);
-		try {
-			await loginAuth({ password });
-			onAuthenticated();
-		} catch (error) {
-			setError(errorMessage(error));
-		} finally {
-			setSubmitting(false);
-		}
-	}
-
-	return (
-		<AuthLayout title="Log in to rho" description="Use the owner password for this workspace.">
-			<form className="mt-6 space-y-4" onSubmit={submit}>
-				<Field label="Password">
-					<Input
-						autoComplete="current-password"
-						name="password"
-						onChange={(event) => setPassword(event.target.value)}
-						required
-						type="password"
-						value={password}
-					/>
-				</Field>
-				<AuthError message={error} />
-				<Button className="w-full" disabled={submitting} type="submit">
-					{submitting ? "Logging in…" : "Log in"}
-				</Button>
-			</form>
-		</AuthLayout>
-	);
-}
-
-function AuthLayout({ children, description, title }: { children?: ReactNode; description: string; title: string }) {
+export function AuthLayout({ children, description, title }: { children?: ReactNode; description: string; title: string }) {
 	return (
 		<div className="flex min-h-dvh items-center justify-center bg-background px-4 text-foreground">
 			<section className="w-full max-w-sm border border-border bg-card p-6 shadow-sm">
@@ -190,7 +93,7 @@ function AuthLayout({ children, description, title }: { children?: ReactNode; de
 	);
 }
 
-function Field({ children, label }: { children: ReactNode; label: string }) {
+export function Field({ children, label }: { children: ReactNode; label: string }) {
 	return (
 		<label className="block space-y-2 text-sm font-medium">
 			<span>{label}</span>
@@ -199,7 +102,7 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
 	);
 }
 
-function AuthError({ message }: { message: string | undefined }) {
+export function AuthError({ message }: { message: string | undefined }) {
 	if (!message) {
 		return null;
 	}
@@ -207,6 +110,20 @@ function AuthError({ message }: { message: string | undefined }) {
 	return <p className="text-sm text-destructive">{message}</p>;
 }
 
-function errorMessage(error: unknown): string {
+export function redirectPath(): string {
+	const params = new URLSearchParams(window.location.search);
+	const redirect = params.get("redirect");
+	if (!redirect || !redirect.startsWith("/") || redirect.startsWith("//")) {
+		return "/";
+	}
+
+	return redirect;
+}
+
+export function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : "Something went wrong";
+}
+
+function currentPath(location: ReturnType<typeof useLocation>): string {
+	return `${location.pathname}${location.searchStr}`;
 }
