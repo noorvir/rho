@@ -22,6 +22,7 @@ export {
 } from "./providers.ts";
 export {
 	createRhoAgentSession,
+	getRhoSystemPrompt,
 	type RhoAgentExtensionSource,
 	type RhoAgentPromptOptions,
 	type RhoAgentSession,

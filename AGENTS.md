@@ -3,7 +3,7 @@
 ## Documentation
 
 - Use the Todo app (`todo-list`, `Todo List`) as the canonical running example in Rho docs and README/quickstart examples. Make sample app/API snippets explicitly examples; use another example domain only when the task asks for it.
-
+- When documenting Rho's agent terminal, describe the pi relationship plainly: Rho wraps the pi coding agent, pi workflows work in Rho, and attribution should be factual.
 ## Web UI
 
 - For `apps/server/web` scrollable regions, use Tailwind scrollbar utilities backed by design-system CSS variables. Keep scrollbar size, thumb, hover, and track colors in `apps/server/web/src/styles.css`; do not leave native-looking scrollbars or one-off scrollbar colors in component code.

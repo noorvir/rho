@@ -20,7 +20,6 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 		await runModelCommand(rest);
 		return;
 	}
-
 	const text = args.join(" ").trim();
 	if (text) {
 		await runOneShot(text);

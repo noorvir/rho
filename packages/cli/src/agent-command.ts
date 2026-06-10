@@ -1,9 +1,11 @@
+import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { stdout } from "node:process";
-import { createInterface } from "node:readline/promises";
-import { agentEventTextDelta, createRhoAgentSession, type RhoAgentSession } from "@rho/ai";
+import { fileURLToPath } from "node:url";
+import { agentEventTextDelta, createRhoAgentSession, getRhoSystemPrompt, type RhoAgentSession } from "@rho/ai";
 import { formatAgentError } from "./errors.ts";
 import { getDefaultAgentDir } from "./paths.ts";
-import { question } from "./prompt.ts";
 
 export async function runAgentCommand(args: string[]): Promise<void> {
 	const print = args[0] === "-p" || args[0] === "--print";
@@ -21,7 +23,7 @@ export async function runAgentCommand(args: string[]): Promise<void> {
 		return;
 	}
 
-	await runInteractiveLoop();
+	await runInteractiveTui();
 }
 
 export async function runOneShot(message: string): Promise<void> {
@@ -33,35 +35,39 @@ export async function runOneShot(message: string): Promise<void> {
 	}
 }
 
-async function runInteractiveLoop(): Promise<void> {
-	const session = await createRhoAgentSession({ cwd: process.cwd(), agentDir: getDefaultAgentDir() });
-	const input = createInterface({ input: process.stdin, output: stdout });
+async function runInteractiveTui(): Promise<void> {
+	const cliPath = getTuiCliPath();
+	const child = spawn(process.execPath, [cliPath, "--append-system-prompt", getRhoSystemPrompt()], {
+		stdio: "inherit",
+		env: {
+			...process.env,
+			RHO_CODING_AGENT_DIR: getDefaultAgentDir(),
+			// Rho owns the update story for the repacked TUI; suppress pi's
+			// pi.dev version check and its `rho update` self-update prompt.
+			PI_SKIP_VERSION_CHECK: "1",
+		},
+	});
 
-	console.log("rho agent");
-	console.log("Ask Rho to build, install, or manage Rho apps and extensions.");
-	console.log("Type /exit to quit.\n");
+	const exitCode = await new Promise<number>((resolve, reject) => {
+		child.on("error", reject);
+		child.on("exit", (code, signal) => {
+			resolve(signal ? 1 : (code ?? 1));
+		});
+	});
 
-	try {
-		while (true) {
-			const message = await question(input, "rho> ");
-			if (message === undefined) {
-				break;
-			}
-
-			const text = message.trim();
-			if (!text) {
-				continue;
-			}
-			if (text === "/exit" || text === "/quit") {
-				break;
-			}
-
-			await streamPrompt(session, text);
-		}
-	} finally {
-		input.close();
-		session.dispose();
+	if (exitCode !== 0) {
+		process.exitCode = exitCode;
 	}
+}
+
+function getTuiCliPath(): string {
+	const packageDir = dirname(dirname(fileURLToPath(import.meta.url)));
+	const cliPath = join(packageDir, "tui", "dist", "cli.js");
+	if (!existsSync(cliPath)) {
+		throw new Error(`Rho agent terminal is not built at ${cliPath}. Run: bun run build`);
+	}
+
+	return cliPath;
 }
 
 async function streamPrompt(session: RhoAgentSession, message: string): Promise<void> {

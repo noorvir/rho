@@ -1,0 +1,10 @@
+diff --git a/dist/utils/oauth/oauth-page.js b/dist/utils/oauth/oauth-page.js
+index 101153587266e9ef2e7864f8aab9b5fd485a6aa1..24005839a3305ea35f24782caf6883cf3c11a5ee 100644
+--- a/dist/utils/oauth/oauth-page.js
++++ b/dist/utils/oauth/oauth-page.js
+@@ -1,4 +1,4 @@
+-const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" aria-hidden="true"><path fill="#fff" fill-rule="evenodd" d="M165.29 165.29 H517.36 V400 H400 V517.36 H282.65 V634.72 H165.29 Z M282.65 282.65 V400 H400 V282.65 Z"/><path fill="#fff" d="M517.36 400 H634.72 V634.72 H517.36 Z"/></svg>`;
++const LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" aria-hidden="true"><text x="400" y="620" font-size="640" text-anchor="middle" fill="#fff" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace">ρ</text></svg>`;
+ function escapeHtml(value) {
+     return value
+         .replaceAll("&", "&amp;")

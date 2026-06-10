@@ -1,6 +1,7 @@
 node_modules/
 dist/
 packages/*/dist/
+packages/cli/tui/
 *.tsbuildinfo
 .tsbuildinfo
 
