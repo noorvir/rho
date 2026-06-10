@@ -4,6 +4,7 @@ import {
 	type ConversationKey,
 	createFileStateManager,
 	loadConversation,
+	type RhoAgentExtensionSource,
 	respondInConversation,
 	type StateManager,
 } from "@rho/ai";
@@ -16,7 +17,7 @@ import {
 } from "@rho/channels";
 import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
-import { type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
+import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import { type ReloadResult, reload } from "./reload.ts";
 
 export interface RhoCoreOptions {
@@ -38,6 +39,7 @@ export interface RhoCore {
 	listApps(): Promise<AppExtension[]>;
 	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
+	replaceAgentExtensions(agentExtensions: AgentExtension[]): void;
 	reload(): Promise<ReloadResult>;
 	activeChannelIds(): string[];
 	close(): Promise<void>;
@@ -51,9 +53,11 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 	const state = options.state ?? createFileStateManager();
 	const extensionLoader = options.extensionLoader ?? new FileSystemExtensionLoader(options);
 
+	let agentExtensions: AgentExtension[] = [];
+
 	const runtime = new ChannelRuntime({
 		channels: channelRegistry.current(),
-		handle: async (message) => agentResponse(state, message),
+		handle: async (message) => agentResponse(state, message, agentExtensionSources(agentExtensions)),
 	});
 
 	const replaceApps = (nextApps: AppExtension[]) => {
@@ -63,6 +67,10 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 	const replaceChannels = (nextChannels: Channel[]) => {
 		channelRegistry.replace(nextChannels);
 		runtime.replaceChannels(channelRegistry.current());
+	};
+
+	const replaceAgentExtensions = (next: AgentExtension[]) => {
+		agentExtensions = next;
 	};
 
 	const handleMessage = async (message: ChannelMessage) => runtime.handle(message);
@@ -80,11 +88,13 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 		listApps,
 		replaceApps,
 		replaceChannels,
+		replaceAgentExtensions,
 		reload: async () =>
 			reload({
 				extensionLoader,
 				replaceApps,
 				replaceChannels,
+				replaceAgentExtensions,
 				activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 			}),
 		activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
@@ -97,10 +107,19 @@ export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCo
 	return core;
 }
 
-async function* agentResponse(state: StateManager, message: ChannelMessage): AsyncIterable<ChannelMessage> {
+function agentExtensionSources(extensions: AgentExtension[]): RhoAgentExtensionSource[] {
+	return extensions.flatMap((extension) => extension.sources);
+}
+
+async function* agentResponse(
+	state: StateManager,
+	message: ChannelMessage,
+	agentExtensions: RhoAgentExtensionSource[],
+): AsyncIterable<ChannelMessage> {
 	const stream = respondInConversation({
 		state,
 		key: conversationKey(message),
+		agentExtensions,
 		message: {
 			role: "user",
 			content: messageText(message),

@@ -3,7 +3,12 @@ import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { stdout } from "node:process";
 import { fileURLToPath } from "node:url";
-import { agentEventTextDelta, createRhoAgentSession, getRhoSystemPrompt, type RhoAgentSession } from "@rho/ai";
+import {
+	agentEventTextDelta,
+	createRhoAgentSession,
+	getRhoSystemPrompt,
+	type RhoAgentSession,
+} from "@rho/ai";
 import { formatAgentError } from "./errors.ts";
 import { getDefaultAgentDir } from "./paths.ts";
 
@@ -36,8 +41,14 @@ export async function runOneShot(message: string): Promise<void> {
 }
 
 async function runInteractiveTui(): Promise<void> {
+	await runTuiCommand(["--append-system-prompt", getRhoSystemPrompt()]);
+}
+
+// Runs the Rho agent terminal binary directly. Package management commands
+// (install/remove) reuse its built-in package manager against the Rho agent dir.
+export async function runTuiCommand(args: string[]): Promise<void> {
 	const cliPath = getTuiCliPath();
-	const child = spawn(process.execPath, [cliPath, "--append-system-prompt", getRhoSystemPrompt()], {
+	const child = spawn(process.execPath, [cliPath, ...args], {
 		stdio: "inherit",
 		env: {
 			...process.env,

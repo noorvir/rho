@@ -9,9 +9,11 @@ import type {
 } from "@rho/core";
 
 export type {
+	AgentExtension,
 	AppClient,
 	AppExtension,
 	AppRoute,
+	RhoAgentExtensionSource,
 	RhoAppApiBuilderContext,
 	RhoAppApiContext,
 	RhoExtensionContext,

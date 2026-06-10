@@ -24,6 +24,22 @@ rho "List the extensions in this runtime"
 
 One-shot prompts stream the response to stdout and exit.
 
+## Agent packages
+
+```bash
+rho install npm:some-pi-package
+rho install git:github.com/user/repo@v1
+rho install ./local/extension-or-package
+rho remove npm:some-pi-package
+```
+
+`rho install` adds extensions, skills, prompt templates, and themes to the
+agent. It uses pi's package manager against `~/.rho/agent`, so published pi
+packages and pi extensions install and run unmodified.
+
+Rho extension packages can also contribute agent extensions to the runtime —
+see [Extensions](extensions.md).
+
 ## Providers and models
 
 ```bash

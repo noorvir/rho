@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { runAgentCommand, runOneShot } from "./agent-command.ts";
+import { runAgentCommand, runOneShot, runTuiCommand } from "./agent-command.ts";
 import { formatAgentError } from "./errors.ts";
 import { runModelCommand } from "./model-command.ts";
 import { runProviderCommand } from "./provider-command.ts";
@@ -18,6 +18,10 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 	}
 	if (command === "model") {
 		await runModelCommand(rest);
+		return;
+	}
+	if (command === "install" || command === "remove") {
+		await runTuiCommand([command, ...rest]);
 		return;
 	}
 	const text = args.join(" ").trim();
@@ -38,6 +42,8 @@ function printUsage(): void {
   rho provider login codex
   rho model
   rho model provider/model
+  rho install <source>
+  rho remove <source>
   rho "message"`);
 }
 

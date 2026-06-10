@@ -10,6 +10,8 @@ export {
 	type TableSummary,
 } from "./db.ts";
 export type {
+	AgentExtension,
+	RhoAgentExtensionSource,
 	RhoAppApiBuilderContext,
 	RhoAppApiContext,
 	RhoExtensionContext,

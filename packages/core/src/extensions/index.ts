@@ -5,9 +5,11 @@ export {
 	type FileSystemExtensionLoaderOptions,
 } from "./loader/index.ts";
 export type {
+	AgentExtension,
 	ExtensionDiagnostic,
 	ExtensionLoader,
 	LoadedExtension,
+	RhoAgentExtensionSource,
 	RhoAppApiBuilderContext,
 	RhoAppApiContext,
 	RhoExtensionContext,

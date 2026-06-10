@@ -1,12 +1,7 @@
 import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
-import {
-	createAgentSession,
-	DefaultResourceLoader,
-	getAgentDir,
-	SessionManager,
-	SettingsManager,
-} from "@earendil-works/pi-coding-agent";
+import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 import { createAgentEventStream } from "./event-stream.ts";
+import { createRhoAgentSession, type RhoAgentExtensionSource } from "./session.ts";
 import type { ConversationKey, StateManager } from "./state/types.ts";
 import type { AgentEventStream } from "./types.ts";
 
@@ -15,6 +10,7 @@ export interface ConversationInput {
 	key: ConversationKey;
 	message: AgentMessage;
 	signal: AbortSignal;
+	agentExtensions?: RhoAgentExtensionSource[];
 }
 
 export interface ConversationHistoryMessage {
@@ -64,26 +60,12 @@ async function runConversation(
 	const agentDir = process.env.RHO_AGENT_DIR ?? getAgentDir();
 	const conversation = await input.state.resolve(input.key);
 	const sessionManager = SessionManager.open(conversation.sessionFile);
-	const settingsManager = SettingsManager.create(process.cwd(), agentDir);
-	const resourceLoader = new DefaultResourceLoader({
+
+	const session = await createRhoAgentSession({
 		cwd: process.cwd(),
 		agentDir,
-		settingsManager,
-		noExtensions: true,
-	});
-	await resourceLoader.reload();
-
-	const { session } = await createAgentSession({
-		agentDir,
 		sessionManager,
-		settingsManager,
-		resourceLoader,
-		noTools: "all",
-	});
-	const unsubscribe = session.subscribe((event) => {
-		if (isAgentEvent(event)) {
-			emit(event);
-		}
+		agentExtensions: input.agentExtensions,
 	});
 	const abort = () => {
 		void session.abort();
@@ -91,28 +73,15 @@ async function runConversation(
 
 	input.signal.addEventListener("abort", abort, { once: true });
 	try {
-		await session.prompt(messageText(input.message), { expandPromptTemplates: false });
-		return session.state.messages;
+		const stream = session.prompt(messageText(input.message), { expandPromptTemplates: false });
+		for await (const event of stream) {
+			emit(event);
+		}
+		return await stream.result();
 	} finally {
 		input.signal.removeEventListener("abort", abort);
-		unsubscribe();
 		session.dispose();
 	}
-}
-
-function isAgentEvent(event: { type: string }): event is AgentEvent {
-	return (
-		event.type === "agent_start" ||
-		event.type === "agent_end" ||
-		event.type === "turn_start" ||
-		event.type === "turn_end" ||
-		event.type === "message_start" ||
-		event.type === "message_update" ||
-		event.type === "message_end" ||
-		event.type === "tool_execution_start" ||
-		event.type === "tool_execution_update" ||
-		event.type === "tool_execution_end"
-	);
 }
 
 function messageText(message: AgentMessage): string {

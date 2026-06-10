@@ -1,7 +1,10 @@
 import { type AnyRouter, os } from "@orpc/server";
+import type { RhoAgentExtensionSource } from "@rho/ai";
 import type { Channel } from "@rho/channels";
 
-export type Extension = AppExtension | ChannelExtension;
+export type { RhoAgentExtensionSource } from "@rho/ai";
+
+export type Extension = AppExtension | ChannelExtension | AgentExtension;
 export type ExtensionType = Extension["type"];
 export type RhoHostPlatform = "web" | "mobile" | "desktop";
 
@@ -36,6 +39,10 @@ export interface ChannelExtension extends ExtensionBase<"channel"> {
 	channel: Channel;
 }
 
+export interface AgentExtension extends ExtensionBase<"agent"> {
+	sources: RhoAgentExtensionSource[];
+}
+
 export interface RhoAppApiContext {
 	app: {
 		slug: string;
@@ -59,6 +66,7 @@ export interface RhoExtensionContext extends RhoAppApiBuilderContext {}
 export interface RhoExtensionDefinition {
 	apps?: AppExtension[];
 	channels?: Channel[];
+	agentExtensions?: AgentExtension[];
 }
 
 export interface ExtensionLoader {
@@ -74,6 +82,7 @@ export interface LoadedExtension {
 	source: ExtensionSourceInfo;
 	apps: AppExtension[];
 	channels: Channel[];
+	agentExtensions: AgentExtension[];
 }
 
 export interface DiscoveredExtension {

@@ -2,6 +2,7 @@ import { dirname, resolve } from "node:path";
 import { tc, wrapError } from "@rho/lib";
 import { createJiti } from "jiti";
 import type {
+	AgentExtension,
 	AppExtension,
 	DiscoveredExtension,
 	ExtensionDiagnostic,
@@ -40,12 +41,15 @@ export async function loadExtensionModule(
 
 	const apps = definition.apps ?? [];
 	const channels = definition.channels ?? [];
+	const agentExtensions = definition.agentExtensions ?? [];
+	const baseDir = dirname(discovered.source.resolvedPath);
 
 	return {
 		extension: {
 			source: discovered.source,
-			apps: apps.map((app) => normalizeAppExtension(app, dirname(discovered.source.resolvedPath))),
+			apps: apps.map((app) => normalizeAppExtension(app, baseDir)),
 			channels,
+			agentExtensions: agentExtensions.map((agent) => normalizeAgentExtension(agent, baseDir)),
 		},
 	};
 }
@@ -63,6 +67,17 @@ function normalizeAppExtension(extension: AppExtension, baseDir: string): AppExt
 				}
 			: undefined,
 	};
+}
+
+function normalizeAgentExtension(extension: AgentExtension, baseDir: string): AgentExtension {
+	const sources = extension.sources.map((source) => {
+		if (source.type === "path") {
+			return { ...source, path: resolve(baseDir, source.path) };
+		}
+		return source;
+	});
+
+	return { ...extension, sources };
 }
 
 function isExtensionDefinitionFn(value: unknown): value is ExtensionDefinitionFn {

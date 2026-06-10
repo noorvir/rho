@@ -1,6 +1,6 @@
 # Extensions
 
-Rho extensions are source-code packages that add apps or runtime capabilities to Rho.
+Rho extensions are source-code packages that add apps, channels, or agent capabilities to Rho.
 
 The app extension path is the primary extension path. Use the app SDK init script to create one from the built-in template, then install or load the extension through Rho.
 
@@ -92,6 +92,27 @@ export default defineExtension(async (rho) => ({
 ```
 
 The `client.entry` path is resolved relative to the extension entrypoint file. If the entrypoint is `src/extension.ts`, then `client.entry: "./app.tsx"` points at `src/app.tsx`.
+
+## Agent extensions
+
+An extension package can also extend the Rho agent runtime by contributing agent extensions. Each agent extension declares one or more sources: a path to an agent extension module, or an inline factory.
+
+```ts
+export default defineExtension(async () => ({
+	agentExtensions: [
+		{
+			type: "agent",
+			id: "todo-list-agent",
+			name: "Todo List agent tools",
+			sources: [{ type: "path", path: "./agent/todo-tools.ts" }],
+		},
+	],
+}));
+```
+
+Path sources are resolved relative to the extension entrypoint file. Agent extension sources are pi-compatible extension modules: a module default-exports a function that receives the agent extension API and can register tools, commands, and event handlers. See the [pi extension docs](https://github.com/earendil-works/pi-mono) for the module API.
+
+Existing pi extensions and pi packages also install directly into the Rho agent with `rho install` — see [Rho Agent](agent.md).
 
 ## Standalone mode
 
