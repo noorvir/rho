@@ -10,7 +10,7 @@
 		"examples/extensions/*"
 	],
 	"scripts": {
-		"build": "tsgo -b && bun run --cwd packages/cli repack",
+		"build": "tsgo -b && bun run --cwd packages/cli build:prompt-snippet && bun run --cwd packages/cli repack",
 		"web:dev": "RHO_DATABASE_URL=file:$PWD/packages/core/dev.db RHO_OWNER_TOKEN=dev-owner-token-3cq76AM9djFvNTyUyVXSgh42w7zEEtDY RHO_EXTENSION_PATHS=../../examples/extensions bun run --cwd apps/server dev",
 		"web:build": "bun run --cwd apps/server web:build",
 		"app:init": "bun packages/apps-sdk/src/init.ts",

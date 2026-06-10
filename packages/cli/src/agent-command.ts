@@ -41,7 +41,12 @@ export async function runOneShot(message: string): Promise<void> {
 }
 
 async function runInteractiveTui(): Promise<void> {
-	await runTuiCommand(["--append-system-prompt", getRhoSystemPrompt()]);
+	// Rho owns the full base system prompt on every surface; --system-prompt
+	// replaces the engine default instead of appending to it. The explicit
+	// extension keeps tool/guideline sections in sync with loaded extensions.
+	const packageDir = dirname(dirname(fileURLToPath(import.meta.url)));
+	const promptSnippetPath = join(packageDir, "dist", "system:prompt-snippet");
+	await runTuiCommand(["--extension", promptSnippetPath, "--system-prompt", getRhoSystemPrompt()]);
 }
 
 // Runs the Rho agent terminal binary directly. Package management commands

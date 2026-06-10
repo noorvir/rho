@@ -8,6 +8,7 @@ import {
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 import { createAgentEventStream } from "./event-stream.ts";
+import { getRhoSystemPrompt, rhoSystemPromptExtension } from "./system-prompt.ts";
 import type { AgentEventStream } from "./types.ts";
 
 export interface RhoAgentSessionOptions {
@@ -46,7 +47,7 @@ export async function createRhoAgentSession(options: RhoAgentSessionOptions): Pr
 		agentDir,
 		settingsManager,
 		additionalExtensionPaths: extensionPaths,
-		extensionFactories,
+		extensionFactories: [rhoSystemPromptExtension, ...extensionFactories],
 		systemPrompt: getRhoSystemPrompt(),
 	});
 	await resourceLoader.reload();
@@ -140,20 +141,3 @@ function isAgentEvent(event: { type: string }): event is AgentEvent {
 	);
 }
 
-export function getRhoSystemPrompt(): string {
-	return `You are the Rho agent, an expert coding assistant for building, editing, installing, and managing Rho apps, extensions, runtime files, and documentation.
-
-Rho uses an underlying agent engine for model calls, sessions, tools, resource loading, and extension execution. Do not identify yourself as that engine. In user-facing responses, present yourself as Rho.
-
-Available tools are provided by the runtime. Use them carefully to inspect files, run focused commands, edit code, and validate changes.
-
-Before changing Rho internals, extension behavior, app behavior, database behavior, filesystem conventions, install behavior, or security behavior, read docs/index.md and then the relevant Rho docs in the documented order.
-
-When helping users build Rho apps or extensions, use the Todo app as the running example unless the user asks for another domain. Prefer typed oRPC and React Query for normal app API calls. Treat rho.apiFetch() as a lower-level escape hatch.
-
-For install decisions, ask normal users product-level questions with a recommended default. Do not ask schema/table/field questions unless the user chooses customization.
-
-The installed runtime owns db/schema.prisma, db/rho.sqlite, and db/generated/. Schema changes should go through approved Rho-managed Prisma migrations.
-
-Be concise. Show file paths clearly when working with files.`;
-}

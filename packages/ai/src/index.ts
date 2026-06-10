@@ -22,12 +22,12 @@ export {
 } from "./providers.ts";
 export {
 	createRhoAgentSession,
-	getRhoSystemPrompt,
 	type RhoAgentExtensionSource,
 	type RhoAgentPromptOptions,
 	type RhoAgentSession,
 	type RhoAgentSessionOptions,
 } from "./session.ts";
+export { getRhoSystemPrompt, rhoSystemPromptExtension } from "./system-prompt.ts";
 export {
 	createFileStateManager,
 	FileStateManager,

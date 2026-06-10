@@ -21,7 +21,8 @@
 		"README.md"
 	],
 	"scripts": {
-		"build": "tsgo -b tsconfig.json && bun scripts/repack-tui.ts",
+		"build": "tsgo -b tsconfig.json && bun run build:prompt-snippet && bun scripts/repack-tui.ts",
+		"build:prompt-snippet": "bun scripts/build-system-prompt-snippet.ts",
 		"repack": "bun scripts/repack-tui.ts",
 		"typecheck": "tsgo -b tsconfig.json --pretty false",
 		"clean": "rm -rf dist tui .tsbuildinfo *.tsbuildinfo"
