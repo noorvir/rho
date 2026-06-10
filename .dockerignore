@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.tsbuildinfo
+**/*.tsbuildinfo
+.git
+.env
+.env.*
+*.db
+*.db-*
+.agent
+.pi-review

@@ -1,11 +1,5 @@
 import { messageText } from "./message.ts";
-import type {
-	Channel,
-	ChannelContext,
-	ChannelMessage,
-	ChannelOutput,
-	SendReceipt,
-} from "./types.ts";
+import type { Channel, ChannelContext, ChannelMessage, ChannelOutput, SendReceipt } from "./types.ts";
 
 export interface SseStream {
 	event(name: string, data: Record<string, unknown>): void;

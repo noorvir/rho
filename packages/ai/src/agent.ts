@@ -1,7 +1,4 @@
-import {
-	Agent as PiAgent,
-	type AgentOptions as PiAgentOptions,
-} from "@earendil-works/pi-agent-core";
+import { Agent as PiAgent, type AgentOptions as PiAgentOptions } from "@earendil-works/pi-agent-core";
 import { createAgentEventStream } from "./event-stream.ts";
 import type { AgentEventStream, AgentInput, Agent as RhoAgentInterface } from "./types.ts";
 

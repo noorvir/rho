@@ -27,11 +27,11 @@ export {
 	type RhoAgentSession,
 	type RhoAgentSessionOptions,
 } from "./session.ts";
-export { getRhoSystemPrompt, rhoSystemPromptExtension } from "./system-prompt.ts";
 export {
 	createFileStateManager,
 	FileStateManager,
 	type FileStateManagerOptions,
 } from "./state/file.ts";
 export type { ConversationKey, ConversationState, StateManager } from "./state/types.ts";
+export { getRhoSystemPrompt, rhoSystemPromptExtension } from "./system-prompt.ts";
 export type { Agent, AgentEventStream, AgentInput, RhoContent } from "./types.ts";

@@ -6,11 +6,11 @@ import { type Context, Hono, type MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 import { authSessionCookieName, type RhoAuth } from "../auth.ts";
 import {
+	type RhoErrorCode,
+	type RhoErrorOptions,
 	rhoError,
 	rhoErrorResponseBody,
 	throwRhoError,
-	type RhoErrorCode,
-	type RhoErrorOptions,
 } from "../errors.ts";
 import { requireAuth } from "./auth.ts";
 import { httpContract } from "./contract.ts";

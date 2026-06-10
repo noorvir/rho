@@ -1,6 +1,6 @@
 import { loadEnvWithNullishCheck } from "@rho/lib";
 
-const RHO_PORT = Number(loadEnvWithNullishCheck("RHO_PORT", false, "7331"));
+const RHO_PORT = Number(loadEnvWithNullishCheck("RHO_PORT", false, process.env.PORT ?? "7331"));
 
 export const env = {
 	RHO_PORT,

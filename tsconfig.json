@@ -2,7 +2,6 @@
 	"files": [],
 	"references": [
 		{ "path": "./apps/server" },
-		{ "path": "./apps/server/web" },
 		{ "path": "./packages/lib" },
 		{ "path": "./packages/apps-sdk" },
 		{ "path": "./examples/extensions/workout-tracker" },

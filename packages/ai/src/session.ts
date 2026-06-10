@@ -140,4 +140,3 @@ function isAgentEvent(event: { type: string }): event is AgentEvent {
 		event.type === "tool_execution_end"
 	);
 }
-

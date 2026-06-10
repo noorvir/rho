@@ -12,36 +12,36 @@ const p = implement(httpContract).$context<HttpContext>();
 export function agentRouter() {
 	return {
 		messages: p.agent.messages.handler(async ({ input, context }) => {
-				await requireAuth(context);
-				const key = conversationKey(input.id);
-				const res = await tc(context.core.loadConversation(key));
-				if (res.error) {
-					throw badRequest(res.error, "Failed to load messages");
-				}
+			await requireAuth(context);
+			const key = conversationKey(input.id);
+			const res = await tc(context.core.loadConversation(key));
+			if (res.error) {
+				throw badRequest(res.error, "Failed to load messages");
+			}
 
-				return res.data;
-			}),
+			return res.data;
+		}),
 
 		handleMessage: p.agent.handleMessage.handler(async ({ input, context }) => {
-				await requireAuth(context);
-				const messageInput = tc(() => validateHttpMessage(input));
-				if (messageInput.error) {
-					throw badRequest(messageInput.error, "Failed to handle message");
-				}
+			await requireAuth(context);
+			const messageInput = tc(() => validateHttpMessage(input));
+			if (messageInput.error) {
+				throw badRequest(messageInput.error, "Failed to handle message");
+			}
 
-				const message = messageFromHttp(messageInput.data);
-				const output = await tc(context.core.handleMessage(message));
-				if (output.error) {
-					throw badRequest(output.error, "Failed to handle message");
-				}
+			const message = messageFromHttp(messageInput.data);
+			const output = await tc(context.core.handleMessage(message));
+			if (output.error) {
+				throw badRequest(output.error, "Failed to handle message");
+			}
 
-				const collected = await tc(collectMessage(output.data));
-				if (collected.error) {
-					throw badRequest(collected.error, "Failed to handle message");
-				}
+			const collected = await tc(collectMessage(output.data));
+			if (collected.error) {
+				throw badRequest(collected.error, "Failed to handle message");
+			}
 
-				return { message: collected.data };
-			}),
+			return { message: collected.data };
+		}),
 
 		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {
 			await requireAuth(context);

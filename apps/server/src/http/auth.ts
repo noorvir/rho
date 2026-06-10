@@ -28,7 +28,11 @@ export function authRouter() {
 			const result = res.data;
 			if (result.status === "already-complete") {
 				throwRhoError("auth.setup_already_complete", {
-					action: { kind: "open_login", label: "Go to login", href: new URL("/login", context.requestUrl).toString() },
+					action: {
+						kind: "open_login",
+						label: "Go to login",
+						href: new URL("/login", context.requestUrl).toString(),
+					},
 				});
 			}
 			if (result.status === "unauthorized") {

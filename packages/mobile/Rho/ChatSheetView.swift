@@ -3,13 +3,26 @@ import SwiftUI
 struct ChatSheetView: View {
     let authStore: AuthStore
 
+    @Environment(\.dismiss) private var dismiss
+
     @State private var draft = ""
+    @State private var conversationID = ChatConversationStore.currentConversationID()
+    @State private var conversations = ChatConversationStore.loadSummaries()
     @State private var messages: [ChatMessage] = []
     @State private var isSending = false
+    @State private var isHistoryPresented = false
     @State private var errorText: String?
 
     var body: some View {
         VStack(spacing: 0) {
+            ChatHeader(
+                title: currentTitle,
+                isNewChatDisabled: isSending,
+                close: { dismiss() },
+                showHistory: { isHistoryPresented = true },
+                startNewChat: startNewConversation
+            )
+
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
@@ -37,8 +50,16 @@ struct ChatSheetView: View {
             Spacer(minLength: 0)
         }
         .background(Color.white.ignoresSafeArea())
-        .task {
-            await loadHistory()
+        .task(id: conversationID) {
+            await loadHistory(for: conversationID)
+        }
+        .sheet(isPresented: $isHistoryPresented) {
+            ChatHistorySheetView(conversations: conversations, currentID: conversationID) { id in
+                selectConversation(id)
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(18)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             AgentInput(draft: $draft, isSending: isSending) {
@@ -62,16 +83,25 @@ struct ChatSheetView: View {
         }
     }
 
-    private func loadHistory() async {
+    private var currentTitle: String {
+        conversations.first(where: { $0.id == conversationID })?.title ?? "Chat"
+    }
+
+    private func loadHistory(for id: String) async {
         do {
-            let history = try await ChatClient(authStore: authStore).history()
+            let history = try await ChatClient(authStore: authStore, conversationID: id).history()
+            let loadedMessages = history.messages.map { message in
+                ChatMessage(role: message.role.chatRole, text: message.text)
+            }
+
             await MainActor.run {
-                messages = history.messages.map { message in
-                    ChatMessage(role: message.role.chatRole, text: message.text)
-                }
+                guard id == conversationID else { return }
+                messages = loadedMessages
+                saveSummary(for: id, messages: loadedMessages)
             }
         } catch {
             await MainActor.run {
+                guard id == conversationID else { return }
                 errorText = error.localizedDescription
             }
         }
@@ -81,6 +111,7 @@ struct ChatSheetView: View {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
 
+        let id = conversationID
         draft = ""
         errorText = nil
         isSending = true
@@ -88,25 +119,75 @@ struct ChatSheetView: View {
         let assistantId = UUID()
         messages.append(ChatMessage(role: .user, text: text))
         messages.append(ChatMessage(id: assistantId, role: .assistant, text: ""))
+        saveSummary(for: id, messages: messages)
 
         Task {
             do {
-                for try await event in ChatClient(authStore: authStore).send(text: text) {
+                for try await event in ChatClient(authStore: authStore, conversationID: id).send(text: text) {
                     await MainActor.run {
+                        guard conversationID == id else { return }
                         apply(event, to: assistantId)
                     }
                 }
             } catch {
                 await MainActor.run {
+                    guard conversationID == id else { return }
                     errorText = error.localizedDescription
                     removeEmptyAssistantMessage(assistantId)
                 }
             }
 
             await MainActor.run {
+                guard conversationID == id else { return }
                 isSending = false
             }
         }
+    }
+
+    private func startNewConversation() {
+        guard !isSending else { return }
+
+        let id = ChatConversationStore.newConversationID()
+        conversationID = id
+        ChatConversationStore.saveCurrentConversationID(id)
+        draft = ""
+        messages = []
+        errorText = nil
+    }
+
+    private func selectConversation(_ id: String) {
+        guard id != conversationID else {
+            isHistoryPresented = false
+            return
+        }
+
+        conversationID = id
+        ChatConversationStore.saveCurrentConversationID(id)
+        draft = ""
+        messages = []
+        errorText = nil
+        isHistoryPresented = false
+    }
+
+    private func saveSummary(for id: String, messages: [ChatMessage]) {
+        guard let title = conversationTitle(from: messages) else { return }
+
+        conversations = ChatConversationStore.saveSummary(
+            ChatConversationSummary(id: id, title: title, updatedAt: Date())
+        )
+    }
+
+    private func conversationTitle(from messages: [ChatMessage]) -> String? {
+        guard let text = messages.first(where: { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })?.text else {
+            return nil
+        }
+
+        let title = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if title.count <= 44 {
+            return title
+        }
+
+        return "\(title.prefix(41))…"
     }
 
     private func apply(_ event: ChatEvent, to assistantId: UUID) {
@@ -145,6 +226,222 @@ struct ChatSheetView: View {
 
     private func removeEmptyAssistantMessage(_ id: UUID) {
         messages.removeAll { $0.id == id && $0.text.isEmpty }
+    }
+}
+
+private struct ChatHeader: View {
+    let title: String
+    let isNewChatDisabled: Bool
+    let close: () -> Void
+    let showHistory: () -> Void
+    let startNewChat: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button(action: close) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .frame(width: 34, height: 34)
+                    .chatControlSurface(cornerRadius: 8)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close chat")
+
+            Text(title)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 6) {
+                Button(action: showHistory) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .frame(width: 34, height: 34)
+                        .chatControlSurface(cornerRadius: 8)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Show chat history")
+
+                Button(action: startNewChat) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(isNewChatDisabled ? .secondary : .primary)
+                        .frame(width: 34, height: 34)
+                        .chatControlSurface(cornerRadius: 8)
+                }
+                .buttonStyle(.plain)
+                .disabled(isNewChatDisabled)
+                .accessibilityLabel("Clear conversation")
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
+    }
+}
+
+private struct ChatHistorySheetView: View {
+    let conversations: [ChatConversationSummary]
+    let currentID: String
+    let selectConversation: (String) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(Color.black.opacity(0.22))
+                .frame(width: 48, height: 6)
+                .padding(.top, 14)
+                .padding(.bottom, 36)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 26) {
+                    ForEach(sections) { section in
+                        VStack(alignment: .leading, spacing: 18) {
+                            SectionHeader(title: section.title)
+
+                            VStack(spacing: 20) {
+                                ForEach(section.conversations) { conversation in
+                                    Button(action: { selectConversation(conversation.id) }) {
+                                        ChatHistoryRow(
+                                            conversation: conversation,
+                                            isCurrent: conversation.id == currentID
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+
+                    if conversations.isEmpty {
+                        Text("No chat history yet")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 32)
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
+    }
+
+    private var sections: [ChatHistorySection] {
+        let sorted = conversations.sorted { $0.updatedAt > $1.updatedAt }
+        let recent = sorted.filter { Calendar.current.dateComponents([.day], from: $0.updatedAt, to: Date()).day ?? 0 < 7 }
+        let older = sorted.filter { !recent.contains($0) }
+
+        var sections: [ChatHistorySection] = []
+        if !recent.isEmpty {
+            sections.append(ChatHistorySection(title: "Past week", conversations: recent))
+        }
+        if !older.isEmpty {
+            sections.append(ChatHistorySection(title: "Older", conversations: older))
+        }
+        return sections
+    }
+}
+
+private struct ChatHistorySection: Identifiable {
+    let title: String
+    let conversations: [ChatConversationSummary]
+
+    var id: String { title }
+}
+
+private struct SectionHeader: View {
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Text(title)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            Rectangle()
+                .fill(Color.black.opacity(0.07))
+                .frame(height: 1)
+        }
+    }
+}
+
+private struct ChatHistoryRow: View {
+    let conversation: ChatConversationSummary
+    let isCurrent: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(conversation.title)
+                .font(.system(size: 22, weight: .regular))
+                .foregroundStyle(isCurrent ? Color.primary : Color.primary.opacity(0.74))
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            Text(relativeAge)
+                .font(.system(size: 20, weight: .regular))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var relativeAge: String {
+        let days = Calendar.current.dateComponents([.day], from: conversation.updatedAt, to: Date()).day ?? 0
+        if days <= 0 {
+            return "Now"
+        }
+        if days < 14 {
+            return "\(days)d"
+        }
+        return "\(max(1, days / 7))w"
+    }
+}
+
+private struct ChatConversationSummary: Identifiable, Codable, Equatable {
+    let id: String
+    let title: String
+    let updatedAt: Date
+}
+
+private enum ChatConversationStore {
+    private static let currentIDKey = "dev.rho.mobile.currentConversationID"
+    private static let summariesKey = "dev.rho.mobile.conversationSummaries"
+    private static let defaultID = "mobile-chat"
+
+    static func currentConversationID() -> String {
+        UserDefaults.standard.string(forKey: currentIDKey) ?? defaultID
+    }
+
+    static func saveCurrentConversationID(_ id: String) {
+        UserDefaults.standard.set(id, forKey: currentIDKey)
+    }
+
+    static func newConversationID() -> String {
+        "mobile-chat-\(UUID().uuidString)"
+    }
+
+    static func loadSummaries() -> [ChatConversationSummary] {
+        guard let data = UserDefaults.standard.data(forKey: summariesKey) else {
+            return []
+        }
+
+        return (try? JSONDecoder().decode([ChatConversationSummary].self, from: data)) ?? []
+    }
+
+    static func saveSummary(_ summary: ChatConversationSummary) -> [ChatConversationSummary] {
+        var summaries = loadSummaries().filter { $0.id != summary.id }
+        summaries.insert(summary, at: 0)
+        saveSummaries(summaries)
+        return summaries
+    }
+
+    private static func saveSummaries(_ summaries: [ChatConversationSummary]) {
+        guard let data = try? JSONEncoder().encode(summaries) else { return }
+        UserDefaults.standard.set(data, forKey: summariesKey)
     }
 }
 
@@ -212,17 +509,17 @@ private struct AgentInput: View {
                 .textFieldStyle(.plain)
                 .lineLimit(1...5)
 
-            HStack(spacing: 22) {
+            HStack(spacing: 16) {
                 Image(systemName: "paperclip")
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                 Text("@")
-                    .font(.system(size: 21, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                 Spacer()
                 Button(action: onSend) {
                     Image(systemName: "arrow.up")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(.white)
-                        .frame(width: 38, height: 38)
+                        .frame(width: 28, height: 28)
                         .background(isSendDisabled ? Color.black.opacity(0.1) : Color.black, in: Circle())
                 }
                 .disabled(isSendDisabled)
@@ -251,9 +548,11 @@ private enum ChatEvent {
 @MainActor
 private final class ChatClient {
     private let authStore: AuthStore
+    private let conversationID: String
 
-    init(authStore: AuthStore) {
+    init(authStore: AuthStore, conversationID: String) {
         self.authStore = authStore
+        self.conversationID = conversationID
     }
 
     private var baseURL: URL {
@@ -265,7 +564,7 @@ private final class ChatClient {
     }
 
     private var historyEndpoint: URL {
-        baseURL.appendingPathComponent("agent/conversations/mobile-chat/messages")
+        baseURL.appendingPathComponent("agent/conversations/\(conversationID)/messages")
     }
 
     func history() async throws -> ChatHistory {
@@ -354,7 +653,7 @@ private final class ChatClient {
         var request = authStore.authorizedRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(ChatRequest(text: text))
+        request.httpBody = try JSONEncoder().encode(ChatRequest(conversationId: conversationID, text: text))
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -486,7 +785,7 @@ private struct ChatHistoryMessage: Decodable {
 }
 
 private struct ChatRequest: Encodable {
-    let conversationId = "mobile-chat"
+    let conversationId: String
     let sender = ChatSender(id: "mobile-user", name: "Mobile User")
     let text: String
 }
@@ -494,6 +793,17 @@ private struct ChatRequest: Encodable {
 private struct ChatSender: Encodable {
     let id: String
     let name: String
+}
+
+private extension View {
+    func chatControlSurface(cornerRadius: CGFloat) -> some View {
+        background(.white, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.035), radius: 10, y: 4)
+    }
 }
 
 #Preview {
