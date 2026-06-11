@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import type { ConversationKey, ConversationState, StateManager } from "./types.ts";
 
 interface StateIndex {
@@ -8,8 +8,10 @@ interface StateIndex {
 }
 
 export interface FileStateManagerOptions {
-	cwd?: string;
-	rootDir?: string;
+	/** Absolute working directory recorded in new session headers. */
+	cwd: string;
+	/** Absolute directory for the conversation index and session files. */
+	rootDir: string;
 }
 
 export class FileStateManager implements StateManager {
@@ -18,9 +20,9 @@ export class FileStateManager implements StateManager {
 	private readonly indexPath: string;
 	private readonly sessionsDir: string;
 
-	constructor(options: FileStateManagerOptions = {}) {
-		this.cwd = options.cwd ?? process.cwd();
-		this.rootDir = options.rootDir ?? process.env.RHO_STATE_DIR ?? join(getAgentDir(), "rho-state");
+	constructor(options: FileStateManagerOptions) {
+		this.cwd = options.cwd;
+		this.rootDir = options.rootDir;
 		this.indexPath = join(this.rootDir, "conversations.json");
 		this.sessionsDir = join(this.rootDir, "sessions");
 	}
@@ -59,6 +61,6 @@ export class FileStateManager implements StateManager {
 	}
 }
 
-export function createFileStateManager(options?: FileStateManagerOptions): FileStateManager {
+export function createFileStateManager(options: FileStateManagerOptions): FileStateManager {
 	return new FileStateManager(options);
 }

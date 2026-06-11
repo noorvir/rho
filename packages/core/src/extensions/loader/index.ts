@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import type {
 	ExtensionDiagnostic,
 	ExtensionLoader,
@@ -12,16 +11,20 @@ export type { ExtensionDiscoveryPaths } from "./discover.ts";
 export { discoverExtensions } from "./discover.ts";
 
 export interface FileSystemExtensionLoaderOptions {
-	cwd?: string;
+	/** Absolute directory scanned for project extensions. */
+	extensionsDir: string;
+	/** Absolute extension entrypoints or directories. */
 	extensionPaths?: string[];
-	projectExtensionsDir?: string;
 }
 
 export class FileSystemExtensionLoader implements ExtensionLoader {
 	private readonly paths: ExtensionDiscoveryPaths;
 
-	constructor(options: FileSystemExtensionLoaderOptions = {}) {
-		this.paths = resolveAbsolutePaths(options);
+	constructor(options: FileSystemExtensionLoaderOptions) {
+		this.paths = {
+			extensionsDir: options.extensionsDir,
+			extensionPaths: options.extensionPaths ?? [],
+		};
 	}
 
 	async load(): Promise<LoadExtensionsResult> {
@@ -44,12 +47,4 @@ export class FileSystemExtensionLoader implements ExtensionLoader {
 			diagnostics,
 		};
 	}
-}
-
-function resolveAbsolutePaths(options: FileSystemExtensionLoaderOptions): ExtensionDiscoveryPaths {
-	const cwd = resolve(options.cwd ?? process.cwd());
-	return {
-		extensionsDir: resolve(cwd, options.projectExtensionsDir ?? ".rho/extensions"),
-		extensionPaths: (options.extensionPaths ?? []).map((path) => resolve(cwd, path)),
-	};
 }

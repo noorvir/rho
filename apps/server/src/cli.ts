@@ -8,7 +8,12 @@ import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
 
 const webRoot = new URL("../web/dist/", import.meta.url).pathname;
-const core = await createRhoCore({ extensionPaths: env.RHO_EXTENSION_PATHS });
+const core = await createRhoCore({
+	cwd: process.cwd(),
+	agentDir: env.RHO_AGENT_DIR,
+	stateDir: env.RHO_STATE_DIR,
+	extensionPaths: env.RHO_EXTENSION_PATHS,
+});
 const auth = createRhoAuth({
 	databaseUrl: env.RHO_DATABASE_URL,
 	ownerToken: env.RHO_OWNER_TOKEN,

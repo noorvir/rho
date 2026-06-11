@@ -1,6 +1,8 @@
+import { join } from "node:path";
 import {
 	agentEventTextDelta,
 	type ConversationHistory,
+	type ConversationInput,
 	type ConversationKey,
 	createFileStateManager,
 	loadConversation,
@@ -22,7 +24,13 @@ import { type ReloadResult, reload } from "./reload.ts";
 
 export interface RhoCoreOptions {
 	channels?: Channel[];
-	cwd?: string;
+	/** Absolute working directory for agent sessions; tools run and project extensions are discovered here. */
+	cwd: string;
+	/** Absolute agent config directory (auth.json, models.json, settings.json). */
+	agentDir: string;
+	/** Absolute conversation state directory. Defaults to `<agentDir>/rho-state`. */
+	stateDir?: string;
+	/** Absolute extension entrypoints or directories to load. */
 	extensionPaths?: string[];
 	extensionLoader?: ExtensionLoader;
 	state?: StateManager;
@@ -45,19 +53,42 @@ export interface RhoCore {
 	close(): Promise<void>;
 }
 
-export async function createRhoCore(options: RhoCoreOptions = {}): Promise<RhoCore> {
-	const channels = options.channels ?? [];
+export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
+	const channels = opts.channels ?? [];
+	const cwd = opts.cwd;
 	const appRegistry = new AppRegistry();
 	const channelRegistry = new ChannelRegistry(channels);
 
-	const state = options.state ?? createFileStateManager();
-	const extensionLoader = options.extensionLoader ?? new FileSystemExtensionLoader(options);
+	const stateDir = opts.stateDir ?? join(opts.agentDir, "rho-state");
+	const extensionsDir = join(cwd, ".rho", "extensions");
+	const extensionPaths = opts.extensionPaths ?? [];
+
+	const state =
+		opts.state ??
+		createFileStateManager({
+			cwd,
+			rootDir: stateDir,
+		});
+
+	const extensionLoader =
+		opts.extensionLoader ??
+		new FileSystemExtensionLoader({
+			extensionsDir,
+			extensionPaths,
+		});
 
 	let agentExtensions: AgentExtension[] = [];
 
 	const runtime = new ChannelRuntime({
 		channels: channelRegistry.current(),
-		handle: async (message) => agentResponse(state, message, agentExtensionSources(agentExtensions)),
+		handle: async (message) =>
+			agentResponse({
+				cwd,
+				agentDir: opts.agentDir,
+				state,
+				message,
+				agentExtensions: agentExtensionSources(agentExtensions),
+			}),
 	});
 
 	const replaceApps = (nextApps: AppExtension[]) => {
@@ -111,40 +142,85 @@ function agentExtensionSources(extensions: AgentExtension[]): RhoAgentExtensionS
 	return extensions.flatMap((extension) => extension.sources);
 }
 
-async function* agentResponse(
-	state: StateManager,
-	message: ChannelMessage,
-	agentExtensions: RhoAgentExtensionSource[],
-): AsyncIterable<ChannelMessage> {
+interface AgentResponseInput {
+	cwd: string;
+	agentDir: string;
+	state: StateManager;
+	message: ChannelMessage;
+	agentExtensions: RhoAgentExtensionSource[];
+}
+
+async function* agentResponse(input: AgentResponseInput): AsyncIterable<ChannelMessage> {
 	const stream = respondInConversation({
-		state,
-		key: conversationKey(message),
-		agentExtensions,
+		state: input.state,
+		key: conversationKey(input.message),
+		cwd: input.cwd,
+		agentDir: input.agentDir,
+		agentExtensions: input.agentExtensions,
 		message: {
 			role: "user",
-			content: messageText(message),
-			timestamp: message.timestamp.getTime(),
+			content: messageText(input.message),
+			timestamp: input.message.timestamp.getTime(),
 		},
 		signal: new AbortController().signal,
 	});
 
+	let emittedText = false;
 	for await (const event of stream) {
 		const delta = agentEventTextDelta(event);
 		if (delta) {
-			yield {
-				id: `msg:${crypto.randomUUID()}`,
-				channelId: message.channelId,
-				target: message.target,
-				from: { id: "assistant", role: "assistant" },
-				content: [{ type: "text", text: delta }],
-				timestamp: new Date(),
-				replyTo: message.id,
-				attachments: [],
-				metadata: message.metadata,
-				raw: null,
-			};
+			emittedText = true;
+			yield agentMessage(input.message, delta);
 		}
 	}
+
+	if (emittedText) {
+		return;
+	}
+
+	const messages = await stream.result();
+	const text = lastAssistantText(messages);
+	if (!text) {
+		throw new Error(
+			"The Rho agent did not produce a response. Check the deployed agent provider, model, and auth configuration.",
+		);
+	}
+
+	yield agentMessage(input.message, text);
+}
+
+function agentMessage(input: ChannelMessage, text: string): ChannelMessage {
+	return {
+		id: `msg:${crypto.randomUUID()}`,
+		channelId: input.channelId,
+		target: input.target,
+		from: { id: "assistant", role: "assistant" },
+		content: [{ type: "text", text }],
+		timestamp: new Date(),
+		replyTo: input.id,
+		attachments: [],
+		metadata: input.metadata,
+		raw: null,
+	};
+}
+
+function lastAssistantText(messages: ConversationInput["message"][]): string {
+	for (const message of [...messages].reverse()) {
+		if (message.role !== "assistant") {
+			continue;
+		}
+
+		const text = message.content
+			.filter((part) => part.type === "text")
+			.map((part) => part.text)
+			.join("\n")
+			.trim();
+		if (text) {
+			return text;
+		}
+	}
+
+	return "";
 }
 
 function conversationKey(message: ChannelMessage): string {

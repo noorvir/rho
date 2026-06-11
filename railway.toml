@@ -3,6 +3,5 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-preDeployCommand = "mkdir -p \"$RAILWAY_VOLUME_MOUNT_PATH/state/db\" && DATABASE_URL=\"$RHO_DATABASE_URL\" bunx prisma db push --config packages/core/prisma.config.ts"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60

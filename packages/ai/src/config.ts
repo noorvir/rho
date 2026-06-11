@@ -1,20 +1,17 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
 import type { Api, Model } from "@earendil-works/pi-ai";
 import { AuthStorage, ModelRegistry, SettingsManager } from "@earendil-works/pi-coding-agent";
 import { RhoAgent } from "./agent.ts";
 
 export interface RhoAgentConfigOptions {
-	cwd?: string;
-	agentDir?: string;
+	/** Absolute agent config directory (auth.json, models.json, settings.json). */
+	agentDir: string;
 }
 
-export async function createRhoAgent(options: RhoAgentConfigOptions = {}): Promise<RhoAgent> {
-	const cwd = options.cwd ?? process.cwd();
-	const agentDir = options.agentDir ?? process.env.RHO_AGENT_DIR ?? join(homedir(), ".rho", "agent");
+export async function createRhoAgent(options: RhoAgentConfigOptions): Promise<RhoAgent> {
+	const agentDir = options.agentDir;
 	const authStorage = AuthStorage.create(`${agentDir}/auth.json`);
 	const modelRegistry = ModelRegistry.create(authStorage, `${agentDir}/models.json`);
-	const settings = SettingsManager.create(cwd, agentDir);
+	const settings = SettingsManager.create(agentDir, agentDir);
 	await settings.reload();
 
 	const model = resolveModel(modelRegistry, settings.getDefaultProvider(), settings.getDefaultModel());

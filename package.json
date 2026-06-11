@@ -11,7 +11,7 @@
 	],
 	"scripts": {
 		"build": "tsgo -b && bun run --cwd packages/cli build:prompt-snippet && bun run --cwd packages/cli repack",
-		"web:dev": "RHO_DATABASE_URL=file:$PWD/packages/core/dev.db RHO_OWNER_TOKEN=dev-owner-token-3cq76AM9djFvNTyUyVXSgh42w7zEEtDY RHO_EXTENSION_PATHS=../../examples/extensions bun run --cwd apps/server dev",
+		"web:dev": "RHO_AGENT_DIR=${RHO_AGENT_DIR:-$HOME/.rho/agent} RHO_DATABASE_URL=file:$PWD/packages/core/dev.db RHO_OWNER_TOKEN=dev-owner-token-3cq76AM9djFvNTyUyVXSgh42w7zEEtDY RHO_EXTENSION_PATHS=../../examples/extensions bun run --cwd apps/server dev",
 		"web:build": "bun run --cwd apps/server web:build",
 		"app:init": "bun packages/apps-sdk/src/init.ts",
 		"install:source": "bun scripts/install-source.ts",
@@ -35,6 +35,6 @@
 		"node": ">=20.0.0"
 	},
 	"patchedDependencies": {
-		"@earendil-works/pi-ai@0.75.5": "patches/@earendil-works%2Fpi-ai@0.75.5.patch"
+		"@earendil-works/pi-ai@0.79.1": "patches/@earendil-works%2Fpi-ai@0.79.1.patch"
 	}
 }

@@ -1,5 +1,5 @@
 import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
-import { getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
+import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { createAgentEventStream } from "./event-stream.ts";
 import { createRhoAgentSession, type RhoAgentExtensionSource } from "./session.ts";
 import type { ConversationKey, StateManager } from "./state/types.ts";
@@ -8,6 +8,8 @@ import type { AgentEventStream } from "./types.ts";
 export interface ConversationInput {
 	state: StateManager;
 	key: ConversationKey;
+	cwd: string;
+	agentDir: string;
 	message: AgentMessage;
 	signal: AbortSignal;
 	agentExtensions?: RhoAgentExtensionSource[];
@@ -57,13 +59,12 @@ async function runConversation(
 	input: ConversationInput,
 	emit: (event: AgentEvent) => void,
 ): Promise<AgentMessage[]> {
-	const agentDir = process.env.RHO_AGENT_DIR ?? getAgentDir();
 	const conversation = await input.state.resolve(input.key);
 	const sessionManager = SessionManager.open(conversation.sessionFile);
 
 	const session = await createRhoAgentSession({
-		cwd: process.cwd(),
-		agentDir,
+		cwd: input.cwd,
+		agentDir: input.agentDir,
 		sessionManager,
 		agentExtensions: input.agentExtensions,
 	});

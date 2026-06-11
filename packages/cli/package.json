@@ -28,10 +28,10 @@
 		"clean": "rm -rf dist tui .tsbuildinfo *.tsbuildinfo"
 	},
 	"dependencies": {
-		"@earendil-works/pi-agent-core": "^0.75.5",
-		"@earendil-works/pi-ai": "^0.75.5",
-		"@earendil-works/pi-coding-agent": "^0.75.5",
-		"@earendil-works/pi-tui": "^0.75.5",
+		"@earendil-works/pi-agent-core": "^0.79.1",
+		"@earendil-works/pi-ai": "^0.79.1",
+		"@earendil-works/pi-coding-agent": "^0.79.1",
+		"@earendil-works/pi-tui": "^0.79.1",
 		"@rho/ai": "0.0.0",
 		"@rho/lib": "0.0.0",
 		"@silvia-odwyer/photon-node": "0.3.4",
@@ -50,7 +50,7 @@
 		"yaml": "2.9.0"
 	},
 	"optionalDependencies": {
-		"@mariozechner/clipboard": "0.3.6"
+		"@mariozechner/clipboard": "0.3.9"
 	},
 	"keywords": [
 		"ai",

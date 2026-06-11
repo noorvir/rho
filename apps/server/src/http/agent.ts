@@ -75,19 +75,28 @@ async function* streamOutput(output: ChannelOutput) {
 	let text = "";
 	let started = false;
 
-	for await (const message of output) {
-		if (!started) {
-			yield { type: "started" as const };
-			started = true;
-		}
+	try {
+		for await (const message of output) {
+			if (!started) {
+				yield { type: "started" as const };
+				started = true;
+			}
 
-		const delta = messageText(message);
-		text += delta;
-		yield { type: "delta" as const, text: delta };
+			const delta = messageText(message);
+			text += delta;
+			yield { type: "delta" as const, text: delta };
+		}
+	} catch (error) {
+		yield { type: "error" as const, error: errorMessage(error) };
+		return;
 	}
 
 	if (!started) {
-		yield { type: "error" as const, error: "Missing HTTP message" };
+		yield {
+			type: "error" as const,
+			error:
+				"The Rho agent did not produce a response. Check the deployed agent provider, model, and auth configuration.",
+		};
 		return;
 	}
 

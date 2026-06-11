@@ -12,7 +12,9 @@ import { getRhoSystemPrompt, rhoSystemPromptExtension } from "./system-prompt.ts
 import type { AgentEventStream } from "./types.ts";
 
 export interface RhoAgentSessionOptions {
+	/** Absolute working directory; tools run and project config is discovered here. */
 	cwd: string;
+	/** Absolute agent config directory (auth.json, models.json, settings.json). */
 	agentDir: string;
 	sessionManager?: SessionManager;
 	agentExtensions?: RhoAgentExtensionSource[];
