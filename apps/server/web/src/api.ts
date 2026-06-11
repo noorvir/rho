@@ -15,9 +15,8 @@ interface RhoProblemDetails {
 	details?: unknown;
 }
 
-const defaultCoreUrl = window.location.origin;
 const conversationId = "mobile-chat";
-const apiBaseUrl = import.meta.env.VITE_RHO_CORE_URL || defaultCoreUrl;
+const apiBaseUrl = window.location.origin;
 
 const link = new OpenAPILink(httpContract, {
 	url: apiBaseUrl,

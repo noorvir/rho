@@ -73,6 +73,10 @@ Keep the first contract minimal. Do not add dynamic plugin loading, sandboxing, 
 - Public component names should be simple and stable.
 - AI agents should be able to generate small valid components from examples.
 
+## Note
+
+The first-party web app ended up living at `apps/server/web`, owned and served by `@rho/server` (no standalone web package or nested TS project). The UI package for extension authors is still pending.
+
 ## Next Steps
 
 - [ ] Create the UI package skeleton and workspace wiring.
@@ -82,9 +86,9 @@ Keep the first contract minimal. Do not add dynamic plugin loading, sandboxing, 
 - [x] Set up Tailwind CSS and shadcn in the Web package.
 - [x] Tune the initial theme for a tighter, squarer rho UI using Tailwind/shadcn CSS variables only.
 - [x] Add a TanStack-backed shadcn Data Table renderer, extract reusable status/avatar/trend primitives from the reference table exercise, and apply them to the dashboard.
-- [ ] Add typed server/Web API wiring with oRPC.
-- [ ] Add a first web chat surface using existing server APIs.
-- [ ] Add a small sample app/content render path to validate the UI contract.
+- [x] Add typed server/Web API wiring with oRPC.
+- [x] Add a first web chat surface using existing server APIs.
+- [x] Add a small sample app/content render path to validate the UI contract (extension apps render in the web shell).
 - [x] Validate build/typecheck.
 - [x] Visually validate standalone web layout.
 - [ ] Visually validate iOS WebView layout before treating the shell as stable.

@@ -165,8 +165,12 @@ First slice implemented:
 - App extensions can return UI client entry metadata and in-memory oRPC routers.
 - Core keeps a current app registry so app listing reads applied extension state instead of reloading on every read.
 - HTTP/server-owned channels remain outside core extension loading.
+- Extensions can contribute agent extension sources that flow into agent sessions.
+- The loader takes absolute paths only; entrypoints resolve env-provided paths (`RHO_EXTENSION_PATHS`) before calling core.
 
-Still intentionally not implemented: browser app/API auth, package installation, global extension locations, dependency install management, settings UI, and standalone browser bundle dependency resolution for app UI artifacts. Browser app/API auth needs to be implemented soon with a real shell/app session or capability model; `VITE_*` secrets are not real browser auth.
+Browser app/API auth is implemented: app API routes require a `RhoAuth` session cookie or bearer token.
+
+Still intentionally not implemented: package installation, global extension locations, dependency install management, settings UI, and standalone browser bundle dependency resolution for app UI artifacts.
 
 Later package/dependency work should be a separate package-management layer, similar to Pi's `pi install`: install npm/git/local packages, run dependency installation when needed, then hand already-installed package directories to the loader. The current loader only reads local package manifests and assumes dependencies already exist.
 

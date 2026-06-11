@@ -36,8 +36,8 @@ both converged on; neither runs a literally continuous session.
 ```
 
 - Memory tools (read/search/append/consolidate) ship as agent extensions so
-  the repacked TUI and the server runtime get identical behavior
-  (depends on `.agent/plans/2026-06-09-agent-extension-model.md`).
+  the repacked TUI and the server runtime get identical behavior. The agent
+  extension mechanism this depends on is implemented.
 - The workspace lives under the Rho runtime/agent dir so all surfaces share it.
 - Background runs produce artifacts the user can review; promotion into the
   curated layer should be conservative (scored/gated, OpenClaw "dreaming"

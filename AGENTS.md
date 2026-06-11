@@ -20,7 +20,7 @@
 - Runtime configuration must be loaded through runtime-package env modules, not library packages. Do not read `process.env` outside a runtime-owned `env.ts` boundary. Env object fields should use the uppercase runtime variable name, such as `env.RHO_DATABASE_URL`, not one-off exported aliases. Library packages such as `packages/core` and `packages/ai` must receive runtime configuration through explicit options.
 - Treat `process.cwd()`, home-directory defaults, and relative paths as runtime context like env. Runtime entrypoints (`apps/server`, `packages/cli`) must resolve filesystem paths to absolute paths before passing them into library packages; `packages/core` and `packages/ai` should not use cwd as a fallback or path-resolution base.
 - `apps/server` extension paths are runtime configuration. Load them through `RHO_EXTENSION_PATHS` or a server env helper; keep example extension paths in root/dev scripts or docs, not in server entrypoints.
-- Browser app/API auth is not implemented yet. Do not treat `VITE_*` secrets as real browser auth; add a proper shell/app session or capability model before considering app APIs production-ready.
+- Browser app/API requests authenticate through `RhoAuth` session cookies or bearer tokens. Never put secrets in `VITE_*` variables or anything else that ends up in the client bundle.
 
 ## Server HTTP
 
