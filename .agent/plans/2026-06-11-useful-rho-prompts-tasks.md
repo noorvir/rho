@@ -270,6 +270,12 @@ Also:
       KeyedMutex releases its per-key tail.
 - [ ] Railway deploy of the above; verify on a physical phone with a release
       build against production.
+- [ ] Production app UI delivery: app client modules are currently served as
+      vite dev URLs (`/@fs/...`), so extension app UIs cannot load in the
+      deployed runtime — "Failed to load app" on prod. Needs a production
+      module path that shares the shell's React instance (bundle-on-reload
+      with externals/import map). Next structural item alongside the runtime
+      db package.
 - [ ] Iteration 3 (remaining): forced provider-error test; waiting_input.
 - [ ] Iteration 4: push delivery + memory consolidator on the task runner.
 

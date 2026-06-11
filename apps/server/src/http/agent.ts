@@ -108,6 +108,7 @@ async function* streamOutput(output: ChannelOutput) {
 			yield { type: "delta" as const, text: delta };
 		}
 	} catch (error) {
+		console.error("agent turn failed:", error);
 		yield { type: "error" as const, error: errorMessage(error) };
 		return;
 	}
