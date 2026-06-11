@@ -3,6 +3,10 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 
+/* Extension app sources: their utility classes must be in the shell CSS,
+   since app modules are compiled separately from this build. */
+@source "../../../../examples/extensions";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

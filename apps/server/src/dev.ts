@@ -6,8 +6,8 @@ import { createRhoCore } from "@rho/core";
 import { createServer as createViteServer, type ViteDevServer } from "vite";
 
 import { createRhoAuth } from "./auth.ts";
-import { env } from "./lib/env.ts";
 import { installCrashGuards } from "./lib/crash-guards.ts";
+import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
 
 installCrashGuards();
@@ -28,6 +28,7 @@ const app = createServer({
 	core,
 	auth,
 	databaseUrl: env.RHO_DATABASE_URL,
+	appModules: "vite",
 });
 const apiListener = getRequestListener(app.fetch);
 let vite: ViteDevServer | undefined;

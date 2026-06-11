@@ -8,12 +8,13 @@ import { agentRouter } from "./agent.ts";
 import { appsRouter } from "./apps.ts";
 import { authRouter } from "./auth.ts";
 import { dataRouter } from "./data.ts";
-import type { HttpContext } from "./types.ts";
+import type { AppModuleMode, HttpContext } from "./types.ts";
 
 export interface HttpOptions {
 	auth: RhoAuth;
 	core: RhoCore;
 	databaseUrl: string;
+	appModules: AppModuleMode;
 }
 
 export const httpRouter = {
@@ -36,6 +37,7 @@ export function createHttpMiddleware(options: HttpOptions): MiddlewareHandler {
 			auth: options.auth,
 			core: options.core,
 			databaseUrl: options.databaseUrl,
+			appModules: options.appModules,
 			requestUrl: context.req.url,
 		};
 

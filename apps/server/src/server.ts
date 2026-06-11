@@ -6,11 +6,14 @@ import { cors } from "hono/cors";
 import type { RhoAuth } from "./auth.ts";
 import { getDynamicAppsApiRoutes } from "./http/apps.ts";
 import { createHttpMiddleware } from "./http/index.ts";
+import type { AppModuleMode } from "./http/types.ts";
 
 export interface ServerOptions {
 	core: RhoCore;
 	auth: RhoAuth;
 	databaseUrl: string;
+	/** How app client modules are delivered: vite dev URLs or server-built bundles. */
+	appModules: AppModuleMode;
 	webRoot?: string;
 }
 

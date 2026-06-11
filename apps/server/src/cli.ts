@@ -4,8 +4,8 @@ import { serve } from "@hono/node-server";
 import { createRhoCore } from "@rho/core";
 
 import { createRhoAuth } from "./auth.ts";
-import { env } from "./lib/env.ts";
 import { installCrashGuards } from "./lib/crash-guards.ts";
+import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
 
 installCrashGuards();
@@ -29,6 +29,7 @@ const server = serve({
 		core,
 		auth,
 		databaseUrl: env.RHO_DATABASE_URL,
+		appModules: "bundle",
 		webRoot,
 	}).fetch,
 	hostname: "0.0.0.0",

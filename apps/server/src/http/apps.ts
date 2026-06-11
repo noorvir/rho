@@ -12,9 +12,10 @@ import {
 	rhoErrorResponseBody,
 	throwRhoError,
 } from "../errors.ts";
+import { bundleAppClient } from "../lib/app-bundles.ts";
 import { requireAuth } from "./auth.ts";
 import { httpContract } from "./contract.ts";
-import type { HttpContext } from "./types.ts";
+import type { AppModuleMode, HttpContext } from "./types.ts";
 
 const p = implement(httpContract).$context<HttpContext>();
 
@@ -30,7 +31,7 @@ export function appsRouter() {
 			const apps = res.data.map((app) => ({
 				slug: app.slug,
 				name: app.name,
-				clientModuleUrl: sourceModuleUrl(app.client.entry),
+				clientModuleUrl: clientModuleUrl(app, context.appModules),
 				routes: app.routes.map((route) => ({
 					path: route.path,
 					label: route.label,
@@ -59,7 +60,36 @@ export function getDynamicAppsApiRoutes(ctx: { auth: RhoAuth; core: RhoCore }): 
 	app.use("/:slug/api/*", appApiAuth(ctx.auth));
 	app.all("/:slug/api/*", async (context) => handleAppApi(context, ctx.core));
 
+	app.use("/:slug/client.js", appApiAuth(ctx.auth));
+	app.get("/:slug/client.js", async (context) => handleAppClientModule(context, ctx.core));
+
 	return app;
+}
+
+async function handleAppClientModule(context: Context, core: RhoCore): Promise<Response> {
+	const slug = context.req.param("slug");
+	const apps = await tc(core.listApps());
+	if (apps.error) {
+		return rhoJsonError("server.internal", { message: "Failed to list apps." });
+	}
+
+	const app = apps.data.find((candidate) => candidate.slug === slug);
+	if (!app) {
+		return rhoJsonError("apps.api_not_found", { details: { app: slug ?? "" } });
+	}
+
+	const bundle = await tc(bundleAppClient(app.client.entry));
+	if (bundle.error) {
+		console.error("app client bundle failed:", bundle.error);
+		return rhoJsonError("server.internal", { message: "Failed to build the app module." });
+	}
+
+	return new Response(bundle.data, {
+		headers: {
+			"Content-Type": "text/javascript; charset=utf-8",
+			"Cache-Control": "no-cache",
+		},
+	});
 }
 
 async function handleAppApi(context: Context, core: RhoCore): Promise<Response> {
@@ -130,6 +160,9 @@ function hostPlatform(context: Context): RhoAppApiContext["host"]["platform"] {
 	return value === "mobile" || value === "desktop" ? value : "web";
 }
 
-function sourceModuleUrl(path: string): string {
-	return `/@fs${path}`;
+function clientModuleUrl(app: { slug: string; client: { entry: string } }, mode: AppModuleMode): string {
+	if (mode === "vite") {
+		return `/@fs${app.client.entry}`;
+	}
+	return `/apps/${app.slug}/client.js`;
 }
