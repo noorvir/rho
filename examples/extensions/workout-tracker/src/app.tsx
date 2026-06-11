@@ -1,8 +1,8 @@
-import { useRhoApp } from "@rho/apps-sdk/react";
+import { rhoApp, useRhoApp } from "@rho/apps-sdk/react";
 import { Day } from "./routes/day.tsx";
 import { Home } from "./routes/index.tsx";
 
-export default function WorkoutTrackerApp() {
+function WorkoutTrackerApp() {
 	const rho = useRhoApp();
 	const date = dayRouteDate(rho.app.routePath);
 
@@ -37,3 +37,5 @@ function NotFound() {
 		</main>
 	);
 }
+
+export default rhoApp(WorkoutTrackerApp);

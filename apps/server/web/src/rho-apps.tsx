@@ -1,8 +1,8 @@
 import type { RhoAppContext, RhoHostPlatform } from "@rho/apps-sdk";
-import { RhoAppProvider } from "@rho/apps-sdk/react";
+import type { RhoAppMount } from "@rho/apps-sdk/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { DataTableSurface } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,6 @@ interface RhoAppsProps {
 	appSlug?: string;
 	routePath?: string;
 }
-
-type AppComponent = () => ReactNode;
 
 export function RhoApps({ appSlug, routePath = "/" }: RhoAppsProps) {
 	const apps = useQuery(orpc.apps.list.queryOptions());
@@ -112,13 +110,10 @@ function AppRuntime({
 		return <EmptyState title="Failed to load app" />;
 	}
 
-	const App = appModule.data;
 	if (embedded) {
 		return (
 			<div className="p-3">
-				<RhoAppProvider context={context}>
-					<App />
-				</RhoAppProvider>
+				<MountedApp context={context} mount={appModule.data} />
 			</div>
 		);
 	}
@@ -133,30 +128,44 @@ function AppRuntime({
 				<span>{app.name}</span>
 				<Badge variant="outline">{context.host.platform}</Badge>
 			</div>
-			<RhoAppProvider context={context}>
-				<App />
-			</RhoAppProvider>
+			<MountedApp context={context} mount={appModule.data} />
 		</div>
 	);
 }
 
-async function loadApp(moduleUrl: string | undefined): Promise<AppComponent> {
+/** Hands a container element to the app bundle's mount function. */
+function MountedApp({ mount, context }: { mount: RhoAppMount; context: RhoAppContext }) {
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		const element = containerRef.current;
+		if (!element) {
+			return;
+		}
+		const instance = mount(element, context);
+		return () => instance.unmount();
+	}, [mount, context]);
+
+	return <div ref={containerRef} />;
+}
+
+async function loadApp(moduleUrl: string | undefined): Promise<RhoAppMount> {
 	if (!moduleUrl) {
 		throw new Error("Missing app module URL");
 	}
 
 	const module = await import(/* @vite-ignore */ moduleUrl);
 	if (typeof module === "object" && module !== null && "default" in module) {
-		const component = module.default;
-		if (isAppComponent(component)) {
-			return component;
+		const mount = module.default;
+		if (isAppMount(mount)) {
+			return mount;
 		}
 	}
 
-	throw new Error("App module must default-export a component");
+	throw new Error("App module must default-export a rho app mount function");
 }
 
-function isAppComponent(value: unknown): value is AppComponent {
+function isAppMount(value: unknown): value is RhoAppMount {
 	return typeof value === "function";
 }
 

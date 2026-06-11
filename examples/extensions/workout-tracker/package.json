@@ -10,13 +10,17 @@
 		"@rho/apps-sdk": "0.0.0",
 		"@tanstack/react-query": "^5.90.12",
 		"react": "^19.2.1",
-		"zod": "4.4.3"
+		"zod": "4.4.3",
+		"react-dom": "^19.2.1"
 	},
 	"devDependencies": {
 		"@types/react": "^19.2.7",
-		"typescript": "^5.9.2"
+		"typescript": "^5.9.2",
+		"@types/react-dom": "^19.2.3"
 	},
 	"rho": {
-		"extensions": ["src/extension.ts"]
+		"extensions": [
+			"src/extension.ts"
+		]
 	}
 }

@@ -1,7 +1,7 @@
-import { useRhoApp } from "@rho/apps-sdk/react";
+import { rhoApp, useRhoApp } from "@rho/apps-sdk/react";
 import { Todos } from "./routes/index.tsx";
 
-export default function TodoListApp() {
+function TodoListApp() {
 	const rho = useRhoApp();
 
 	if (rho.app.routePath === "/") {
@@ -9,3 +9,5 @@ export default function TodoListApp() {
 	}
 	return <main>Route not found: {rho.app.routePath}</main>;
 }
+
+export default rhoApp(TodoListApp);
