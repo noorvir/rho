@@ -31,7 +31,8 @@ struct ContentView: View {
                         screen: screen,
                         apps: apps,
                         selectScreen: { screen = $0 },
-                        openChat: { isChatPresented = true }
+                        openChat: { isChatPresented = true },
+                        refreshApps: { refreshApps() }
                     )
                 ) {
                     RootScreenView(screen: screen, authStore: authStore)
@@ -51,6 +52,14 @@ struct ContentView: View {
         }
         .dynamicTypeSize(.medium)
         .preferredColorScheme(.light)
+    }
+
+    private func refreshApps() {
+        Task {
+            if let refreshed = try? await AppsClient(authStore: authStore).installedApps() {
+                apps = refreshed
+            }
+        }
     }
 }
 
@@ -315,18 +324,30 @@ private struct AppWebView: View {
     @ObservedObject var authStore: AuthStore
     @State private var cookie: HTTPCookie?
     @State private var isReady = false
+    @State private var reloadToken = 0
 
     var body: some View {
         VStack(spacing: 0) {
             Text(app.name)
                 .font(.system(size: 17, weight: .semibold))
                 .frame(maxWidth: .infinity)
+                .overlay(alignment: .trailing) {
+                    Button(action: { reloadToken += 1 }) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.trailing, 16)
+                    .accessibilityLabel("Reload app")
+                }
                 .padding(.top, 20)
                 .padding(.bottom, 12)
 
             Group {
                 if isReady {
-                    WebView(url: app.url, cookie: cookie)
+                    WebView(url: app.url, cookie: cookie, reloadToken: reloadToken)
                 } else {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -350,6 +371,7 @@ private struct AppWebView: View {
 private struct WebView: UIViewRepresentable {
     let url: URL
     let cookie: HTTPCookie?
+    let reloadToken: Int
 
     /// Makes embedded pages behave like native app surfaces: pins the layout
     /// to the device width, suppresses the focus auto-zoom (iOS zooms any
@@ -428,8 +450,16 @@ private struct WebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        guard context.coordinator.requestedURL != url else { return }
+        if context.coordinator.requestedURL == url {
+            if context.coordinator.reloadToken != reloadToken {
+                context.coordinator.reloadToken = reloadToken
+                webView.reloadFromOrigin()
+            }
+            return
+        }
+
         context.coordinator.requestedURL = url
+        context.coordinator.reloadToken = reloadToken
 
         let request = URLRequest(url: url)
         if let cookie {
@@ -446,6 +476,8 @@ private struct WebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate {
         /// Last URL this view asked the web view to load; app switches change it.
         var requestedURL: URL?
+        /// Last seen reload token; the reload button increments it.
+        var reloadToken = 0
 
         private let allowedHost: String?
         private let allowedPort: Int?

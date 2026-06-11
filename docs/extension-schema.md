@@ -129,14 +129,14 @@ The router returned from `createRouter` is passed to `createAppExtension` in `sr
 
 ## `src/app.tsx`
 
-`src/app.tsx` is the client app entrypoint. It reads the active route from `useRhoApp()` and renders the matching route component.
+`src/app.tsx` is the client app entrypoint. It reads the active route from `useRhoApp()`, renders the matching route component, and default-exports the app wrapped with `rhoApp()`. The wrapper makes the app a standalone bundle that mounts itself into the rho shell with its own React and query client.
 
 ```tsx
-import { useRhoApp } from "@rho/apps-sdk/react";
+import { rhoApp, useRhoApp } from "@rho/apps-sdk/react";
 import { About } from "./routes/about.tsx";
 import { Home } from "./routes/index.tsx";
 
-export default function App() {
+function App() {
   const rho = useRhoApp();
 
   switch (rho.app.routePath) {
@@ -148,7 +148,12 @@ export default function App() {
       return <main>Route not found: {rho.app.routePath}</main>;
   }
 }
+
+export default rhoApp(App);
 ```
+
+Navigate between app routes with `rho.navigate("/about")` — it updates the
+shell URL and re-renders the app without a page reload.
 
 ## `src/client.ts`
 

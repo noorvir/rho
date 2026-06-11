@@ -1,5 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { type ComponentType, createContext, createElement, type ReactNode, useContext } from "react";
+import {
+	type ComponentType,
+	createContext,
+	createElement,
+	type ReactNode,
+	useContext,
+	useState,
+} from "react";
 import { createRoot } from "react-dom/client";
 import type { RhoAppContext } from "./index.ts";
 
@@ -18,6 +25,8 @@ export function useRhoApp(): RhoAppContext {
 }
 
 export interface RhoAppInstance {
+	/** Pushes a new host context (for example a route change) into the running app. */
+	update(host: RhoAppContext): void;
 	unmount(): void;
 }
 
@@ -35,17 +44,28 @@ export function rhoApp(App: ComponentType): RhoAppMount {
 	return (element, host) => {
 		const root = createRoot(element);
 		const queryClient = new QueryClient();
-		root.render(
-			createElement(RhoAppProvider, {
-				context: host,
+		let pushHost = (next: RhoAppContext) => {
+			host = next;
+		};
+
+		function Root() {
+			const [current, setCurrent] = useState(host);
+			pushHost = setCurrent;
+			return createElement(RhoAppProvider, {
+				context: current,
 				children: createElement(QueryClientProvider, {
 					client: queryClient,
 					children: createElement(App),
 				}),
-			}),
-		);
+			});
+		}
+
+		root.render(createElement(Root));
 
 		return {
+			update(next) {
+				pushHost(next);
+			},
 			unmount() {
 				root.unmount();
 			},

@@ -132,16 +132,26 @@ interface RhoAppContext {
   apiUrl(path: string): string;
   apiHeaders(): Record<string, string>;
   apiFetch(path: string, init?: RequestInit): Promise<Response>;
+  navigate(routePath: string): void;
 }
 ```
 
-Use `rho.app.routePath` for app routing. Use `rho.app.basePath` for app links. Use the typed oRPC client for normal app API calls.
+Use `rho.app.routePath` for app routing and `rho.navigate()` to switch app
+routes without a page reload. Use `rho.app.basePath` for link hrefs. Use the
+typed oRPC client for normal app API calls.
+
+## `rhoApp`
+
+`rhoApp(App)` wraps the app's root React component as a mountable rho app and
+is the required default export of the client entry. The wrapper owns the
+app's React root, context provider, and query client inside the app bundle,
+so apps stay fully standalone from the shell.
 
 ## `RhoAppProvider`
 
 `RhoAppProvider` provides `RhoAppContext` to React components.
 
-App authors usually do not need to use it directly because the Rho shell wraps loaded app components. It is exported for tests and custom hosts.
+App authors usually do not need to use it directly because `rhoApp()` renders it inside the app bundle. It is exported for tests and custom hosts.
 
 ```tsx
 import { RhoAppProvider } from "@rho/apps-sdk/react";

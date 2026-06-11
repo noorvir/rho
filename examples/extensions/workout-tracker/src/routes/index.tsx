@@ -46,6 +46,10 @@ export function Home() {
 							className="block bg-background p-3 ring-1 ring-border/80 transition hover:bg-muted/60"
 							href={`${rho.app.basePath}/day/${day.date}`}
 							key={day.date}
+							onClick={(event) => {
+								event.preventDefault();
+								rho.navigate(`/day/${day.date}`);
+							}}
 						>
 							<p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
 								{day.shortLabel}

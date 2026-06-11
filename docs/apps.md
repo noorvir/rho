@@ -56,15 +56,19 @@ The app shell mounts apps under `/apps`.
 | `/apps/todo-list` | `/` |
 | `/apps/todo-list/items` | `/items` |
 
-The shell loads the app's client module dynamically. The module must default-export a React component.
+The shell loads the app's client module dynamically. The module must default-export the app wrapped with `rhoApp()`, which makes it a standalone bundle that mounts itself with its own React and query client.
 
 ```tsx
-export default function App() {
+import { rhoApp } from "@rho/apps-sdk/react";
+
+function App() {
   return <main>Todo List</main>;
 }
+
+export default rhoApp(App);
 ```
 
-The shell wraps the component in `RhoAppProvider`, so app code can call `useRhoApp()`.
+`rhoApp()` renders `RhoAppProvider` inside the bundle, so app code can call `useRhoApp()`.
 
 ## App routing
 
@@ -73,11 +77,11 @@ Rho passes the active app route as `rho.app.routePath`.
 Route inside the app by switching on that value:
 
 ```tsx
-import { useRhoApp } from "@rho/apps-sdk/react";
+import { rhoApp, useRhoApp } from "@rho/apps-sdk/react";
 import { Home } from "./routes/index.tsx";
 import { Items } from "./routes/items.tsx";
 
-export default function TodoListApp() {
+function TodoListApp() {
   const rho = useRhoApp();
 
   switch (rho.app.routePath) {
@@ -89,8 +93,11 @@ export default function TodoListApp() {
       return <main>Route not found: {rho.app.routePath}</main>;
   }
 }
+
+export default rhoApp(TodoListApp);
 ```
 
+Navigate between app routes with `rho.navigate("/items")` — no page reload.
 Keep the route list in `createAppExtension` and the route switch in `app.tsx` in sync.
 
 ## App context

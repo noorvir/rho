@@ -12,7 +12,7 @@ import {
 	rhoErrorResponseBody,
 	throwRhoError,
 } from "../errors.ts";
-import { bundleAppClient } from "../lib/app-bundles.ts";
+import { bundleAppClient, bundleAppStyles } from "../lib/app-bundles.ts";
 import { requireAuth } from "./auth.ts";
 import { httpContract } from "./contract.ts";
 import type { AppModuleMode, HttpContext } from "./types.ts";
@@ -32,6 +32,7 @@ export function appsRouter() {
 				slug: app.slug,
 				name: app.name,
 				clientModuleUrl: clientModuleUrl(app, context.appModules),
+				clientStylesUrl: context.appModules === "bundle" ? `/apps/${app.slug}/client.css` : undefined,
 				routes: app.routes.map((route) => ({
 					path: route.path,
 					label: route.label,
@@ -63,7 +64,36 @@ export function getDynamicAppsApiRoutes(ctx: { auth: RhoAuth; core: RhoCore }): 
 	app.use("/:slug/client.js", appApiAuth(ctx.auth));
 	app.get("/:slug/client.js", async (context) => handleAppClientModule(context, ctx.core));
 
+	app.use("/:slug/client.css", appApiAuth(ctx.auth));
+	app.get("/:slug/client.css", async (context) => handleAppClientStyles(context, ctx.core));
+
 	return app;
+}
+
+async function handleAppClientStyles(context: Context, core: RhoCore): Promise<Response> {
+	const slug = context.req.param("slug");
+	const apps = await tc(core.listApps());
+	if (apps.error) {
+		return rhoJsonError("server.internal", { message: "Failed to list apps." });
+	}
+
+	const app = apps.data.find((candidate) => candidate.slug === slug);
+	if (!app) {
+		return rhoJsonError("apps.api_not_found", { details: { app: slug ?? "" } });
+	}
+
+	const styles = await tc(bundleAppStyles(app.client.entry));
+	if (styles.error) {
+		console.error("app client styles failed:", styles.error);
+		return rhoJsonError("server.internal", { message: "Failed to build the app styles." });
+	}
+
+	return new Response(styles.data, {
+		headers: {
+			"Content-Type": "text/css; charset=utf-8",
+			"Cache-Control": "no-cache",
+		},
+	});
 }
 
 async function handleAppClientModule(context: Context, core: RhoCore): Promise<Response> {

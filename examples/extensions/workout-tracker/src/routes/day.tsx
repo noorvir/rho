@@ -48,7 +48,14 @@ export function Day({ date }: DayProps) {
 	return (
 		<main className="space-y-4">
 			<div>
-				<a className="text-sm text-muted-foreground hover:text-foreground" href={rho.app.basePath}>
+				<a
+					className="text-sm text-muted-foreground hover:text-foreground"
+					href={rho.app.basePath}
+					onClick={(event) => {
+						event.preventDefault();
+						rho.navigate("/");
+					}}
+				>
 					← Back to week
 				</a>
 				<p className="mt-4 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">

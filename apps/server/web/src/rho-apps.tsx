@@ -1,7 +1,6 @@
-import type { RhoAppContext, RhoHostPlatform } from "@rho/apps-sdk";
-import type { RhoAppMount } from "@rho/apps-sdk/react";
+import type { RhoAppContext, RhoAppInstance, RhoAppMount, RhoHostPlatform } from "@rho/apps-sdk";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { DataTableSurface } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
@@ -95,10 +94,23 @@ function AppRuntime({
 		enabled: Boolean(app),
 	});
 	const platform = embedded ? embeddedPlatform() : hostPlatform();
-	const context = useMemo(
-		() => (app ? appContext(app, routePath, platform, embedded) : undefined),
-		[app, routePath, platform, embedded],
-	);
+	const routerNavigate = useNavigate();
+	const context = useMemo(() => {
+		if (!app) {
+			return undefined;
+		}
+
+		const navigate = (nextRoutePath: string) => {
+			const splat = nextRoutePath.replace(/^\//, "");
+			if (embedded) {
+				void routerNavigate({ to: "/embed/apps/$appSlug/$", params: { appSlug: app.slug, _splat: splat } });
+				return;
+			}
+			void routerNavigate({ to: "/apps/$appSlug/$", params: { appSlug: app.slug, _splat: splat } });
+		};
+
+		return appContext(app, routePath, platform, embedded, navigate);
+	}, [app, routePath, platform, embedded, routerNavigate]);
 
 	if (!app) {
 		return <EmptyState title="Unknown app extension" />;
@@ -113,6 +125,7 @@ function AppRuntime({
 	if (embedded) {
 		return (
 			<div className="p-3">
+				<AppStyles app={app} />
 				<MountedApp context={context} mount={appModule.data} />
 			</div>
 		);
@@ -128,23 +141,47 @@ function AppRuntime({
 				<span>{app.name}</span>
 				<Badge variant="outline">{context.host.platform}</Badge>
 			</div>
+			<AppStyles app={app} />
 			<MountedApp context={context} mount={appModule.data} />
 		</div>
 	);
 }
 
-/** Hands a container element to the app bundle's mount function. */
+/** Loads the app's generated stylesheet; React hoists and dedupes it in <head>. */
+function AppStyles({ app }: { app: AppExtensionSummary }) {
+	if (!app.clientStylesUrl) {
+		return null;
+	}
+	return <link href={app.clientStylesUrl} precedence="default" rel="stylesheet" />;
+}
+
+/**
+ * Hands a container element to the app bundle's mount function. The app
+ * mounts once per bundle; later context changes (route navigation) flow
+ * through the instance's update channel without remounting.
+ */
 function MountedApp({ mount, context }: { mount: RhoAppMount; context: RhoAppContext }) {
 	const containerRef = useRef<HTMLDivElement>(null);
+	const instanceRef = useRef<RhoAppInstance>(null);
+	const contextRef = useRef(context);
+	contextRef.current = context;
 
 	useEffect(() => {
 		const element = containerRef.current;
 		if (!element) {
 			return;
 		}
-		const instance = mount(element, context);
-		return () => instance.unmount();
-	}, [mount, context]);
+		const instance = mount(element, contextRef.current);
+		instanceRef.current = instance;
+		return () => {
+			instanceRef.current = null;
+			instance.unmount();
+		};
+	}, [mount]);
+
+	useEffect(() => {
+		instanceRef.current?.update(context);
+	}, [context]);
 
 	return <div ref={containerRef} />;
 }
@@ -174,6 +211,7 @@ function appContext(
 	routePath: string,
 	platform: RhoHostPlatform,
 	embedded: boolean,
+	navigate: (routePath: string) => void,
 ): RhoAppContext {
 	const apiBasePath = app.apiBasePath ?? `/apps/${app.slug}/api`;
 	const basePath = embedded ? `/embed/apps/${app.slug}` : `/apps/${app.slug}`;
@@ -189,6 +227,7 @@ function appContext(
 		host: {
 			platform,
 		},
+		navigate,
 		apiUrl(path) {
 			const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 			return `${apiBasePath}${normalizedPath}`;

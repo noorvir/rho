@@ -15,6 +15,7 @@ const appSummarySchema = z.object({
 	slug: z.string(),
 	name: z.string(),
 	clientModuleUrl: z.string(),
+	clientStylesUrl: z.string().optional(),
 	routes: z.array(z.object({ path: z.string(), label: z.string().optional() })),
 	apiBasePath: z.string().optional(),
 });

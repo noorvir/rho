@@ -21,6 +21,8 @@ export type {
 	RhoHostPlatform,
 } from "@rho/core";
 
+export type { RhoAppInstance, RhoAppMount } from "./react.ts";
+
 export interface RhoAppContext {
 	app: {
 		slug: string;
@@ -35,6 +37,8 @@ export interface RhoAppContext {
 	apiUrl(path: string): string;
 	apiHeaders(): Record<string, string>;
 	apiFetch(path: string, init?: RequestInit): Promise<Response>;
+	/** Navigates to another route inside this app without a page reload. */
+	navigate(routePath: string): void;
 }
 
 export interface AppExtensionInput {

@@ -1,7 +1,13 @@
 import SwiftUI
 
 enum BottomBarState {
-    case root(screen: RootScreen, apps: [InstalledApp], selectScreen: (RootScreen) -> Void, openChat: () -> Void)
+    case root(
+        screen: RootScreen,
+        apps: [InstalledApp],
+        selectScreen: (RootScreen) -> Void,
+        openChat: () -> Void,
+        refreshApps: () -> Void
+    )
     case pageActions(openChat: () -> Void)
 }
 
@@ -11,8 +17,14 @@ struct BottomBar: View {
     var body: some View {
         Group {
             switch state {
-            case .root(let screen, let apps, let selectScreen, let openChat):
-                RootBottomBar(screen: screen, apps: apps, selectScreen: selectScreen, openChat: openChat)
+            case .root(let screen, let apps, let selectScreen, let openChat, let refreshApps):
+                RootBottomBar(
+                    screen: screen,
+                    apps: apps,
+                    selectScreen: selectScreen,
+                    openChat: openChat,
+                    refreshApps: refreshApps
+                )
             case .pageActions(let openChat):
                 PageActionBottomBar(openChat: openChat)
             }
@@ -40,6 +52,7 @@ private struct RootBottomBar: View {
     let apps: [InstalledApp]
     let selectScreen: (RootScreen) -> Void
     let openChat: () -> Void
+    let refreshApps: () -> Void
 
     @State private var isAppsMenuPresented = false
 
@@ -67,7 +80,12 @@ private struct RootBottomBar: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button(action: { isAppsMenuPresented.toggle() }) {
+                    Button(action: {
+                        if !isAppsMenuPresented {
+                            refreshApps()
+                        }
+                        isAppsMenuPresented.toggle()
+                    }) {
                         RootBarItem(systemName: "rectangle.grid.2x2", isSelected: isAppsSelected, hasHighlight: true)
                     }
                     .buttonStyle(.plain)
@@ -284,7 +302,7 @@ private extension View {
 }
 
 #Preview("Root bar") {
-    BottomBar(state: .root(screen: .home, apps: [], selectScreen: { _ in }, openChat: {}))
+    BottomBar(state: .root(screen: .home, apps: [], selectScreen: { _ in }, openChat: {}, refreshApps: {}))
 }
 
 #Preview("Page action bar") {

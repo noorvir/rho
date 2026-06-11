@@ -87,8 +87,8 @@ struct ChatSheetView: View {
             AgentInput(draft: $draft, isSending: isSending) {
                 sendDraft()
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
+            .padding(.horizontal, 12)
+            .padding(.top, 8)
             .padding(.bottom, 8)
             .background {
                 LinearGradient(
@@ -559,44 +559,135 @@ private struct AgentInput: View {
     let isSending: Bool
     let onSend: () -> Void
 
-    private var isSendDisabled: Bool {
-        isSending || draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    @State private var isMediaOptionsPresented = false
+
+    private var trimmedDraft: String {
+        draft.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canSend: Bool {
+        !isSending && !trimmedDraft.isEmpty
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            TextField("Ask rho...", text: $draft, axis: .vertical)
-                .font(.system(size: 16))
-                .textFieldStyle(.plain)
-                .lineLimit(1...5)
+        VStack(spacing: 18) {
+            if isMediaOptionsPresented {
+                MediaOptionsGrid()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
 
-            HStack(spacing: 16) {
-                Image(systemName: "paperclip")
-                    .font(.system(size: 16, weight: .medium))
-                Text("@")
-                    .font(.system(size: 17, weight: .medium))
-                Spacer()
-                Button(action: onSend) {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 28, height: 28)
-                        .background(isSendDisabled ? Color.black.opacity(0.1) : Color.black, in: Circle())
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        isMediaOptionsPresented.toggle()
+                    }
+                } label: {
+                    Image(systemName: isMediaOptionsPresented ? "keyboard" : "plus")
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundStyle(.black)
+                        .frame(width: 32, height: 32)
                 }
-                .disabled(isSendDisabled)
                 .buttonStyle(.plain)
+                .accessibilityLabel(isMediaOptionsPresented ? "Hide media options" : "Show media options")
+
+                HStack(spacing: 8) {
+                    TextField("Ask rho...", text: $draft)
+                        .font(.system(size: 17))
+                        .textFieldStyle(.plain)
+                        .lineLimit(1)
+                        .submitLabel(.send)
+                        .onSubmit {
+                            if canSend {
+                                onSend()
+                            }
+                        }
+
+                    Image(systemName: "sticker")
+                        .font(.system(size: 21, weight: .regular))
+                        .foregroundStyle(.black)
+                }
+                .padding(.horizontal, 14)
+                .frame(height: 38)
+                .background(.white, in: Capsule())
+                .overlay {
+                    Capsule()
+                        .stroke(Color.black.opacity(0.18), lineWidth: 1)
+                }
+
+                Button(action: {}) {
+                    Image(systemName: "camera")
+                        .font(.system(size: 23, weight: .regular))
+                        .foregroundStyle(.black)
+                        .frame(width: 32, height: 32)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Camera")
+
+                Button {
+                    if canSend {
+                        onSend()
+                    }
+                } label: {
+                    Image(systemName: canSend ? "arrow.up.circle.fill" : "mic")
+                        .font(.system(size: canSend ? 29 : 24, weight: .regular))
+                        .foregroundStyle(canSend ? .black : .black)
+                        .frame(width: 32, height: 32)
+                }
+                .disabled(isSending)
+                .buttonStyle(.plain)
+                .accessibilityLabel(canSend ? "Send message" : "Voice message")
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 20)
-        .padding(.bottom, 16)
-        .background(.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
-        }
-        .shadow(color: .black.opacity(0.035), radius: 10, y: 4)
+        .padding(.horizontal, 2)
+        .padding(.top, isMediaOptionsPresented ? 22 : 0)
+        .padding(.bottom, isMediaOptionsPresented ? 18 : 0)
     }
+}
+
+private struct MediaOptionsGrid: View {
+    private let options = [
+        MediaOption(title: "Photos", icon: "photo.on.rectangle.angled", color: .blue),
+        MediaOption(title: "Camera", icon: "camera.fill", color: .black.opacity(0.72)),
+        MediaOption(title: "Location", icon: "mappin", color: .green),
+        MediaOption(title: "Contact", icon: "person.crop.circle", color: .gray),
+        MediaOption(title: "Document", icon: "doc.fill", color: .cyan),
+        MediaOption(title: "Poll", icon: "text.line.first.and.arrowtriangle.forward", color: .orange),
+        MediaOption(title: "Event", icon: "calendar", color: .pink),
+        MediaOption(title: "AI images", icon: "photo.badge.sparkles", color: .blue),
+    ]
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 18), count: 4)
+
+    var body: some View {
+        LazyVGrid(columns: columns, spacing: 28) {
+            ForEach(options) { option in
+                VStack(spacing: 9) {
+                    ZStack {
+                        Circle()
+                            .fill(.white)
+                            .frame(width: 70, height: 70)
+
+                        Image(systemName: option.icon)
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(option.color)
+                    }
+
+                    Text(option.title)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.black)
+                        .lineLimit(1)
+                }
+            }
+        }
+    }
+}
+
+private struct MediaOption: Identifiable {
+    let title: String
+    let icon: String
+    let color: Color
+
+    var id: String { title }
 }
 
 private enum ChatEvent {
