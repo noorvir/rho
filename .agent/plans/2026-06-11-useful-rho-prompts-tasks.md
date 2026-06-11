@@ -254,6 +254,22 @@ Also:
       working → outcome message delivered to the conversation.
 - [x] Mobile: live app list from apps.json, authenticated app WebView via
       bearer→cookie web-session exchange, task polling + foreground refetch.
+- [x] Embedded app surface: `/embed/apps/<slug>` renders only the app (no
+      dashboard shell), reports platform `mobile`, and embedded contexts use
+      the embed base path so in-app navigation stays inside it. The mobile
+      WebView is locked to same host + `/embed/` main-frame navigation.
+- [x] Native-feel WebView: 16px input floor kills iOS focus auto-zoom,
+      viewport/pinch/double-tap locked, tap-highlight and link previews off,
+      keyboard accessory bar removed, drag-to-dismiss keyboard.
+- [x] Server hardening: crash guards (uncaught exception/rejection log and
+      continue — a TUI-oriented pi extension crashed the server once).
+- [x] Second e2e (workout tracker built out by chat): agent reused its
+      session checkpoint after watch-restart interruptions, added the
+      planned_exercises model/migration, and delivered a clean outcome.
+- [x] Elegance review pass: TaskStatus narrowed to implemented states,
+      KeyedMutex releases its per-key tail.
+- [ ] Railway deploy of the above; verify on a physical phone with a release
+      build against production.
 - [ ] Iteration 3 (remaining): forced provider-error test; waiting_input.
 - [ ] Iteration 4: push delivery + memory consolidator on the task runner.
 
