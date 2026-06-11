@@ -1,12 +1,14 @@
 import { useRhoApp } from "@rho/apps-sdk/react";
+import { Link, Screen } from "@rho/ui";
 
 export function About() {
 	const rho = useRhoApp();
 
 	return (
-		<main>
-			<h2>About __APP_NAME__</h2>
-			<p>Mounted at {rho.app.basePath}.</p>
-		</main>
+		<Screen title="About __APP_NAME__" description={`Mounted at ${rho.app.basePath}.`}>
+			<Link className="text-sm underline underline-offset-4" href="/">
+				Back home
+			</Link>
+		</Screen>
 	);
 }

@@ -1,0 +1,37 @@
+{
+	"name": "@rho/ui",
+	"version": "0.0.0",
+	"description": "UI primitives for rho app extensions.",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsgo -b tsconfig.json",
+		"typecheck": "tsgo -b tsconfig.json --pretty false",
+		"clean": "rm -rf dist .tsbuildinfo *.tsbuildinfo"
+	},
+	"dependencies": {
+		"@rho/apps-sdk": "0.0.0"
+	},
+	"peerDependencies": {
+		"react": "^19.2.1"
+	},
+	"devDependencies": {
+		"@types/react": "^19.2.7",
+		"react": "^19.2.1"
+	},
+	"license": "MIT",
+	"engines": {
+		"node": ">=20.0.0"
+	}
+}

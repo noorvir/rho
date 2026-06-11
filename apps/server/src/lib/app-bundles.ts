@@ -35,6 +35,17 @@ export async function bundleAppClient(entry: string): Promise<string> {
 // server package, which owns those dependencies.
 const serverPackageDir = fileURLToPath(new URL("../..", import.meta.url));
 
+// Apps composed from @rho/ui use tailwind classes inside the library's
+// compiled output, so its dist must be scanned alongside the app's source.
+function uiPackageSources(appSourceDir: string): string[] {
+	try {
+		const uiPackage = Bun.resolveSync("@rho/ui/package.json", appSourceDir);
+		return [join(dirname(uiPackage), "dist")];
+	} catch {
+		return [];
+	}
+}
+
 /**
  * Generates the app's stylesheet: tailwind utilities for the classes used in
  * the app's source plus the rho theme tokens. Preflight is deliberately
@@ -44,6 +55,7 @@ const serverPackageDir = fileURLToPath(new URL("../..", import.meta.url));
  */
 export async function bundleAppStyles(entry: string): Promise<string> {
 	const sourceDir = dirname(entry);
+	const sources = [sourceDir, ...uiPackageSources(sourceDir)];
 	const input = [
 		// Declare the full canonical layer order first: this sheet can load
 		// before the shell's, and whichever sheet declares layers first fixes
@@ -55,7 +67,7 @@ export async function bundleAppStyles(entry: string): Promise<string> {
 		`@import "shadcn/tailwind.css";`,
 		`@import "tw-animate-css";`,
 		`@custom-variant dark (&:is(.dark *));`,
-		`@source "${sourceDir}";`,
+		...sources.map((dir) => `@source "${dir}";`),
 	].join("\n");
 
 	// The input file lives inside the server package so the CSS imports

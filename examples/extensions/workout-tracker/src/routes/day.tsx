@@ -1,5 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRhoApp } from "@rho/apps-sdk/react";
+import {
+	Button,
+	EmptyState,
+	ErrorState,
+	Field,
+	Link,
+	List,
+	LoadingState,
+	Row,
+	Screen,
+	Section,
+	TextInput,
+} from "@rho/ui";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useApi } from "../client.ts";
@@ -9,7 +21,6 @@ interface DayProps {
 }
 
 export function Day({ date }: DayProps) {
-	const rho = useRhoApp();
 	const api = useApi();
 	const queryClient = useQueryClient();
 	const [name, setName] = useState("");
@@ -45,75 +56,53 @@ export function Day({ date }: DayProps) {
 		);
 	}
 
+	const exercises = day.data?.exercises ?? [];
+
 	return (
-		<main className="space-y-4">
-			<div>
-				<a
-					className="text-sm text-muted-foreground hover:text-foreground"
-					href={rho.app.basePath}
-					onClick={(event) => {
-						event.preventDefault();
-						rho.navigate("/");
-					}}
-				>
-					← Back to week
-				</a>
-				<p className="mt-4 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-					Workout Tracker
-				</p>
-				<h2 className="mt-1 text-2xl font-semibold tracking-tight">{formatDayTitle(date)}</h2>
-				<p className="mt-2 text-sm text-muted-foreground">Planned exercises for this day.</p>
-			</div>
+		<div className="mx-auto w-full max-w-3xl space-y-4">
+			<Link className="text-sm text-muted-foreground hover:text-foreground" href="/">
+				← Back to week
+			</Link>
 
-			<form className="grid gap-2 bg-background p-3 ring-1 ring-border/80" onSubmit={submit}>
-				<label className="grid gap-1 text-sm">
-					<span className="font-medium">Exercise</span>
-					<input
-						className="bg-background px-3 py-2 text-sm ring-1 ring-border/80 focus:outline-none focus:ring-2"
-						onChange={(event) => setName(event.target.value)}
-						placeholder="Bench press"
-						value={name}
-					/>
-				</label>
-				<label className="grid gap-1 text-sm">
-					<span className="font-medium">Notes</span>
-					<input
-						className="bg-background px-3 py-2 text-sm ring-1 ring-border/80 focus:outline-none focus:ring-2"
-						onChange={(event) => setDetails(event.target.value)}
-						placeholder="3 sets of 8, moderate weight"
-						value={details}
-					/>
-				</label>
-				<button
-					className="justify-self-start bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
-					disabled={create.isPending}
-					type="submit"
-				>
-					Add exercise
-				</button>
-			</form>
+			<Screen description="Planned exercises for this day." title={formatDayTitle(date)}>
+				<Section title="Planned">
+					{day.isPending && <LoadingState />}
+					{day.isError && <ErrorState description="Could not load this day. Please try again." />}
+					{day.isSuccess && exercises.length === 0 && (
+						<EmptyState title="Nothing planned yet" description="Add the first exercise below." />
+					)}
+					{exercises.length > 0 && (
+						<List>
+							{exercises.map((exercise) => (
+								<Row key={exercise.id} subtitle={exercise.details} title={exercise.name} />
+							))}
+						</List>
+					)}
+				</Section>
 
-			{day.isPending && <p className="text-sm text-muted-foreground">Loading exercises…</p>}
-			{day.isError && (
-				<p className="text-sm text-red-600">Could not load this day. Please try again.</p>
-			)}
-			{day.data && day.data.exercises.length === 0 && (
-				<p className="text-sm text-muted-foreground">
-					Nothing planned yet. Add the first exercise above.
-				</p>
-			)}
-
-			<ul className="grid gap-2">
-				{(day.data?.exercises ?? []).map((exercise) => (
-					<li className="bg-background p-3 ring-1 ring-border/80" key={exercise.id}>
-						<h3 className="text-sm font-semibold">{exercise.name}</h3>
-						{exercise.details && (
-							<p className="mt-1 text-sm text-muted-foreground">{exercise.details}</p>
-						)}
-					</li>
-				))}
-			</ul>
-		</main>
+				<Section title="Add exercise">
+					<form className="space-y-3" onSubmit={submit}>
+						<Field label="Exercise">
+							<TextInput
+								onChange={(event) => setName(event.target.value)}
+								placeholder="Bench press"
+								value={name}
+							/>
+						</Field>
+						<Field label="Notes" help="Optional — sets, reps, weight.">
+							<TextInput
+								onChange={(event) => setDetails(event.target.value)}
+								placeholder="3 sets of 8, moderate weight"
+								value={details}
+							/>
+						</Field>
+						<Button disabled={create.isPending} type="submit">
+							Add exercise
+						</Button>
+					</form>
+				</Section>
+			</Screen>
+		</div>
 	);
 }
 

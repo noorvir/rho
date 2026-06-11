@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRhoApp } from "@rho/apps-sdk/react";
+import { Badge, ErrorState, List, LoadingState, Row, Screen, Section } from "@rho/ui";
 import { useApi } from "../client.ts";
 
 interface WeekDay {
@@ -9,7 +9,6 @@ interface WeekDay {
 }
 
 export function Home() {
-	const rho = useRhoApp();
 	const api = useApi();
 	const days = currentWeekDays();
 	const week = useQuery(
@@ -20,54 +19,43 @@ export function Home() {
 			},
 		}),
 	);
+	const planned = week.data?.exercises ?? [];
 
 	return (
-		<main className="space-y-4">
-			<div>
-				<p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-					Workout Tracker
-				</p>
-				<h2 className="mt-1 text-2xl font-semibold tracking-tight">This week</h2>
-				<p className="mt-2 text-sm text-muted-foreground">
-					Pick a day to see the planned exercises.
-				</p>
-			</div>
-
-			{week.isPending && <p className="text-sm text-muted-foreground">Loading your plan…</p>}
+		<Screen description="Pick a day to see the planned exercises." title="This week">
+			{week.isPending && <LoadingState />}
 			{week.isError && (
-				<p className="text-sm text-red-600">Could not load your workout plan. Please try again.</p>
+				<ErrorState description="Could not load your workout plan. Please try again." />
 			)}
 
-			<div className="grid gap-2 md:grid-cols-7">
-				{days.map((day) => {
-					const exercises = week.data?.exercises.filter((exercise) => exercise.date === day.date) ?? [];
-					return (
-						<a
-							className="block bg-background p-3 ring-1 ring-border/80 transition hover:bg-muted/60"
-							href={`${rho.app.basePath}/day/${day.date}`}
-							key={day.date}
-							onClick={(event) => {
-								event.preventDefault();
-								rho.navigate(`/day/${day.date}`);
-							}}
-						>
-							<p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-								{day.shortLabel}
-							</p>
-							<h3 className="mt-1 text-lg font-semibold tracking-tight">{day.label}</h3>
-							<p className="mt-3 text-sm text-muted-foreground">
-								{exercises.length === 0
-									? "No exercises planned"
-									: `${exercises.length} planned ${exercises.length === 1 ? "exercise" : "exercises"}`}
-							</p>
-							{exercises.length > 0 && (
-								<p className="mt-1 truncate text-sm font-medium">{exercises[0].name}</p>
-							)}
-						</a>
-					);
-				})}
-			</div>
-		</main>
+			{week.isSuccess && (
+				<Section>
+					<List>
+						{days.map((day) => {
+							const exercises = planned.filter((exercise) => exercise.date === day.date);
+							const summary =
+								exercises.length === 0
+									? "Rest day"
+									: exercises.map((exercise) => exercise.name).join(", ");
+							return (
+								<Row
+									href={`/day/${day.date}`}
+									key={day.date}
+									leading={
+										<span className="w-10 text-xs font-medium uppercase text-muted-foreground">
+											{day.shortLabel}
+										</span>
+									}
+									subtitle={summary}
+									title={day.label}
+									trailing={exercises.length > 0 && <Badge>{exercises.length}</Badge>}
+								/>
+							);
+						})}
+					</List>
+				</Section>
+			)}
+		</Screen>
 	);
 }
 

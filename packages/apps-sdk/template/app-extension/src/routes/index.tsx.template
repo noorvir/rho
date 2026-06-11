@@ -1,21 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { useRhoApp } from "@rho/apps-sdk/react";
+import { EmptyState, ErrorState, List, LoadingState, Row, Screen, Section } from "@rho/ui";
 import { useApi } from "../client.ts";
 
 export function Home() {
-	const rho = useRhoApp();
 	const api = useApi();
 	const items = useQuery(api.items.queryOptions());
 
 	return (
-		<main>
-			<h2>__APP_NAME__</h2>
-			<p>Running inside rho on {rho.host.platform}.</p>
-			<ul>
-				{(items.data?.items ?? []).map((item) => (
-					<li key={item.id}>{item.name}</li>
-				))}
-			</ul>
-		</main>
+		<Screen title="__APP_NAME__">
+			<Section title="Items">
+				{items.isPending && <LoadingState />}
+				{items.isError && <ErrorState description="Could not load items. Please try again." />}
+				{items.data && items.data.items.length === 0 && (
+					<EmptyState title="Nothing here yet" description="Items you add will show up here." />
+				)}
+				{items.data && items.data.items.length > 0 && (
+					<List>
+						{items.data.items.map((item) => (
+							<Row key={item.id} title={item.name} />
+						))}
+					</List>
+				)}
+			</Section>
+		</Screen>
 	);
 }

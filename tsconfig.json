@@ -4,6 +4,7 @@
 		{ "path": "./apps/server" },
 		{ "path": "./packages/lib" },
 		{ "path": "./packages/apps-sdk" },
+		{ "path": "./packages/ui" },
 		{ "path": "./examples/extensions/workout-tracker" },
 		{ "path": "./packages/channels" },
 		{ "path": "./packages/ai" },

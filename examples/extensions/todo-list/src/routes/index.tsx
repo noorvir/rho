@@ -1,4 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	Button,
+	Checkbox,
+	EmptyState,
+	ErrorState,
+	List,
+	LoadingState,
+	Row,
+	Screen,
+	TextInput,
+} from "@rho/ui";
 import { useState } from "react";
 import { useApi } from "../client.ts";
 
@@ -24,72 +35,56 @@ export function Todos() {
 	}
 
 	return (
-		<main className="space-y-4">
-			<div>
-				<p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-					Todo List
-				</p>
-				<h2 className="mt-1 text-2xl font-semibold tracking-tight">Todos</h2>
-			</div>
-
+		<Screen title="Todos">
 			<form className="flex gap-2" onSubmit={submit}>
-				<input
-					className="flex-1 bg-background px-3 py-2 text-sm ring-1 ring-border/80 focus:outline-none focus:ring-2"
+				<TextInput
 					onChange={(event) => setTitle(event.target.value)}
 					placeholder="What needs doing?"
 					value={title}
 				/>
-				<button
-					className="bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
-					disabled={create.isPending}
-					type="submit"
-				>
+				<Button disabled={create.isPending} type="submit">
 					Add
-				</button>
+				</Button>
 			</form>
 
-			{todos.isPending && <p className="text-sm text-muted-foreground">Loading todos…</p>}
-			{todos.isError && (
-				<p className="text-sm text-red-600">Could not load todos. Please try again.</p>
-			)}
+			{todos.isPending && <LoadingState />}
+			{todos.isError && <ErrorState description="Could not load todos. Please try again." />}
 			{todos.data && todos.data.todos.length === 0 && (
-				<p className="text-sm text-muted-foreground">Nothing here yet. Add your first todo above.</p>
+				<EmptyState title="Nothing here yet" description="Add your first todo above." />
 			)}
 
-			<ul className="grid gap-2">
-				{(todos.data?.todos ?? []).map((todo) => (
-					<li
-						className="flex items-center gap-3 bg-background p-3 ring-1 ring-border/80"
-						key={todo.id}
-					>
-						<input
-							checked={todo.completed}
-							className="size-4 accent-green-600"
-							onChange={(event) =>
-								toggle.mutate({ id: todo.id, completed: event.target.checked })
+			{todos.data && todos.data.todos.length > 0 && (
+				<List>
+					{todos.data.todos.map((todo) => (
+						<Row
+							key={todo.id}
+							leading={
+								<Checkbox
+									checked={todo.completed}
+									onChange={(event) =>
+										toggle.mutate({ id: todo.id, completed: event.target.checked })
+									}
+								/>
 							}
-							type="checkbox"
+							title={
+								<span className={todo.completed ? "text-muted-foreground line-through" : undefined}>
+									{todo.title}
+								</span>
+							}
+							trailing={
+								<Button
+									disabled={remove.isPending}
+									onClick={() => remove.mutate({ id: todo.id })}
+									size="sm"
+									variant="destructive"
+								>
+									Delete
+								</Button>
+							}
 						/>
-						<span
-							className={
-								todo.completed
-									? "flex-1 text-sm text-muted-foreground line-through"
-									: "flex-1 text-sm"
-							}
-						>
-							{todo.title}
-						</span>
-						<button
-							className="text-xs text-muted-foreground hover:text-red-600 disabled:opacity-50"
-							disabled={remove.isPending}
-							onClick={() => remove.mutate({ id: todo.id })}
-							type="button"
-						>
-							Delete
-						</button>
-					</li>
-				))}
-			</ul>
-		</main>
+					))}
+				</List>
+			)}
+		</Screen>
 	);
 }

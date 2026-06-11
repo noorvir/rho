@@ -274,6 +274,38 @@ Use local React state for temporary UI state that does not belong in a link, suc
 
 Do not put secrets, access tokens, large payloads, or private draft content in query params.
 
+## Building the UI
+
+Build app screens from the `@rho/ui` primitives. They handle structure,
+navigation, and platform correctness (tap targets, input sizes that don't
+trigger mobile zoom, client-side routing), so app code mostly composes them
+and fills in content:
+
+- `Screen` — one per route: page title, optional header actions, vertical rhythm.
+- `Section` — a titled group inside a screen. Headings and spacing only, never a box.
+- `List` + `Row` — grouped rows; the only bordered surface. `Row` takes
+  `leading`/`title`/`subtitle`/`trailing`, plus `href` (navigation) or `onPress` (action).
+- `Field`, `TextInput`, `TextArea`, `Select`, `Checkbox` — form controls with
+  label/help/error layout.
+- `Button`, `Badge` — actions and small labels.
+- `Link` — in-app navigation without a page reload.
+- `LoadingState`, `EmptyState`, `ErrorState` — query lifecycle placeholders.
+
+Design rules:
+
+- Hierarchy comes from typography and spacing, not boxes. Never wrap content
+  in extra bordered or shadowed containers, and never nest one surface inside
+  another. If content needs grouping, use a `Section`.
+- Every data fetch renders all three lifecycle states: `LoadingState` while
+  pending, `ErrorState` on failure, `EmptyState` when there is nothing yet.
+- Navigate between app routes with `Link` or `Row href` — never raw `<a>`
+  tags, which cause full page reloads.
+- Use Tailwind classes for spacing, color accents, and custom content layout
+  inside the primitives. Stick to theme tokens (`text-muted-foreground`,
+  `bg-card`, `border-border`, `text-destructive`) so apps follow the user's
+  theme in light and dark mode.
+- Keep screens calm: one accent action per screen, muted secondary actions.
+
 ## Responsive design
 
 Design mobile-first. Rho apps render inside a shell that also needs to work across web and mobile hosts.
@@ -298,6 +330,7 @@ App extensions commonly use:
 |---------|---------|
 | `@rho/apps-sdk` | `defineExtension`, `createAppExtension`, app and API context types. |
 | `@rho/apps-sdk/react` | `RhoAppProvider`, `useRhoApp`. |
+| `@rho/ui` | UI primitives: `Screen`, `Section`, `List`, `Row`, forms, states. |
 | `@orpc/server` | app API handlers and router types. |
 | `@orpc/client` | typed client creation for app APIs. |
 | `@orpc/react-query` | React Query helpers for oRPC clients. |
