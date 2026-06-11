@@ -43,6 +43,27 @@ export function agentRouter() {
 			return { message: collected.data };
 		}),
 
+		tasks: p.agent.tasks.handler(async ({ input, context }) => {
+			await requireAuth(context);
+			const key = conversationKey(input.id);
+			const res = await tc(context.core.listTasks(key));
+			if (res.error) {
+				throw badRequest(res.error, "Failed to load tasks");
+			}
+
+			const tasks = res.data.map((task) => ({
+				id: task.id,
+				title: task.title,
+				status: task.status,
+				summary: task.summary,
+				error: task.error,
+				createdAt: task.createdAt,
+				updatedAt: task.updatedAt,
+			}));
+
+			return { tasks };
+		}),
+
 		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {
 			await requireAuth(context);
 			const messageInput = tc(() => validateHttpMessage(input));

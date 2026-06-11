@@ -5,13 +5,18 @@ import { createRhoCore } from "@rho/core";
 
 import { createRhoAuth } from "./auth.ts";
 import { env } from "./lib/env.ts";
+import { installCrashGuards } from "./lib/crash-guards.ts";
 import { createServer } from "./server.ts";
+
+installCrashGuards();
 
 const webRoot = new URL("../web/dist/", import.meta.url).pathname;
 const core = await createRhoCore({
 	cwd: process.cwd(),
 	agentDir: env.RHO_AGENT_DIR,
 	stateDir: env.RHO_STATE_DIR,
+	databaseUrl: env.RHO_DATABASE_URL,
+	docsDir: env.RHO_DOCS_DIR,
 	extensionPaths: env.RHO_EXTENSION_PATHS,
 });
 const auth = createRhoAuth({

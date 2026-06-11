@@ -4,6 +4,7 @@ struct ChatSheetView: View {
     let authStore: AuthStore
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var draft = ""
     @State private var conversationID = ChatConversationStore.currentConversationID()
@@ -12,6 +13,8 @@ struct ChatSheetView: View {
     @State private var isSending = false
     @State private var isHistoryPresented = false
     @State private var errorText: String?
+    @State private var workingTasks: [TaskSummary] = []
+    @State private var taskPoller: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,6 +32,16 @@ struct ChatSheetView: View {
                         ForEach(messages) { message in
                             ChatBubble(message: message)
                                 .id(message.id)
+                        }
+
+                        ForEach(workingTasks, id: \.id) { task in
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("Working on: \(task.title)…")
+                                    .font(.system(size: 12))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
 
                         if let errorText {
@@ -52,6 +65,15 @@ struct ChatSheetView: View {
         .background(Color.white.ignoresSafeArea())
         .task(id: conversationID) {
             await loadHistory(for: conversationID)
+            startTaskPolling()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await loadHistory(for: conversationID) }
+            startTaskPolling()
+        }
+        .onDisappear {
+            taskPoller?.cancel()
         }
         .sheet(isPresented: $isHistoryPresented) {
             ChatHistorySheetView(conversations: conversations, currentID: conversationID) { id in
@@ -140,7 +162,46 @@ struct ChatSheetView: View {
             await MainActor.run {
                 guard conversationID == id else { return }
                 isSending = false
+                startTaskPolling()
             }
+        }
+    }
+
+    private func startTaskPolling() {
+        taskPoller?.cancel()
+        taskPoller = Task { await pollTasks() }
+    }
+
+    private func pollTasks() async {
+        let id = conversationID
+        var hadActiveTask = false
+
+        while !Task.isCancelled {
+            guard let tasks = try? await ChatClient(authStore: authStore, conversationID: id).tasks() else {
+                return
+            }
+
+            let active = tasks.filter { $0.status == "queued" || $0.status == "running" }
+            let finished = hadActiveTask && active.isEmpty
+
+            let stale = await MainActor.run { () -> Bool in
+                guard id == conversationID else { return true }
+                workingTasks = active
+                return false
+            }
+            if stale || Task.isCancelled {
+                return
+            }
+
+            if active.isEmpty {
+                if finished {
+                    await loadHistory(for: id)
+                }
+                return
+            }
+
+            hadActiveTask = true
+            try? await Task.sleep(for: .seconds(4))
         }
     }
 
@@ -567,9 +628,18 @@ private final class ChatClient {
         baseURL.appendingPathComponent("agent/conversations/\(conversationID)/messages")
     }
 
+    private var tasksEndpoint: URL {
+        baseURL.appendingPathComponent("agent/conversations/\(conversationID)/tasks")
+    }
+
     func history() async throws -> ChatHistory {
         let data = try await data(for: historyEndpoint)
         return try JSONDecoder().decode(ChatHistory.self, from: data)
+    }
+
+    func tasks() async throws -> [TaskSummary] {
+        let data = try await data(for: tasksEndpoint)
+        return try JSONDecoder().decode(TaskList.self, from: data).tasks
     }
 
     func send(text: String) -> AsyncThrowingStream<ChatEvent, Error> {
@@ -763,6 +833,16 @@ private enum ChatClientError: LocalizedError {
 
 private struct ChatHistory: Decodable {
     let messages: [ChatHistoryMessage]
+}
+
+private struct TaskSummary: Decodable {
+    let id: String
+    let title: String
+    let status: String
+}
+
+private struct TaskList: Decodable {
+    let tasks: [TaskSummary]
 }
 
 private struct ChatHistoryMessage: Decodable {

@@ -1,3 +1,4 @@
+import ObjectiveC
 import Security
 import SwiftUI
 import WebKit
@@ -14,19 +15,13 @@ struct InstalledApp: Identifiable, Equatable {
     let name: String
     let color: Color
     let url: URL
-
-    static let examples = [
-        InstalledApp(id: "workout", name: "Workout tracker", color: .blue, url: URL(string: "https://example.com")!),
-        InstalledApp(id: "german", name: "German lessons", color: .purple, url: URL(string: "https://example.com")!),
-        InstalledApp(id: "email", name: "Email management", color: .green, url: URL(string: "https://example.com")!),
-        InstalledApp(id: "agent", name: "Coding agent", color: .orange, url: URL(string: "https://example.com")!),
-    ]
 }
 
 struct ContentView: View {
     @StateObject private var authStore = AuthStore()
     @State private var screen: RootScreen = .home
     @State private var isChatPresented = false
+    @State private var apps: [InstalledApp] = []
 
     var body: some View {
         Group {
@@ -34,7 +29,7 @@ struct ContentView: View {
                 AppShellView(
                     bottomBar: .root(
                         screen: screen,
-                        apps: InstalledApp.examples,
+                        apps: apps,
                         selectScreen: { screen = $0 },
                         openChat: { isChatPresented = true }
                     )
@@ -47,12 +42,103 @@ struct ContentView: View {
                         .presentationDragIndicator(.hidden)
                         .presentationCornerRadius(18)
                 }
+                .task(id: authStore.isAuthenticated) {
+                    apps = (try? await AppsClient(authStore: authStore).installedApps()) ?? []
+                }
             } else {
                 LoginView(authStore: authStore)
             }
         }
         .dynamicTypeSize(.medium)
         .preferredColorScheme(.light)
+    }
+}
+
+@MainActor
+final class AppsClient {
+    private static let palette: [Color] = [.blue, .purple, .green, .orange, .pink, .teal]
+
+    private let authStore: AuthStore
+
+    init(authStore: AuthStore) {
+        self.authStore = authStore
+    }
+
+    func installedApps() async throws -> [InstalledApp] {
+        let data = try await authorizedData(url: authStore.baseURL.appendingPathComponent("apps.json"), method: "GET")
+        let response = try JSONDecoder().decode(AppsResponse.self, from: data)
+
+        return response.apps.enumerated().map { index, app in
+            InstalledApp(
+                id: app.slug,
+                name: app.name,
+                color: Self.palette[index % Self.palette.count],
+                url: authStore.baseURL.appendingPathComponent("embed/apps/\(app.slug)")
+            )
+        }
+    }
+
+    /// Exchanges the bearer token for a browser session cookie so the web UI
+    /// inside a WKWebView is authenticated.
+    func webSessionCookie() async throws -> HTTPCookie? {
+        let data = try await authorizedData(
+            url: authStore.baseURL.appendingPathComponent("api/auth/web-session"),
+            method: "POST"
+        )
+        let session = try JSONDecoder().decode(WebSessionResponse.self, from: data)
+
+        guard let host = authStore.baseURL.host else {
+            return nil
+        }
+
+        return HTTPCookie(properties: [
+            .name: session.cookieName,
+            .value: session.token,
+            .domain: host,
+            .path: "/",
+        ])
+    }
+
+    private func authorizedData(url: URL, method: String) async throws -> Data {
+        let response = try await send(url: url, method: method)
+        if response.status == 401 {
+            try await authStore.refresh()
+            let retried = try await send(url: url, method: method)
+            guard (200..<300).contains(retried.status) else {
+                throw URLError(.userAuthenticationRequired)
+            }
+            return retried.data
+        }
+
+        guard (200..<300).contains(response.status) else {
+            throw URLError(.badServerResponse)
+        }
+
+        return response.data
+    }
+
+    private func send(url: URL, method: String) async throws -> (data: Data, status: Int) {
+        var request = authStore.authorizedRequest(url: url)
+        request.httpMethod = method
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        return (data, httpResponse.statusCode)
+    }
+
+    private struct AppsResponse: Decodable {
+        struct AppSummary: Decodable {
+            let slug: String
+            let name: String
+        }
+
+        let apps: [AppSummary]
+    }
+
+    private struct WebSessionResponse: Decodable {
+        let cookieName: String
+        let token: String
     }
 }
 
@@ -140,7 +226,7 @@ private struct RootScreenView: View {
         case .home:
             PlaceholderScreen(title: "Home", subtitle: "Your rho workspace")
         case .app(let app):
-            AppWebView(app: app)
+            AppWebView(app: app, authStore: authStore)
         case .search:
             PlaceholderScreen(title: "Search", subtitle: "Find apps, sessions, and saved work")
         case .settings:
@@ -226,6 +312,9 @@ private struct SettingsRow: View {
 
 private struct AppWebView: View {
     let app: InstalledApp
+    @ObservedObject var authStore: AuthStore
+    @State private var cookie: HTTPCookie?
+    @State private var isReady = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -235,28 +324,157 @@ private struct AppWebView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 12)
 
-            WebView(url: app.url)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            Group {
+                if isReady {
+                    WebView(url: app.url, cookie: cookie)
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .padding(.horizontal, 20)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            }
+            .padding(.horizontal, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .task(id: app.id) {
+            cookie = try? await AppsClient(authStore: authStore).webSessionCookie()
+            isReady = true
+        }
     }
 }
 
 private struct WebView: UIViewRepresentable {
     let url: URL
+    let cookie: HTTPCookie?
+
+    /// Makes embedded pages behave like native app surfaces: pins the layout
+    /// to the device width, suppresses the focus auto-zoom (iOS zooms any
+    /// focused input with a font under 16px), and removes web-only tells
+    /// like tap-highlight flashes and double-tap zoom.
+    private static let nativeFeelScript = """
+    (() => {
+      let meta = document.querySelector('meta[name="viewport"]');
+      if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'viewport';
+        document.head.appendChild(meta);
+      }
+      meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+
+      const style = document.createElement('style');
+      style.textContent = `
+        input, textarea, select { font-size: max(16px, 1em) !important; }
+        html { -webkit-text-size-adjust: 100%; }
+        * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+      `;
+      document.head.appendChild(style);
+    })();
+    """
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(allowedHost: url.host, allowedPort: url.port)
+    }
 
     func makeUIView(context: Context) -> WKWebView {
-        WKWebView()
+        let configuration = WKWebViewConfiguration()
+        configuration.userContentController.addUserScript(
+            WKUserScript(source: Self.nativeFeelScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        )
+
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        webView.allowsLinkPreview = false
+        webView.scrollView.keyboardDismissMode = .interactive
+        webView.scrollView.bouncesZoom = false
+        hideInputAccessoryBar(in: webView)
+        return webView
+    }
+
+    /// Removes the up/down/done bar WKWebView shows above the keyboard by
+    /// swapping the content view's class for a runtime subclass whose
+    /// `inputAccessoryView` is nil — the standard approach, since WebKit has
+    /// no public switch for it.
+    private func hideInputAccessoryBar(in webView: WKWebView) {
+        guard let contentView = webView.scrollView.subviews.first(where: {
+            String(describing: type(of: $0)).hasPrefix("WKContent")
+        }) else {
+            return
+        }
+
+        let subclassName = "WKContentView_RhoNoAccessory"
+        if let subclass = NSClassFromString(subclassName) {
+            object_setClass(contentView, subclass)
+            return
+        }
+
+        guard let contentClass = object_getClass(contentView),
+              let subclass = objc_allocateClassPair(contentClass, subclassName, 0)
+        else {
+            return
+        }
+
+        let selector = #selector(getter: UIResponder.inputAccessoryView)
+        if let method = class_getInstanceMethod(contentClass, selector) {
+            let returnNil: @convention(block) (AnyObject) -> UIView? = { _ in nil }
+            class_addMethod(subclass, selector, imp_implementationWithBlock(returnNil), method_getTypeEncoding(method))
+        }
+
+        objc_registerClassPair(subclass)
+        object_setClass(contentView, subclass)
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        if webView.url != url {
-            webView.load(URLRequest(url: url))
+        guard context.coordinator.requestedURL != url else { return }
+        context.coordinator.requestedURL = url
+
+        let request = URLRequest(url: url)
+        if let cookie {
+            webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) {
+                webView.load(request)
+            }
+        } else {
+            webView.load(request)
+        }
+    }
+
+    /// Locks the WebView to the rho server's embed surface: same host only,
+    /// and main-frame navigation never leaves /embed/.
+    final class Coordinator: NSObject, WKNavigationDelegate {
+        /// Last URL this view asked the web view to load; app switches change it.
+        var requestedURL: URL?
+
+        private let allowedHost: String?
+        private let allowedPort: Int?
+
+        init(allowedHost: String?, allowedPort: Int?) {
+            self.allowedHost = allowedHost
+            self.allowedPort = allowedPort
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            guard let url = navigationAction.request.url,
+                  url.host == allowedHost,
+                  url.port == allowedPort
+            else {
+                decisionHandler(.cancel)
+                return
+            }
+
+            let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
+            if isMainFrame && !url.path.hasPrefix("/embed/") {
+                decisionHandler(.cancel)
+                return
+            }
+
+            decisionHandler(.allow)
         }
     }
 }

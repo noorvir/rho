@@ -10,7 +10,6 @@ import type {
 	RhoExtensionContext,
 	RhoExtensionDefinition,
 } from "../types.ts";
-import { appApiProcedure } from "../types.ts";
 
 const jiti = createJiti(import.meta.url, { moduleCache: false });
 
@@ -20,6 +19,7 @@ type ExtensionDefinitionFn = (context: RhoExtensionContext) => Promise<RhoExtens
 
 export async function loadExtensionModule(
 	discovered: DiscoveredExtension,
+	context: RhoExtensionContext,
 ): Promise<LoadExtensionModuleResult> {
 	const imported = await tc(jiti.import(discovered.source.resolvedPath, { default: true }));
 	if (imported.error) {
@@ -32,7 +32,7 @@ export async function loadExtensionModule(
 
 	const define = imported.data;
 
-	const definitionRes = await tc(async () => define({ api: appApiProcedure }));
+	const definitionRes = await tc(async () => define(context));
 	if (definitionRes.error) {
 		return failure(discovered, wrapError(definitionRes.error, "Failed to define extension"));
 	}

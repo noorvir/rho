@@ -21,6 +21,23 @@ db/
 | `db/rho.sqlite` | Shared SQLite database. |
 | `db/generated/` | Generated database client for the canonical schema. |
 
+## Runtime layouts
+
+In an installed runtime the paths above live under the runtime's `db/`
+directory. When Rho runs from its source repository (development), the same
+roles map to:
+
+| Role | Source-repo path |
+|------|------------------|
+| Canonical schema | `packages/core/prisma/schema.prisma` |
+| Shared database | the file behind `RHO_DATABASE_URL` (dev default `packages/core/dev.db`) |
+| Generated client | `packages/core/src/generated/prisma/` |
+
+Apply schema changes in the source repo with, from `packages/core`:
+`DATABASE_URL=<runtime database url> bun run db:migrate -- --name <change>`
+then `bun run db:generate`. The dev server restarts automatically when the
+generated client changes.
+
 ## Ownership
 
 Rho owns `db/schema.prisma`. That file is the only schema file for the installed runtime.

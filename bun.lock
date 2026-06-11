@@ -66,6 +66,23 @@
         "vite": "^7.2.6",
       },
     },
+    "examples/extensions/todo-list": {
+      "name": "rho-app-todo-list",
+      "version": "0.0.0",
+      "dependencies": {
+        "@orpc/client": "^1.12.0",
+        "@orpc/react-query": "^1.12.0",
+        "@orpc/server": "^1.12.0",
+        "@rho/apps-sdk": "0.0.0",
+        "@tanstack/react-query": "^5.90.12",
+        "react": "^19.2.1",
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.7",
+        "typescript": "^5.9.2",
+      },
+    },
     "examples/extensions/workout-tracker": {
       "name": "rho-app-workout-tracker",
       "version": "0.0.0",
@@ -76,9 +93,11 @@
         "@rho/apps-sdk": "0.0.0",
         "@tanstack/react-query": "^5.90.12",
         "react": "^19.2.1",
+        "zod": "4.4.3",
       },
       "devDependencies": {
         "@types/react": "^19.2.7",
+        "typescript": "^5.9.2",
       },
     },
     "packages/ai": {
@@ -88,6 +107,7 @@
         "@earendil-works/pi-agent-core": "^0.79.1",
         "@earendil-works/pi-ai": "^0.79.1",
         "@earendil-works/pi-coding-agent": "^0.79.1",
+        "typebox": "1.1.38",
       },
     },
     "packages/apps-sdk": {
@@ -1578,6 +1598,8 @@
     "rettime": ["rettime@0.11.11", "", {}, "sha512-ILJRqVWBCTlg9r42fFgwVZx1gnFAcQF8mRoMkbgQfIrjEDf9nbBFDFx00oloOa+Q869FUtaYDXZvEfnecQSCoQ=="],
 
     "reusify": ["reusify@1.1.0", "", {}, "sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="],
+
+    "rho-app-todo-list": ["rho-app-todo-list@workspace:examples/extensions/todo-list"],
 
     "rho-app-workout-tracker": ["rho-app-workout-tracker@workspace:examples/extensions/workout-tracker"],
 

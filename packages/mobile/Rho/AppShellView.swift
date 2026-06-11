@@ -18,7 +18,7 @@ struct AppShellView<Content: View>: View {
 
 #Preview("Root") {
     AppShellView(
-        bottomBar: .root(screen: .home, apps: InstalledApp.examples, selectScreen: { _ in }, openChat: {})
+        bottomBar: .root(screen: .home, apps: [], selectScreen: { _ in }, openChat: {})
     ) {
         Color.white
     }

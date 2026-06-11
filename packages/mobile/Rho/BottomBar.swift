@@ -284,7 +284,7 @@ private extension View {
 }
 
 #Preview("Root bar") {
-    BottomBar(state: .root(screen: .home, apps: InstalledApp.examples, selectScreen: { _ in }, openChat: {}))
+    BottomBar(state: .root(screen: .home, apps: [], selectScreen: { _ in }, openChat: {}))
 }
 
 #Preview("Page action bar") {

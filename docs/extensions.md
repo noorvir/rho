@@ -93,6 +93,25 @@ export default defineExtension(async (rho) => ({
 
 The `client.entry` path is resolved relative to the extension entrypoint file. If the entrypoint is `src/extension.ts`, then `client.entry: "./app.tsx"` points at `src/app.tsx`.
 
+## Extension data
+
+The extension definition context provides `rho.db`, the shared runtime
+database client (Prisma) over the canonical Rho schema. API handlers persist
+app data through it:
+
+```ts
+export function createRouter({ api, db }: RhoExtensionContext) {
+	return {
+		list: api.handler(async () => ({ items: await db.todo.findMany() })),
+	};
+}
+```
+
+Models used by an extension must exist in the runtime schema first. Adding or
+changing models follows the Rho-managed migration flow in
+[Database](database.md); after the schema change is applied and the client is
+regenerated, reload the runtime.
+
 ## Agent extensions
 
 An extension package can also extend the Rho agent runtime by contributing agent extensions. Each agent extension declares one or more sources: a path to an agent extension module, or an inline factory.

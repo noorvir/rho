@@ -10,8 +10,8 @@ export default defineExtension(async (rho) => ({
 				entry: "./app.tsx",
 			},
 			routes: [
-				{ path: "/", label: "Home" },
-				{ path: "/workouts", label: "Workouts" },
+				{ path: "/", label: "Week" },
+				{ path: "/day", label: "Day" },
 			],
 			api: {
 				router: createRouter(rho),

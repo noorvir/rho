@@ -1,10 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, createRoute, createRouter, RouterProvider, useLocation } from "@tanstack/react-router";
+import {
+	createRootRoute,
+	createRoute,
+	createRouter,
+	Outlet,
+	RouterProvider,
+	useLocation,
+} from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProtectedShell } from "./auth.tsx";
-import { RhoApps } from "./rho-apps.tsx";
+import { RhoApps, RhoEmbeddedApp } from "./rho-apps.tsx";
 import { AppsPage } from "./routes/apps.tsx";
 import { Dashboard } from "./routes/dashboard.tsx";
 import { DataPage } from "./routes/data.tsx";
@@ -51,6 +58,18 @@ const appPathRoute = createRoute({
 	component: AppPathRoute,
 });
 
+const embedAppHomeRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/embed/apps/$appSlug",
+	component: EmbedAppHomeRoute,
+});
+
+const embedAppPathRoute = createRoute({
+	getParentRoute: () => rootRoute,
+	path: "/embed/apps/$appSlug/$",
+	component: EmbedAppPathRoute,
+});
+
 const dataRoute = createRoute({
 	getParentRoute: () => rootRoute,
 	path: "/data",
@@ -76,6 +95,8 @@ const routeTree = rootRoute.addChildren([
 	appsRoute,
 	appHomeRoute,
 	appPathRoute,
+	embedAppHomeRoute,
+	embedAppPathRoute,
 	dataRoute,
 	dataTableRoute,
 	settingsRoute,
@@ -99,6 +120,16 @@ function AppPathRoute() {
 	return <RhoApps appSlug={appSlug} routePath={`/${_splat}`} />;
 }
 
+function EmbedAppHomeRoute() {
+	const { appSlug } = embedAppHomeRoute.useParams();
+	return <RhoEmbeddedApp appSlug={appSlug} />;
+}
+
+function EmbedAppPathRoute() {
+	const { _splat, appSlug } = embedAppPathRoute.useParams();
+	return <RhoEmbeddedApp appSlug={appSlug} routePath={`/${_splat}`} />;
+}
+
 function DataTableRoute() {
 	const { tableName } = dataTableRoute.useParams();
 	return <DataPage tableName={tableName} />;
@@ -112,6 +143,9 @@ function Root() {
 	}
 	if (location.pathname === "/setup") {
 		return <SetupPage />;
+	}
+	if (location.pathname.startsWith("/embed/")) {
+		return <Outlet />;
 	}
 
 	return <ProtectedShell />;

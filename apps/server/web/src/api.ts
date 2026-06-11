@@ -50,6 +50,7 @@ export type ChatMessage = {
 	text: string;
 };
 export type AppExtensionSummary = Awaited<ReturnType<typeof api.apps.list>>["apps"][number];
+export type TaskSummary = Awaited<ReturnType<typeof api.agent.tasks>>["tasks"][number];
 export type TableSummary = Awaited<ReturnType<typeof api.data.listTables>>["tables"][number];
 export type TableData = Awaited<ReturnType<typeof api.data.table>>;
 export type TableColumnInfo = TableData["columns"][number];

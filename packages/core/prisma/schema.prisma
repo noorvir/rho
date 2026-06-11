@@ -51,6 +51,58 @@ model Org {
   @@map("orgs")
 }
 
+model Todo {
+  id        Int      @id @default(autoincrement())
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("todos")
+}
+
+model PlannedExercise {
+  id        Int      @id @default(autoincrement())
+  date      String
+  name      String
+  details   String?
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([date, sortOrder])
+  @@map("planned_exercises")
+}
+
+enum TaskStatus {
+  queued
+  running
+  done
+  failed
+}
+
+model Task {
+  id              String     @id
+  conversationKey String     @map("conversation_key")
+  channelId       String     @map("channel_id")
+  targetType      String     @map("target_type")
+  targetId        String     @map("target_id")
+  title           String
+  instructions    String
+  status          TaskStatus @default(queued)
+  attempt         Int        @default(0)
+  error           String?
+  summary         String?
+  sessionFile     String?    @map("session_file")
+  runAfter        DateTime?  @map("run_after")
+  heartbeatAt     DateTime?  @map("heartbeat_at")
+  notifiedAt      DateTime?  @map("notified_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  @@map("_rho_tasks")
+}
+
 model SystemOwner {
   id               Int      @id
   passwordHash     String   @map("password_hash")

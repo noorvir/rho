@@ -42,6 +42,16 @@ const messageSchema = z.object({
 	text: z.string(),
 });
 
+const taskSchema = z.object({
+	id: z.string(),
+	title: z.string(),
+	status: z.enum(["queued", "running", "done", "failed"]),
+	summary: z.string().nullable(),
+	error: z.string().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+
 const chatEventSchema = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("started") }),
 	z.object({ type: z.literal("delta"), text: z.string() }),
@@ -87,6 +97,9 @@ export const httpContract = {
 			.route({ method: "DELETE", path: "/api/auth/api-tokens/{id}" })
 			.input(z.object({ id: z.string().min(1) }))
 			.output(z.object({ revoked: z.boolean() })),
+		webSession: oc
+			.route({ method: "POST", path: "/api/auth/web-session" })
+			.output(z.object({ cookieName: z.string(), token: z.string(), expiresAt: z.date() })),
 		getToken: oc
 			.route({ method: "POST", path: "/api/auth/token/login" })
 			.input(z.object({ password: z.string().min(1) }))
@@ -130,6 +143,10 @@ export const httpContract = {
 			.route({ method: "POST", path: "/agent/messages:stream" })
 			.input(messageInputSchema)
 			.output(eventIterator(chatEventSchema)),
+		tasks: oc
+			.route({ method: "GET", path: "/agent/conversations/{id}/tasks" })
+			.input(z.object({ id: z.string().min(1) }))
+			.output(z.object({ tasks: z.array(taskSchema) })),
 	},
 };
 

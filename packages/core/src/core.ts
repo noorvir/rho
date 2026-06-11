@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import {
 	agentEventTextDelta,
+	backgroundTaskExtension,
 	type ConversationHistory,
 	type ConversationInput,
 	type ConversationKey,
@@ -8,6 +9,8 @@ import {
 	loadConversation,
 	type RhoAgentExtensionSource,
 	respondInConversation,
+	rhoContextExtension,
+	rhoReloadExtension,
 	type StateManager,
 } from "@rho/ai";
 import {
@@ -20,7 +23,10 @@ import {
 import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
+import type { Task } from "./generated/prisma/client.ts";
+import { createRhoPrisma } from "./prisma.ts";
 import { type ReloadResult, reload } from "./reload.ts";
+import { KeyedMutex, TaskRunner } from "./tasks.ts";
 
 export interface RhoCoreOptions {
 	channels?: Channel[];
@@ -30,6 +36,10 @@ export interface RhoCoreOptions {
 	agentDir: string;
 	/** Absolute conversation state directory. Defaults to `<agentDir>/rho-state`. */
 	stateDir?: string;
+	/** Shared SQLite database URL, for example `file:/path/to/rho.sqlite`. */
+	databaseUrl: string;
+	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
+	docsDir?: string;
 	/** Absolute extension entrypoints or directories to load. */
 	extensionPaths?: string[];
 	extensionLoader?: ExtensionLoader;
@@ -44,6 +54,7 @@ export interface RhoCore {
 	state: StateManager;
 	handleMessage(message: ChannelMessage): Promise<ChannelOutput>;
 	loadConversation(key: ConversationKey): Promise<ConversationHistory>;
+	listTasks(key: ConversationKey): Promise<Task[]>;
 	listApps(): Promise<AppExtension[]>;
 	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
@@ -70,14 +81,42 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 			rootDir: stateDir,
 		});
 
+	const prisma = createRhoPrisma(opts.databaseUrl);
+	const conversations = new KeyedMutex();
+
 	const extensionLoader =
 		opts.extensionLoader ??
 		new FileSystemExtensionLoader({
 			extensionsDir,
 			extensionPaths,
+			db: prisma,
 		});
 
 	let agentExtensions: AgentExtension[] = [];
+
+	const runtimeToolSources: RhoAgentExtensionSource[] = [];
+	if (opts.docsDir) {
+		runtimeToolSources.push({ type: "factory", factory: rhoContextExtension({ docsDir: opts.docsDir }) });
+	}
+	runtimeToolSources.push({
+		type: "factory",
+		factory: rhoReloadExtension(async () => reloadSummary(await core.reload())),
+	});
+
+	const sessionExtensions = (): RhoAgentExtensionSource[] => [
+		...runtimeToolSources,
+		...agentExtensionSources(agentExtensions),
+	];
+
+	const tasks = new TaskRunner({
+		prisma,
+		state,
+		cwd,
+		agentDir: opts.agentDir,
+		sessionsDir: join(stateDir, "sessions"),
+		agentExtensions: sessionExtensions,
+		conversations,
+	});
 
 	const runtime = new ChannelRuntime({
 		channels: channelRegistry.current(),
@@ -87,7 +126,24 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 				agentDir: opts.agentDir,
 				state,
 				message,
-				agentExtensions: agentExtensionSources(agentExtensions),
+				conversations,
+				agentExtensions: [
+					...sessionExtensions(),
+					{
+						type: "factory",
+						factory: backgroundTaskExtension(async (request) => {
+							const task = await tasks.create({
+								conversationKey: conversationKey(message),
+								channelId: message.channelId,
+								targetType: message.target.type,
+								targetId: message.target.id,
+								title: request.title,
+								instructions: request.instructions,
+							});
+							return { taskId: task.id };
+						}),
+					},
+				],
 			}),
 	});
 
@@ -116,6 +172,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		state,
 		handleMessage,
 		loadConversation: async (key) => loadConversation(state, key),
+		listTasks: async (key) => tasks.listForConversation(key),
 		listApps,
 		replaceApps,
 		replaceChannels,
@@ -130,12 +187,22 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 			}),
 		activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 		close: async () => {
+			await tasks.stop();
 			await runtime.stop();
+			await prisma.$disconnect();
 		},
 	};
 
 	await core.reload();
+	await tasks.start();
 	return core;
+}
+
+function reloadSummary(result: ReloadResult): string {
+	const issues = result.diagnostics.map((diagnostic) => `${diagnostic.severity}: ${diagnostic.message}`);
+	const status = result.ok ? "Reload succeeded." : "Reload failed; previous extensions stay active.";
+	const summary = `${status} Apps: ${result.apps}. Channels: ${result.channels.join(", ") || "none"}.`;
+	return issues.length > 0 ? `${summary}\nDiagnostics:\n${issues.join("\n")}` : summary;
 }
 
 function agentExtensionSources(extensions: AgentExtension[]): RhoAgentExtensionSource[] {
@@ -147,46 +214,54 @@ interface AgentResponseInput {
 	agentDir: string;
 	state: StateManager;
 	message: ChannelMessage;
+	conversations: KeyedMutex;
 	agentExtensions: RhoAgentExtensionSource[];
 }
 
 async function* agentResponse(input: AgentResponseInput): AsyncIterable<ChannelMessage> {
-	const stream = respondInConversation({
-		state: input.state,
-		key: conversationKey(input.message),
-		cwd: input.cwd,
-		agentDir: input.agentDir,
-		agentExtensions: input.agentExtensions,
-		message: {
-			role: "user",
-			content: messageText(input.message),
-			timestamp: input.message.timestamp.getTime(),
-		},
-		signal: new AbortController().signal,
-	});
+	const key = conversationKey(input.message);
+	const release = await input.conversations.acquire(key);
 
-	let emittedText = false;
-	for await (const event of stream) {
-		const delta = agentEventTextDelta(event);
-		if (delta) {
-			emittedText = true;
-			yield agentMessage(input.message, delta);
+	try {
+		const stream = respondInConversation({
+			state: input.state,
+			key,
+			cwd: input.cwd,
+			agentDir: input.agentDir,
+			agentExtensions: input.agentExtensions,
+			message: {
+				role: "user",
+				content: messageText(input.message),
+				timestamp: input.message.timestamp.getTime(),
+			},
+			signal: new AbortController().signal,
+		});
+
+		let emittedText = false;
+		for await (const event of stream) {
+			const delta = agentEventTextDelta(event);
+			if (delta) {
+				emittedText = true;
+				yield agentMessage(input.message, delta);
+			}
 		}
-	}
 
-	if (emittedText) {
-		return;
-	}
+		if (emittedText) {
+			return;
+		}
 
-	const messages = await stream.result();
-	const text = lastAssistantText(messages);
-	if (!text) {
-		throw new Error(
-			"The Rho agent did not produce a response. Check the deployed agent provider, model, and auth configuration.",
-		);
-	}
+		const messages = await stream.result();
+		const text = lastAssistantText(messages);
+		if (!text) {
+			throw new Error(
+				"The Rho agent did not produce a response. Check the deployed agent provider, model, and auth configuration.",
+			);
+		}
 
-	yield agentMessage(input.message, text);
+		yield agentMessage(input.message, text);
+	} finally {
+		release();
+	}
 }
 
 function agentMessage(input: ChannelMessage, text: string): ChannelMessage {

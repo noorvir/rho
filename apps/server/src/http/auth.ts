@@ -116,6 +116,17 @@ export function authRouter() {
 			return { authenticated: Boolean(principal), principal: principal ?? null };
 		}),
 
+		webSession: p.auth.webSession.handler(async ({ context }) => {
+			await requireAuth(context);
+			const res = await tc(context.auth.createBrowserSession());
+			if (res.error) {
+				throwRhoError("server.internal", { message: "Failed to create web session." });
+			}
+
+			setSessionCookie(context, res.data);
+			return { cookieName: authSessionCookieName, token: res.data.token, expiresAt: res.data.expiresAt };
+		}),
+
 		logout: p.auth.logout.handler(async ({ context }) => {
 			const sessionToken = getCookie(context.reqHeaders, authSessionCookieName);
 			const res = await tc(context.auth.logout(sessionToken));

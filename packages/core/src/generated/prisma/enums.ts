@@ -19,3 +19,13 @@ export const Relationship = {
 } as const
 
 export type Relationship = (typeof Relationship)[keyof typeof Relationship]
+
+
+export const TaskStatus = {
+  queued: 'queued',
+  running: 'running',
+  done: 'done',
+  failed: 'failed'
+} as const
+
+export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]

@@ -50,14 +50,57 @@ export function RhoApps({ appSlug, routePath = "/" }: RhoAppsProps) {
 	);
 }
 
-function AppRuntime({ apps, appSlug, routePath }: { apps: AppExtensionSummary[]; appSlug: string; routePath: string }) {
+/**
+ * Bare app surface for mobile/desktop WebViews: no admin shell, no
+ * navigation chrome, platform reported as the embedding host.
+ */
+export function RhoEmbeddedApp({ appSlug, routePath = "/" }: { appSlug: string; routePath?: string }) {
+	const apps = useQuery(orpc.apps.list.queryOptions());
+
+	if (apps.isPending) {
+		return <EmbedMessage text="Loading…" />;
+	}
+	if (apps.isError || !apps.data) {
+		return <EmbedMessage text="Couldn't load this app. Open Rho and try again." />;
+	}
+
+	return (
+		<div className="min-h-screen bg-background">
+			<AppRuntime apps={apps.data.apps} appSlug={appSlug} embedded routePath={routePath} />
+		</div>
+	);
+}
+
+function EmbedMessage({ text }: { text: string }) {
+	return (
+		<div className="flex min-h-screen items-center justify-center p-6 text-sm text-muted-foreground">
+			{text}
+		</div>
+	);
+}
+
+function AppRuntime({
+	apps,
+	appSlug,
+	routePath,
+	embedded = false,
+}: {
+	apps: AppExtensionSummary[];
+	appSlug: string;
+	routePath: string;
+	embedded?: boolean;
+}) {
 	const app = apps.find((candidate) => candidate.slug === appSlug);
 	const appModule = useQuery({
 		queryKey: ["app-client", appSlug, app?.clientModuleUrl],
 		queryFn: () => loadApp(app?.clientModuleUrl),
 		enabled: Boolean(app),
 	});
-	const context = useMemo(() => (app ? appContext(app, routePath) : undefined), [app, routePath]);
+	const platform = embedded ? embeddedPlatform() : hostPlatform();
+	const context = useMemo(
+		() => (app ? appContext(app, routePath, platform, embedded) : undefined),
+		[app, routePath, platform, embedded],
+	);
 
 	if (!app) {
 		return <EmptyState title="Unknown app extension" />;
@@ -70,6 +113,16 @@ function AppRuntime({ apps, appSlug, routePath }: { apps: AppExtensionSummary[];
 	}
 
 	const App = appModule.data;
+	if (embedded) {
+		return (
+			<div className="p-3">
+				<RhoAppProvider context={context}>
+					<App />
+				</RhoAppProvider>
+			</div>
+		);
+	}
+
 	return (
 		<div className="min-h-full bg-muted/30 p-3">
 			<div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -107,15 +160,20 @@ function isAppComponent(value: unknown): value is AppComponent {
 	return typeof value === "function";
 }
 
-function appContext(app: AppExtensionSummary, routePath: string): RhoAppContext {
+function appContext(
+	app: AppExtensionSummary,
+	routePath: string,
+	platform: RhoHostPlatform,
+	embedded: boolean,
+): RhoAppContext {
 	const apiBasePath = app.apiBasePath ?? `/apps/${app.slug}/api`;
-	const platform = hostPlatform();
+	const basePath = embedded ? `/embed/apps/${app.slug}` : `/apps/${app.slug}`;
 	const apiHeaders = () => ({ "X-Rho-Platform": platform });
 	return {
 		app: {
 			slug: app.slug,
 			name: app.name,
-			basePath: `/apps/${app.slug}`,
+			basePath,
 			apiBasePath,
 			routePath,
 		},
@@ -142,6 +200,11 @@ function appContext(app: AppExtensionSummary, routePath: string): RhoAppContext 
 function hostPlatform(): RhoHostPlatform {
 	const value = new URLSearchParams(window.location.search).get("rhoPlatform");
 	return value === "mobile" || value === "desktop" ? value : "web";
+}
+
+function embeddedPlatform(): RhoHostPlatform {
+	const value = new URLSearchParams(window.location.search).get("rhoPlatform");
+	return value === "desktop" ? value : "mobile";
 }
 
 function AppList({ apps }: { apps: AppExtensionSummary[] }) {

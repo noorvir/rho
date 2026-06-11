@@ -1,6 +1,7 @@
 export { RhoAgent, type RhoAgentOptions } from "./agent.ts";
 export { createRhoAgent, type RhoAgentConfigOptions } from "./config.ts";
 export {
+	appendConversationMessage,
 	type ConversationHistory,
 	type ConversationHistoryMessage,
 	type ConversationInput,
@@ -21,6 +22,18 @@ export {
 	selectRhoModel,
 } from "./providers.ts";
 export {
+	loadRhoContext,
+	RHO_CONTEXT_BUDGET_CHARS,
+	RHO_CONTEXT_PAGES,
+	type RhoContextOptions,
+	rhoContextExtension,
+} from "./rho-context.ts";
+export {
+	type BackgroundTaskRequest,
+	backgroundTaskExtension,
+	rhoReloadExtension,
+} from "./runtime-tools.ts";
+export {
 	createRhoAgentSession,
 	type RhoAgentExtensionSource,
 	type RhoAgentPromptOptions,
@@ -34,4 +47,5 @@ export {
 } from "./state/file.ts";
 export type { ConversationKey, ConversationState, StateManager } from "./state/types.ts";
 export { getRhoSystemPrompt, rhoSystemPromptExtension } from "./system-prompt.ts";
+export { runTaskSession, type TaskSessionInput, type TaskSessionResult } from "./task-session.ts";
 export type { Agent, AgentEventStream, AgentInput, RhoContent } from "./types.ts";

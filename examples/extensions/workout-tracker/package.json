@@ -9,10 +9,12 @@
 		"@orpc/server": "^1.12.0",
 		"@rho/apps-sdk": "0.0.0",
 		"@tanstack/react-query": "^5.90.12",
-		"react": "^19.2.1"
+		"react": "^19.2.1",
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"@types/react": "^19.2.7"
+		"@types/react": "^19.2.7",
+		"typescript": "^5.9.2"
 	},
 	"rho": {
 		"extensions": ["src/extension.ts"]

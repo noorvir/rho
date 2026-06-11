@@ -52,6 +52,21 @@ export type Contact = Prisma.ContactModel
  */
 export type Org = Prisma.OrgModel
 /**
+ * Model Todo
+ * 
+ */
+export type Todo = Prisma.TodoModel
+/**
+ * Model PlannedExercise
+ * 
+ */
+export type PlannedExercise = Prisma.PlannedExerciseModel
+/**
+ * Model Task
+ * 
+ */
+export type Task = Prisma.TaskModel
+/**
  * Model SystemOwner
  * 
  */

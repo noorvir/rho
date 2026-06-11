@@ -1,6 +1,7 @@
 import { type AnyRouter, os } from "@orpc/server";
 import type { RhoAgentExtensionSource } from "@rho/ai";
 import type { Channel } from "@rho/channels";
+import type { RhoPrisma } from "../prisma.ts";
 
 export type { RhoAgentExtensionSource } from "@rho/ai";
 
@@ -61,7 +62,10 @@ export interface RhoAppApiBuilderContext {
 	api: typeof appApiProcedure;
 }
 
-export interface RhoExtensionContext extends RhoAppApiBuilderContext {}
+export interface RhoExtensionContext extends RhoAppApiBuilderContext {
+	/** Shared runtime database client over the canonical Rho schema. */
+	db: RhoPrisma;
+}
 
 export interface RhoExtensionDefinition {
 	apps?: AppExtension[];

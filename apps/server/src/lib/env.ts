@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadEnvWithNullishCheck } from "@rho/lib";
 
 const defaultAgentDir = join(homedir(), ".rho", "agent");
@@ -8,11 +9,15 @@ const RHO_PORT = Number(loadEnvWithNullishCheck("RHO_PORT", false, process.env.P
 const RHO_AGENT_DIR = resolve(loadEnvWithNullishCheck("RHO_AGENT_DIR", false, defaultAgentDir));
 const stateDir = loadEnvWithNullishCheck("RHO_STATE_DIR", false);
 const RHO_STATE_DIR = stateDir ? resolve(stateDir) : undefined;
+const RHO_DOCS_DIR = resolve(
+	loadEnvWithNullishCheck("RHO_DOCS_DIR", false, fileURLToPath(new URL("../../../../docs/", import.meta.url))),
+);
 
 export const env = {
 	RHO_PORT,
 	RHO_AGENT_DIR,
 	RHO_STATE_DIR,
+	RHO_DOCS_DIR,
 	RHO_DATABASE_URL: loadEnvWithNullishCheck("RHO_DATABASE_URL"),
 	RHO_OWNER_TOKEN: loadEnvWithNullishCheck("RHO_OWNER_TOKEN"),
 	RHO_EXTENSION_PATHS: splitPaths(loadEnvWithNullishCheck("RHO_EXTENSION_PATHS", false)),

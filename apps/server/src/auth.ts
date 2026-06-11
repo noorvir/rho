@@ -50,6 +50,8 @@ export interface RhoAuth {
 	setupRequired(): Promise<boolean>;
 	setup(input: { ownerToken: string; password: string }): Promise<RhoAuthSetupResult>;
 	login(input: { password: string }): Promise<RhoAuthSession | undefined>;
+	/** Creates a cookie session for an already-authorized principal, e.g. a mobile client opening the web UI. */
+	createBrowserSession(): Promise<RhoAuthSession>;
 	logout(sessionToken: string | undefined): Promise<void>;
 	getToken(input: { password: string }): Promise<RhoTokenSession | undefined>;
 	refreshToken(refreshToken: string): Promise<RhoTokenSession | undefined>;
@@ -75,6 +77,7 @@ export function createRhoAuth(options: RhoAuthOptions): RhoAuth {
 		setupRequired: () => setupRequired(prisma),
 		setup: (input) => setup(prisma, options.ownerToken, input),
 		login: (input) => login(prisma, options.ownerToken, input),
+		createBrowserSession: () => createSession(prisma, options.ownerToken),
 		getToken: (input) => getToken(prisma, options.ownerToken, input),
 		refreshToken: (token) => refreshToken(prisma, options.ownerToken, token),
 		revokeToken: (token) => revokeToken(prisma, options.ownerToken, token),

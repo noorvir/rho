@@ -2,7 +2,7 @@ import { IconCircle, IconRobot, IconSparkles } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Chat } from "@/components/chat";
-import { type ChatMessage, orpc, streamChatMessage } from "@/api";
+import { type ChatMessage, orpc, streamChatMessage, type TaskSummary } from "@/api";
 import { cn } from "@/lib/utils";
 
 export function ChatPanel() {
@@ -21,6 +21,13 @@ export function ChatPanel() {
 				})),
 		}),
 	);
+	const tasksQuery = useQuery(
+		orpc.agent.tasks.queryOptions({
+			input: { id: "mobile-chat" },
+			refetchInterval: (query) => (activeTasks(query.state.data?.tasks).length > 0 ? 4000 : false),
+		}),
+	);
+	const workingTasks = activeTasks(tasksQuery.data?.tasks);
 	const messages = sessionMessages ?? historyQuery.data ?? [];
 	const error = streamError ?? (historyQuery.error ? errorMessage(historyQuery.error) : undefined);
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -33,6 +40,16 @@ export function ChatPanel() {
 
 		scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
 	}, [scrollKey]);
+
+	const workingCount = workingTasks.length;
+	const previousWorkingCount = useRef(0);
+	const refetchHistory = historyQuery.refetch;
+	useEffect(() => {
+		if (previousWorkingCount.current > 0 && workingCount === 0) {
+			void refetchHistory().then(() => setSessionMessages(undefined));
+		}
+		previousWorkingCount.current = workingCount;
+	}, [workingCount, refetchHistory]);
 
 	async function sendDraft() {
 		const text = draft.trim();
@@ -79,6 +96,7 @@ export function ChatPanel() {
 			);
 		} finally {
 			setIsSending(false);
+			void tasksQuery.refetch();
 		}
 	}
 
@@ -116,6 +134,9 @@ export function ChatPanel() {
 						{messages.map((message) => (
 							<ChatBubble key={message.id} message={message} />
 						))}
+						{workingTasks.map((task) => (
+							<WorkingTask key={task.id} task={task} />
+						))}
 					</div>
 				</div>
 
@@ -134,6 +155,21 @@ export function ChatPanel() {
 				</div>
 			</div>
 		</aside>
+	);
+}
+
+function activeTasks(tasks: TaskSummary[] | undefined): TaskSummary[] {
+	return (tasks ?? []).filter((task) => task.status === "queued" || task.status === "running");
+}
+
+function WorkingTask({ task }: { task: TaskSummary }) {
+	return (
+		<div className="flex justify-start pr-8">
+			<div className="flex items-center gap-1.5 border border-dashed border-border bg-background px-2.5 py-1.5 text-xs leading-relaxed text-muted-foreground">
+				<IconCircle className="size-2 animate-pulse fill-amber-500 text-amber-500" />
+				Working on: {task.title}…
+			</div>
+		</div>
 	);
 }
 

@@ -53,6 +53,9 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Contact: 'Contact',
   Org: 'Org',
+  Todo: 'Todo',
+  PlannedExercise: 'PlannedExercise',
+  Task: 'Task',
   SystemOwner: 'SystemOwner',
   SystemSession: 'SystemSession',
   SystemApiToken: 'SystemApiToken'
@@ -100,6 +103,53 @@ export const OrgScalarFieldEnum = {
 } as const
 
 export type OrgScalarFieldEnum = (typeof OrgScalarFieldEnum)[keyof typeof OrgScalarFieldEnum]
+
+
+export const TodoScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  completed: 'completed',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TodoScalarFieldEnum = (typeof TodoScalarFieldEnum)[keyof typeof TodoScalarFieldEnum]
+
+
+export const PlannedExerciseScalarFieldEnum = {
+  id: 'id',
+  date: 'date',
+  name: 'name',
+  details: 'details',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PlannedExerciseScalarFieldEnum = (typeof PlannedExerciseScalarFieldEnum)[keyof typeof PlannedExerciseScalarFieldEnum]
+
+
+export const TaskScalarFieldEnum = {
+  id: 'id',
+  conversationKey: 'conversationKey',
+  channelId: 'channelId',
+  targetType: 'targetType',
+  targetId: 'targetId',
+  title: 'title',
+  instructions: 'instructions',
+  status: 'status',
+  attempt: 'attempt',
+  error: 'error',
+  summary: 'summary',
+  sessionFile: 'sessionFile',
+  runAfter: 'runAfter',
+  heartbeatAt: 'heartbeatAt',
+  notifiedAt: 'notifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
 
 
 export const SystemOwnerScalarFieldEnum = {
