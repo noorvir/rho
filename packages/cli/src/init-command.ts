@@ -49,6 +49,11 @@ export async function runInitCommand(): Promise<void> {
 			`${JSON.stringify(extensionsPackage(), null, "\t")}\n`,
 		);
 	}
+	// Hoisted linking keeps the file:-linked @rho packages resolvable with
+	// plain node resolution; bun's isolated store mangles repeated file: deps.
+	if (!existsSync(join(extensionsDir, "bunfig.toml"))) {
+		await writeFile(join(extensionsDir, "bunfig.toml"), '[install]\nlinker = "hoisted"\n');
+	}
 	const install = spawnSync("bun", ["install"], { cwd: extensionsDir, stdio: "inherit" });
 	if (install.status !== 0) {
 		throw new Error("bun install failed in the extensions workspace");
