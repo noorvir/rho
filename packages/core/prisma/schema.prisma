@@ -61,6 +61,46 @@ model Todo {
   @@map("todos")
 }
 
+enum ReadingStatus {
+  want_to_read
+  currently_reading
+  finished
+}
+
+model Book {
+  id        Int           @id @default(autoincrement())
+  title     String
+  author    String
+  status    ReadingStatus @default(want_to_read)
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  @@map("books")
+}
+
+model Habit {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  completions HabitCompletion[]
+
+  @@map("habits")
+}
+
+model HabitCompletion {
+  id          Int      @id @default(autoincrement())
+  habitId     Int      @map("habit_id")
+  date        String
+  completedAt DateTime @default(now()) @map("completed_at")
+
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@map("habit_completions")
+}
+
 model PlannedExercise {
   id        Int      @id @default(autoincrement())
   date      String

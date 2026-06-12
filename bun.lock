@@ -87,6 +87,26 @@
         "typescript": "^5.9.2",
       },
     },
+    "examples/extensions/habit-tracker": {
+      "name": "rho-app-habit-tracker",
+      "version": "0.0.0",
+      "dependencies": {
+        "@orpc/client": "^1.12.0",
+        "@orpc/react-query": "^1.12.0",
+        "@orpc/server": "^1.12.0",
+        "@rho/apps-sdk": "0.0.0",
+        "@rho/ui": "0.0.0",
+        "@tanstack/react-query": "^5.90.12",
+        "react": "^19.2.1",
+        "react-dom": "^19.2.1",
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.7",
+        "@types/react-dom": "^19.2.3",
+        "typescript": "^5.9.2",
+      },
+    },
     "examples/extensions/reading-list": {
       "name": "rho-app-reading-list",
       "version": "0.0.0",
@@ -1706,6 +1726,8 @@
     "reusify": ["reusify@1.1.0", "", {}, "sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw=="],
 
     "rho-app-contacts": ["rho-app-contacts@workspace:examples/extensions/contacts"],
+
+    "rho-app-habit-tracker": ["rho-app-habit-tracker@workspace:examples/extensions/habit-tracker"],
 
     "rho-app-reading-list": ["rho-app-reading-list@workspace:examples/extensions/reading-list"],
 

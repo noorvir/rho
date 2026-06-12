@@ -55,6 +55,8 @@ export const ModelName = {
   Org: 'Org',
   Todo: 'Todo',
   Book: 'Book',
+  Habit: 'Habit',
+  HabitCompletion: 'HabitCompletion',
   PlannedExercise: 'PlannedExercise',
   Task: 'Task',
   SystemOwner: 'SystemOwner',
@@ -127,6 +129,26 @@ export const BookScalarFieldEnum = {
 } as const
 
 export type BookScalarFieldEnum = (typeof BookScalarFieldEnum)[keyof typeof BookScalarFieldEnum]
+
+
+export const HabitScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HabitScalarFieldEnum = (typeof HabitScalarFieldEnum)[keyof typeof HabitScalarFieldEnum]
+
+
+export const HabitCompletionScalarFieldEnum = {
+  id: 'id',
+  habitId: 'habitId',
+  date: 'date',
+  completedAt: 'completedAt'
+} as const
+
+export type HabitCompletionScalarFieldEnum = (typeof HabitCompletionScalarFieldEnum)[keyof typeof HabitCompletionScalarFieldEnum]
 
 
 export const PlannedExerciseScalarFieldEnum = {

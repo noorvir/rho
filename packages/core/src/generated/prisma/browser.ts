@@ -38,6 +38,16 @@ export type Todo = Prisma.TodoModel
  */
 export type Book = Prisma.BookModel
 /**
+ * Model Habit
+ * 
+ */
+export type Habit = Prisma.HabitModel
+/**
+ * Model HabitCompletion
+ * 
+ */
+export type HabitCompletion = Prisma.HabitCompletionModel
+/**
  * Model PlannedExercise
  * 
  */
