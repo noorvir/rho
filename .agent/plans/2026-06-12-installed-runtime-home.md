@@ -97,8 +97,23 @@ directory that core receives as configuration:
       examples dir — prompt guidance added, examples path removed from prod);
       schema + migration landed in /data/rho/db correctly; after full
       redeploy the app loads from the volume.
+- [x] Clean slate: migration history scrubbed to a single init; core schema
+      is system-only (+ seeded contacts/orgs) and doubles as the home
+      template (`rho init` rewrites the generator output path on copy;
+      db-template/ removed). `TaskStatus` → `rho_sys_TaskStatus`. Dev runs on
+      a gitignored `.rho-dev` home with example app models as runtime
+      migrations; prod home reset and re-seeded (owner setup pending, user
+      sets password). Boot now swaps in the home generated client, so
+      runtime-added models work immediately after restart, not just after
+      rho_reload.
+- [x] Extension model typing: `RhoRuntimeModels` augmentation hook in
+      @rho/core + `RhoModelDelegate<Row>` in apps-sdk; examples declare
+      their models in `src/models.d.ts` and typecheck against the
+      system-only core client.
 - [ ] Re-verify: next prod agent app build lands in $RHO_HOME/extensions
       unaided (guidance is new and untested).
+- [ ] Document the models.d.ts augmentation pattern in docs (template +
+      extension-schema docs) so agents pick it up.
 - [ ] Dev mode on the same layout (repo currently keeps RHO_DATABASE_URL +
       RHO_EXTENSION_PATHS overrides).
 - [ ] npm packaging slice: publish single `rho` package; installed-layout
