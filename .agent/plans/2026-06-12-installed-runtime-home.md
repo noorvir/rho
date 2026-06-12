@@ -110,8 +110,14 @@ directory that core receives as configuration:
       @rho/core + `RhoModelDelegate<Row>` in apps-sdk; examples declare
       their models in `src/models.d.ts` and typecheck against the
       system-only core client.
-- [ ] Re-verify: next prod agent app build lands in $RHO_HOME/extensions
-      unaided (guidance is new and untested).
+- [x] Verified: prod agent build (todo-list, user-initiated) landed in
+      $RHO_HOME/extensions unaided, schema + migration in $RHO_HOME/db,
+      copy-validation followed, 6:00 total, single attempt.
+- [ ] Build-speed work (target 30–60s): 96% of the 6:00 was model latency
+      across 57 turns (tool execution: 15s). Levers: app-build recipe +
+      inline example in rho_context, one-shot scaffold command, rho_migrate
+      tool collapsing the validation procedure, lower thinking level or
+      faster model for task sessions.
 - [ ] Document the models.d.ts augmentation pattern in docs (template +
       extension-schema docs) so agents pick it up.
 - [ ] Dev mode on the same layout (repo currently keeps RHO_DATABASE_URL +
