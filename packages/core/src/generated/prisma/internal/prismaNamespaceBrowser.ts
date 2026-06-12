@@ -58,10 +58,10 @@ export const ModelName = {
   Habit: 'Habit',
   HabitCompletion: 'HabitCompletion',
   PlannedExercise: 'PlannedExercise',
-  Task: 'Task',
-  SystemOwner: 'SystemOwner',
-  SystemSession: 'SystemSession',
-  SystemApiToken: 'SystemApiToken'
+  rho_sys_Task: 'rho_sys_Task',
+  rho_sys_Owner: 'rho_sys_Owner',
+  rho_sys_Session: 'rho_sys_Session',
+  rho_sys_ApiToken: 'rho_sys_ApiToken'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -164,7 +164,7 @@ export const PlannedExerciseScalarFieldEnum = {
 export type PlannedExerciseScalarFieldEnum = (typeof PlannedExerciseScalarFieldEnum)[keyof typeof PlannedExerciseScalarFieldEnum]
 
 
-export const TaskScalarFieldEnum = {
+export const Rho_sys_TaskScalarFieldEnum = {
   id: 'id',
   conversationKey: 'conversationKey',
   channelId: 'channelId',
@@ -184,19 +184,19 @@ export const TaskScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+export type Rho_sys_TaskScalarFieldEnum = (typeof Rho_sys_TaskScalarFieldEnum)[keyof typeof Rho_sys_TaskScalarFieldEnum]
 
 
-export const SystemOwnerScalarFieldEnum = {
+export const Rho_sys_OwnerScalarFieldEnum = {
   id: 'id',
   passwordHash: 'passwordHash',
   setupCompletedAt: 'setupCompletedAt'
 } as const
 
-export type SystemOwnerScalarFieldEnum = (typeof SystemOwnerScalarFieldEnum)[keyof typeof SystemOwnerScalarFieldEnum]
+export type Rho_sys_OwnerScalarFieldEnum = (typeof Rho_sys_OwnerScalarFieldEnum)[keyof typeof Rho_sys_OwnerScalarFieldEnum]
 
 
-export const SystemSessionScalarFieldEnum = {
+export const Rho_sys_SessionScalarFieldEnum = {
   id: 'id',
   accessTokenHash: 'accessTokenHash',
   refreshTokenHash: 'refreshTokenHash',
@@ -207,10 +207,10 @@ export const SystemSessionScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SystemSessionScalarFieldEnum = (typeof SystemSessionScalarFieldEnum)[keyof typeof SystemSessionScalarFieldEnum]
+export type Rho_sys_SessionScalarFieldEnum = (typeof Rho_sys_SessionScalarFieldEnum)[keyof typeof Rho_sys_SessionScalarFieldEnum]
 
 
-export const SystemApiTokenScalarFieldEnum = {
+export const Rho_sys_ApiTokenScalarFieldEnum = {
   id: 'id',
   name: 'name',
   tokenHash: 'tokenHash',
@@ -220,7 +220,7 @@ export const SystemApiTokenScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SystemApiTokenScalarFieldEnum = (typeof SystemApiTokenScalarFieldEnum)[keyof typeof SystemApiTokenScalarFieldEnum]
+export type Rho_sys_ApiTokenScalarFieldEnum = (typeof Rho_sys_ApiTokenScalarFieldEnum)[keyof typeof Rho_sys_ApiTokenScalarFieldEnum]
 
 
 export const SortOrder = {

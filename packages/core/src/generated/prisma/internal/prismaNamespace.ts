@@ -391,10 +391,10 @@ export const ModelName = {
   Habit: 'Habit',
   HabitCompletion: 'HabitCompletion',
   PlannedExercise: 'PlannedExercise',
-  Task: 'Task',
-  SystemOwner: 'SystemOwner',
-  SystemSession: 'SystemSession',
-  SystemApiToken: 'SystemApiToken'
+  rho_sys_Task: 'rho_sys_Task',
+  rho_sys_Owner: 'rho_sys_Owner',
+  rho_sys_Session: 'rho_sys_Session',
+  rho_sys_ApiToken: 'rho_sys_ApiToken'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -410,7 +410,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "contact" | "org" | "todo" | "book" | "habit" | "habitCompletion" | "plannedExercise" | "task" | "systemOwner" | "systemSession" | "systemApiToken"
+    modelProps: "contact" | "org" | "todo" | "book" | "habit" | "habitCompletion" | "plannedExercise" | "rho_sys_Task" | "rho_sys_Owner" | "rho_sys_Session" | "rho_sys_ApiToken"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -932,299 +932,299 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    Task: {
-      payload: Prisma.$TaskPayload<ExtArgs>
-      fields: Prisma.TaskFieldRefs
+    rho_sys_Task: {
+      payload: Prisma.$rho_sys_TaskPayload<ExtArgs>
+      fields: Prisma.rho_sys_TaskFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.TaskFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload> | null
+          args: Prisma.rho_sys_TaskFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.TaskFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
+          args: Prisma.rho_sys_TaskFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>
         }
         findFirst: {
-          args: Prisma.TaskFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload> | null
+          args: Prisma.rho_sys_TaskFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.TaskFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
+          args: Prisma.rho_sys_TaskFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>
         }
         findMany: {
-          args: Prisma.TaskFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>[]
+          args: Prisma.rho_sys_TaskFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>[]
         }
         create: {
-          args: Prisma.TaskCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
+          args: Prisma.rho_sys_TaskCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>
         }
         createMany: {
-          args: Prisma.TaskCreateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_TaskCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.TaskCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>[]
+          args: Prisma.rho_sys_TaskCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>[]
         }
         delete: {
-          args: Prisma.TaskDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
+          args: Prisma.rho_sys_TaskDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>
         }
         update: {
-          args: Prisma.TaskUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
+          args: Prisma.rho_sys_TaskUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>
         }
         deleteMany: {
-          args: Prisma.TaskDeleteManyArgs<ExtArgs>
+          args: Prisma.rho_sys_TaskDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.TaskUpdateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_TaskUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.TaskUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>[]
+          args: Prisma.rho_sys_TaskUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>[]
         }
         upsert: {
-          args: Prisma.TaskUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$TaskPayload>
+          args: Prisma.rho_sys_TaskUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_TaskPayload>
         }
         aggregate: {
-          args: Prisma.TaskAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateTask>
+          args: Prisma.Rho_sys_TaskAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRho_sys_Task>
         }
         groupBy: {
-          args: Prisma.TaskGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TaskGroupByOutputType>[]
+          args: Prisma.rho_sys_TaskGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_TaskGroupByOutputType>[]
         }
         count: {
-          args: Prisma.TaskCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.TaskCountAggregateOutputType> | number
+          args: Prisma.rho_sys_TaskCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_TaskCountAggregateOutputType> | number
         }
       }
     }
-    SystemOwner: {
-      payload: Prisma.$SystemOwnerPayload<ExtArgs>
-      fields: Prisma.SystemOwnerFieldRefs
+    rho_sys_Owner: {
+      payload: Prisma.$rho_sys_OwnerPayload<ExtArgs>
+      fields: Prisma.rho_sys_OwnerFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.SystemOwnerFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload> | null
+          args: Prisma.rho_sys_OwnerFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.SystemOwnerFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+          args: Prisma.rho_sys_OwnerFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>
         }
         findFirst: {
-          args: Prisma.SystemOwnerFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload> | null
+          args: Prisma.rho_sys_OwnerFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.SystemOwnerFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+          args: Prisma.rho_sys_OwnerFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>
         }
         findMany: {
-          args: Prisma.SystemOwnerFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>[]
+          args: Prisma.rho_sys_OwnerFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>[]
         }
         create: {
-          args: Prisma.SystemOwnerCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+          args: Prisma.rho_sys_OwnerCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>
         }
         createMany: {
-          args: Prisma.SystemOwnerCreateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_OwnerCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.SystemOwnerCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>[]
+          args: Prisma.rho_sys_OwnerCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>[]
         }
         delete: {
-          args: Prisma.SystemOwnerDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+          args: Prisma.rho_sys_OwnerDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>
         }
         update: {
-          args: Prisma.SystemOwnerUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+          args: Prisma.rho_sys_OwnerUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>
         }
         deleteMany: {
-          args: Prisma.SystemOwnerDeleteManyArgs<ExtArgs>
+          args: Prisma.rho_sys_OwnerDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.SystemOwnerUpdateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_OwnerUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.SystemOwnerUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>[]
+          args: Prisma.rho_sys_OwnerUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>[]
         }
         upsert: {
-          args: Prisma.SystemOwnerUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemOwnerPayload>
+          args: Prisma.rho_sys_OwnerUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_OwnerPayload>
         }
         aggregate: {
-          args: Prisma.SystemOwnerAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemOwner>
+          args: Prisma.Rho_sys_OwnerAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRho_sys_Owner>
         }
         groupBy: {
-          args: Prisma.SystemOwnerGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SystemOwnerGroupByOutputType>[]
+          args: Prisma.rho_sys_OwnerGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_OwnerGroupByOutputType>[]
         }
         count: {
-          args: Prisma.SystemOwnerCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SystemOwnerCountAggregateOutputType> | number
+          args: Prisma.rho_sys_OwnerCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_OwnerCountAggregateOutputType> | number
         }
       }
     }
-    SystemSession: {
-      payload: Prisma.$SystemSessionPayload<ExtArgs>
-      fields: Prisma.SystemSessionFieldRefs
+    rho_sys_Session: {
+      payload: Prisma.$rho_sys_SessionPayload<ExtArgs>
+      fields: Prisma.rho_sys_SessionFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.SystemSessionFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload> | null
+          args: Prisma.rho_sys_SessionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.SystemSessionFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+          args: Prisma.rho_sys_SessionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>
         }
         findFirst: {
-          args: Prisma.SystemSessionFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload> | null
+          args: Prisma.rho_sys_SessionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.SystemSessionFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+          args: Prisma.rho_sys_SessionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>
         }
         findMany: {
-          args: Prisma.SystemSessionFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>[]
+          args: Prisma.rho_sys_SessionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>[]
         }
         create: {
-          args: Prisma.SystemSessionCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+          args: Prisma.rho_sys_SessionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>
         }
         createMany: {
-          args: Prisma.SystemSessionCreateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_SessionCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.SystemSessionCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>[]
+          args: Prisma.rho_sys_SessionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>[]
         }
         delete: {
-          args: Prisma.SystemSessionDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+          args: Prisma.rho_sys_SessionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>
         }
         update: {
-          args: Prisma.SystemSessionUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+          args: Prisma.rho_sys_SessionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>
         }
         deleteMany: {
-          args: Prisma.SystemSessionDeleteManyArgs<ExtArgs>
+          args: Prisma.rho_sys_SessionDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.SystemSessionUpdateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_SessionUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.SystemSessionUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>[]
+          args: Prisma.rho_sys_SessionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>[]
         }
         upsert: {
-          args: Prisma.SystemSessionUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemSessionPayload>
+          args: Prisma.rho_sys_SessionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_SessionPayload>
         }
         aggregate: {
-          args: Prisma.SystemSessionAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemSession>
+          args: Prisma.Rho_sys_SessionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRho_sys_Session>
         }
         groupBy: {
-          args: Prisma.SystemSessionGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SystemSessionGroupByOutputType>[]
+          args: Prisma.rho_sys_SessionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_SessionGroupByOutputType>[]
         }
         count: {
-          args: Prisma.SystemSessionCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SystemSessionCountAggregateOutputType> | number
+          args: Prisma.rho_sys_SessionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_SessionCountAggregateOutputType> | number
         }
       }
     }
-    SystemApiToken: {
-      payload: Prisma.$SystemApiTokenPayload<ExtArgs>
-      fields: Prisma.SystemApiTokenFieldRefs
+    rho_sys_ApiToken: {
+      payload: Prisma.$rho_sys_ApiTokenPayload<ExtArgs>
+      fields: Prisma.rho_sys_ApiTokenFieldRefs
       operations: {
         findUnique: {
-          args: Prisma.SystemApiTokenFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload> | null
+          args: Prisma.rho_sys_ApiTokenFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload> | null
         }
         findUniqueOrThrow: {
-          args: Prisma.SystemApiTokenFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+          args: Prisma.rho_sys_ApiTokenFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>
         }
         findFirst: {
-          args: Prisma.SystemApiTokenFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload> | null
+          args: Prisma.rho_sys_ApiTokenFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload> | null
         }
         findFirstOrThrow: {
-          args: Prisma.SystemApiTokenFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+          args: Prisma.rho_sys_ApiTokenFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>
         }
         findMany: {
-          args: Prisma.SystemApiTokenFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>[]
+          args: Prisma.rho_sys_ApiTokenFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>[]
         }
         create: {
-          args: Prisma.SystemApiTokenCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+          args: Prisma.rho_sys_ApiTokenCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>
         }
         createMany: {
-          args: Prisma.SystemApiTokenCreateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_ApiTokenCreateManyArgs<ExtArgs>
           result: BatchPayload
         }
         createManyAndReturn: {
-          args: Prisma.SystemApiTokenCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>[]
+          args: Prisma.rho_sys_ApiTokenCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>[]
         }
         delete: {
-          args: Prisma.SystemApiTokenDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+          args: Prisma.rho_sys_ApiTokenDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>
         }
         update: {
-          args: Prisma.SystemApiTokenUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+          args: Prisma.rho_sys_ApiTokenUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>
         }
         deleteMany: {
-          args: Prisma.SystemApiTokenDeleteManyArgs<ExtArgs>
+          args: Prisma.rho_sys_ApiTokenDeleteManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateMany: {
-          args: Prisma.SystemApiTokenUpdateManyArgs<ExtArgs>
+          args: Prisma.rho_sys_ApiTokenUpdateManyArgs<ExtArgs>
           result: BatchPayload
         }
         updateManyAndReturn: {
-          args: Prisma.SystemApiTokenUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>[]
+          args: Prisma.rho_sys_ApiTokenUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>[]
         }
         upsert: {
-          args: Prisma.SystemApiTokenUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$SystemApiTokenPayload>
+          args: Prisma.rho_sys_ApiTokenUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_ApiTokenPayload>
         }
         aggregate: {
-          args: Prisma.SystemApiTokenAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateSystemApiToken>
+          args: Prisma.Rho_sys_ApiTokenAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRho_sys_ApiToken>
         }
         groupBy: {
-          args: Prisma.SystemApiTokenGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SystemApiTokenGroupByOutputType>[]
+          args: Prisma.rho_sys_ApiTokenGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_ApiTokenGroupByOutputType>[]
         }
         count: {
-          args: Prisma.SystemApiTokenCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.SystemApiTokenCountAggregateOutputType> | number
+          args: Prisma.rho_sys_ApiTokenCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_ApiTokenCountAggregateOutputType> | number
         }
       }
     }
@@ -1351,7 +1351,7 @@ export const PlannedExerciseScalarFieldEnum = {
 export type PlannedExerciseScalarFieldEnum = (typeof PlannedExerciseScalarFieldEnum)[keyof typeof PlannedExerciseScalarFieldEnum]
 
 
-export const TaskScalarFieldEnum = {
+export const Rho_sys_TaskScalarFieldEnum = {
   id: 'id',
   conversationKey: 'conversationKey',
   channelId: 'channelId',
@@ -1371,19 +1371,19 @@ export const TaskScalarFieldEnum = {
   updatedAt: 'updatedAt'
 } as const
 
-export type TaskScalarFieldEnum = (typeof TaskScalarFieldEnum)[keyof typeof TaskScalarFieldEnum]
+export type Rho_sys_TaskScalarFieldEnum = (typeof Rho_sys_TaskScalarFieldEnum)[keyof typeof Rho_sys_TaskScalarFieldEnum]
 
 
-export const SystemOwnerScalarFieldEnum = {
+export const Rho_sys_OwnerScalarFieldEnum = {
   id: 'id',
   passwordHash: 'passwordHash',
   setupCompletedAt: 'setupCompletedAt'
 } as const
 
-export type SystemOwnerScalarFieldEnum = (typeof SystemOwnerScalarFieldEnum)[keyof typeof SystemOwnerScalarFieldEnum]
+export type Rho_sys_OwnerScalarFieldEnum = (typeof Rho_sys_OwnerScalarFieldEnum)[keyof typeof Rho_sys_OwnerScalarFieldEnum]
 
 
-export const SystemSessionScalarFieldEnum = {
+export const Rho_sys_SessionScalarFieldEnum = {
   id: 'id',
   accessTokenHash: 'accessTokenHash',
   refreshTokenHash: 'refreshTokenHash',
@@ -1394,10 +1394,10 @@ export const SystemSessionScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SystemSessionScalarFieldEnum = (typeof SystemSessionScalarFieldEnum)[keyof typeof SystemSessionScalarFieldEnum]
+export type Rho_sys_SessionScalarFieldEnum = (typeof Rho_sys_SessionScalarFieldEnum)[keyof typeof Rho_sys_SessionScalarFieldEnum]
 
 
-export const SystemApiTokenScalarFieldEnum = {
+export const Rho_sys_ApiTokenScalarFieldEnum = {
   id: 'id',
   name: 'name',
   tokenHash: 'tokenHash',
@@ -1407,7 +1407,7 @@ export const SystemApiTokenScalarFieldEnum = {
   createdAt: 'createdAt'
 } as const
 
-export type SystemApiTokenScalarFieldEnum = (typeof SystemApiTokenScalarFieldEnum)[keyof typeof SystemApiTokenScalarFieldEnum]
+export type Rho_sys_ApiTokenScalarFieldEnum = (typeof Rho_sys_ApiTokenScalarFieldEnum)[keyof typeof Rho_sys_ApiTokenScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1604,10 +1604,10 @@ export type GlobalOmitConfig = {
   habit?: Prisma.HabitOmit
   habitCompletion?: Prisma.HabitCompletionOmit
   plannedExercise?: Prisma.PlannedExerciseOmit
-  task?: Prisma.TaskOmit
-  systemOwner?: Prisma.SystemOwnerOmit
-  systemSession?: Prisma.SystemSessionOmit
-  systemApiToken?: Prisma.SystemApiTokenOmit
+  rho_sys_Task?: Prisma.rho_sys_TaskOmit
+  rho_sys_Owner?: Prisma.rho_sys_OwnerOmit
+  rho_sys_Session?: Prisma.rho_sys_SessionOmit
+  rho_sys_ApiToken?: Prisma.rho_sys_ApiTokenOmit
 }
 
 /* Types for Logging */

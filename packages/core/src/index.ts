@@ -18,6 +18,6 @@ export type {
 	RhoExtensionDefinition,
 	RhoHostPlatform,
 } from "./extensions/index.ts";
-export type { Task } from "./generated/prisma/client.ts";
+export type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
 export { createRhoPrisma, type RhoPrisma } from "./prisma.ts";
 export type { ReloadResult } from "./reload.ts";

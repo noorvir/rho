@@ -5,7 +5,7 @@ import {
 	runTaskSession,
 	type StateManager,
 } from "@rho/ai";
-import type { Task } from "./generated/prisma/client.ts";
+import type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
 import type { RhoPrisma } from "./prisma.ts";
 
 export interface CreateTaskInput {
@@ -71,7 +71,7 @@ export class TaskRunner {
 	}
 
 	async create(input: CreateTaskInput): Promise<Task> {
-		const task = await this.options.prisma.task.create({
+		const task = await this.options.prisma.rho_sys_Task.create({
 			data: { id: `task_${crypto.randomUUID()}`, ...input },
 		});
 		void this.tick();
@@ -79,7 +79,7 @@ export class TaskRunner {
 	}
 
 	async listForConversation(conversationKey: string): Promise<Task[]> {
-		return this.options.prisma.task.findMany({
+		return this.options.prisma.rho_sys_Task.findMany({
 			where: { conversationKey },
 			orderBy: { createdAt: "desc" },
 		});
@@ -88,11 +88,11 @@ export class TaskRunner {
 	private async recover(): Promise<void> {
 		const prisma = this.options.prisma;
 
-		const interrupted = await prisma.task.findMany({ where: { status: "running" } });
+		const interrupted = await prisma.rho_sys_Task.findMany({ where: { status: "running" } });
 		for (const task of interrupted) {
 			const attempt = task.attempt + 1;
 			if (attempt < maxAttempts) {
-				await prisma.task.update({
+				await prisma.rho_sys_Task.update({
 					where: { id: task.id },
 					data: { status: "queued", attempt, error: "interrupted by a server restart" },
 				});
@@ -101,7 +101,7 @@ export class TaskRunner {
 			await this.finish(task, { status: "failed", error: "interrupted by a server restart" });
 		}
 
-		const unnotified = await prisma.task.findMany({
+		const unnotified = await prisma.rho_sys_Task.findMany({
 			where: { status: { in: ["done", "failed"] }, notifiedAt: null },
 		});
 		for (const task of unnotified) {
@@ -132,7 +132,7 @@ export class TaskRunner {
 
 	private async claimNext(): Promise<Task | undefined> {
 		const prisma = this.options.prisma;
-		const next = await prisma.task.findFirst({
+		const next = await prisma.rho_sys_Task.findFirst({
 			where: {
 				status: "queued",
 				OR: [{ runAfter: null }, { runAfter: { lte: new Date() } }],
@@ -143,7 +143,7 @@ export class TaskRunner {
 			return undefined;
 		}
 
-		const claimed = await prisma.task.update({
+		const claimed = await prisma.rho_sys_Task.update({
 			where: { id: next.id },
 			data: { status: "running", heartbeatAt: new Date() },
 		});
@@ -153,7 +153,7 @@ export class TaskRunner {
 	private async run(task: Task): Promise<void> {
 		const prisma = this.options.prisma;
 		const heartbeat = setInterval(() => {
-			prisma.task
+			prisma.rho_sys_Task
 				.update({ where: { id: task.id }, data: { heartbeatAt: new Date() } })
 				.catch((error: unknown) => console.error("rho task heartbeat failed:", error));
 		}, heartbeatIntervalMs);
@@ -175,7 +175,7 @@ export class TaskRunner {
 						return;
 					}
 					sessionFile = file;
-					prisma.task
+					prisma.rho_sys_Task
 						.update({ where: { id: task.id }, data: { sessionFile: file } })
 						.catch((error: unknown) => console.error("rho task session-file update failed:", error));
 				},
@@ -191,7 +191,7 @@ export class TaskRunner {
 
 			if (attempt < maxAttempts) {
 				const backoff = retryBackoffMs[Math.min(attempt - 1, retryBackoffMs.length - 1)];
-				await prisma.task.update({
+				await prisma.rho_sys_Task.update({
 					where: { id: task.id },
 					data: {
 						status: "queued",
@@ -213,7 +213,7 @@ export class TaskRunner {
 		task: Task,
 		outcome: { status: "done" | "failed"; summary?: string; error?: string },
 	): Promise<void> {
-		const updated = await this.options.prisma.task.update({
+		const updated = await this.options.prisma.rho_sys_Task.update({
 			where: { id: task.id },
 			data: {
 				status: outcome.status,
@@ -235,7 +235,7 @@ export class TaskRunner {
 					details: { taskId: task.id, status: task.status },
 				}),
 			);
-			await this.options.prisma.task.update({
+			await this.options.prisma.rho_sys_Task.update({
 				where: { id: task.id },
 				data: { notifiedAt: new Date() },
 			});

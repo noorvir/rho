@@ -105,7 +105,7 @@ async function setup(
 		return { status: "unauthorized" };
 	}
 
-	await prisma.systemOwner.create({
+	await prisma.rho_sys_Owner.create({
 		data: {
 			id: 1,
 			passwordHash: await hashPassword(ownerToken, input.password),
@@ -121,7 +121,7 @@ async function login(
 	ownerToken: string,
 	input: { password: string },
 ): Promise<RhoAuthSession | undefined> {
-	const owner = await prisma.systemOwner.findUnique({ where: { id: 1 } });
+	const owner = await prisma.rho_sys_Owner.findUnique({ where: { id: 1 } });
 	if (!owner) {
 		return undefined;
 	}
@@ -137,7 +137,7 @@ async function getToken(
 	ownerToken: string,
 	input: { password: string },
 ): Promise<RhoTokenSession | undefined> {
-	const owner = await prisma.systemOwner.findUnique({ where: { id: 1 } });
+	const owner = await prisma.rho_sys_Owner.findUnique({ where: { id: 1 } });
 	if (!owner) {
 		return undefined;
 	}
@@ -153,7 +153,7 @@ async function createToken(prisma: RhoPrisma, ownerToken: string): Promise<RhoTo
 	const refreshToken = randomToken();
 	const accessExpiresAt = new Date(Date.now() + accessTokenMaxAgeSeconds * 1000);
 	const refreshExpiresAt = new Date(Date.now() + refreshTokenMaxAgeSeconds * 1000);
-	const session = await prisma.systemSession.create({
+	const session = await prisma.rho_sys_Session.create({
 		data: {
 			id: crypto.randomUUID(),
 			accessTokenHash: tokenHash(ownerToken, "session-access", accessToken),
@@ -177,7 +177,7 @@ async function refreshToken(
 	ownerToken: string,
 	refreshToken: string,
 ): Promise<RhoTokenSession | undefined> {
-	const session = await prisma.systemSession.findUnique({
+	const session = await prisma.rho_sys_Session.findUnique({
 		where: { refreshTokenHash: tokenHash(ownerToken, "session-refresh", refreshToken) },
 		select: { id: true, refreshExpiresAt: true, revokedAt: true },
 	});
@@ -189,7 +189,7 @@ async function refreshToken(
 	const nextRefreshToken = randomToken();
 	const accessExpiresAt = new Date(Date.now() + accessTokenMaxAgeSeconds * 1000);
 	const refreshExpiresAt = new Date(Date.now() + refreshTokenMaxAgeSeconds * 1000);
-	await prisma.systemSession.update({
+	await prisma.rho_sys_Session.update({
 		where: { id: session.id },
 		data: {
 			accessTokenHash: tokenHash(ownerToken, "session-access", nextAccessToken),
@@ -210,7 +210,7 @@ async function refreshToken(
 }
 
 async function revokeToken(prisma: RhoPrisma, ownerToken: string, refreshToken: string): Promise<void> {
-	await prisma.systemSession.updateMany({
+	await prisma.rho_sys_Session.updateMany({
 		where: { refreshTokenHash: tokenHash(ownerToken, "session-refresh", refreshToken) },
 		data: { revokedAt: new Date() },
 	});
@@ -219,7 +219,7 @@ async function revokeToken(prisma: RhoPrisma, ownerToken: string, refreshToken: 
 async function createSession(prisma: RhoPrisma, ownerToken: string): Promise<RhoAuthSession> {
 	const token = randomToken();
 	const expiresAt = new Date(Date.now() + sessionMaxAgeSeconds * 1000);
-	const session = await prisma.systemSession.create({
+	const session = await prisma.rho_sys_Session.create({
 		data: {
 			id: crypto.randomUUID(),
 			accessTokenHash: tokenHash(ownerToken, "session", token),
@@ -244,7 +244,7 @@ async function logout(
 		return;
 	}
 
-	await prisma.systemSession.deleteMany({
+	await prisma.rho_sys_Session.deleteMany({
 		where: { accessTokenHash: tokenHash(ownerToken, "session", sessionToken) },
 	});
 }
@@ -270,7 +270,7 @@ async function authorize(
 }
 
 async function listApiTokens(prisma: RhoPrisma): Promise<ApiTokenSummary[]> {
-	return prisma.systemApiToken.findMany({
+	return prisma.rho_sys_ApiToken.findMany({
 		orderBy: { createdAt: "desc" },
 		select: {
 			id: true,
@@ -294,7 +294,7 @@ async function createApiToken(
 	}
 
 	const token = `${apiTokenPrefix}${randomToken()}`;
-	const apiToken = await prisma.systemApiToken.create({
+	const apiToken = await prisma.rho_sys_ApiToken.create({
 		data: {
 			id: crypto.randomUUID(),
 			name,
@@ -315,7 +315,7 @@ async function createApiToken(
 }
 
 async function revokeApiToken(prisma: RhoPrisma, id: string): Promise<void> {
-	await prisma.systemApiToken.updateMany({
+	await prisma.rho_sys_ApiToken.updateMany({
 		where: { id },
 		data: { revokedAt: new Date() },
 	});
@@ -326,7 +326,7 @@ async function authorizeSession(
 	ownerToken: string,
 	sessionToken: string,
 ): Promise<RhoAuthPrincipal | undefined> {
-	const session = await prisma.systemSession.findUnique({
+	const session = await prisma.rho_sys_Session.findUnique({
 		where: { accessTokenHash: tokenHash(ownerToken, "session", sessionToken) },
 		select: { id: true, accessExpiresAt: true },
 	});
@@ -335,7 +335,7 @@ async function authorizeSession(
 	}
 
 	if (session.accessExpiresAt <= new Date()) {
-		await prisma.systemSession.delete({ where: { id: session.id } });
+		await prisma.rho_sys_Session.delete({ where: { id: session.id } });
 		return undefined;
 	}
 
@@ -347,7 +347,7 @@ async function authorizeApiToken(
 	ownerToken: string,
 	apiToken: string,
 ): Promise<RhoAuthPrincipal | undefined> {
-	const token = await prisma.systemApiToken.findUnique({
+	const token = await prisma.rho_sys_ApiToken.findUnique({
 		where: { tokenHash: tokenHash(ownerToken, "api", apiToken) },
 		select: { id: true, revokedAt: true },
 	});
@@ -355,7 +355,7 @@ async function authorizeApiToken(
 		return undefined;
 	}
 
-	await prisma.systemApiToken.update({
+	await prisma.rho_sys_ApiToken.update({
 		where: { id: token.id },
 		data: { lastUsedAt: new Date() },
 	});
@@ -368,7 +368,7 @@ async function authorizeTokenSession(
 	ownerToken: string,
 	accessToken: string,
 ): Promise<RhoAuthPrincipal | undefined> {
-	const session = await prisma.systemSession.findUnique({
+	const session = await prisma.rho_sys_Session.findUnique({
 		where: { accessTokenHash: tokenHash(ownerToken, "session-access", accessToken) },
 		select: { id: true, accessExpiresAt: true, refreshExpiresAt: true, revokedAt: true },
 	});
@@ -381,7 +381,7 @@ async function authorizeTokenSession(
 		return undefined;
 	}
 
-	await prisma.systemSession.update({
+	await prisma.rho_sys_Session.update({
 		where: { id: session.id },
 		data: { lastUsedAt: now },
 	});
@@ -390,7 +390,7 @@ async function authorizeTokenSession(
 }
 
 async function ownerExists(prisma: RhoPrisma): Promise<boolean> {
-	return Boolean(await prisma.systemOwner.findUnique({ where: { id: 1 }, select: { id: true } }));
+	return Boolean(await prisma.rho_sys_Owner.findUnique({ where: { id: 1 }, select: { id: true } }));
 }
 
 function validPassword(value: string): boolean {

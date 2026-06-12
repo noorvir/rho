@@ -23,7 +23,7 @@ import {
 import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
-import type { Task } from "./generated/prisma/client.ts";
+import type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
 import { createReloadableRhoPrisma } from "./prisma.ts";
 import { type ReloadResult, reload } from "./reload.ts";
 import { KeyedMutex, TaskRunner } from "./tasks.ts";

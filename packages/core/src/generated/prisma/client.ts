@@ -77,22 +77,22 @@ export type HabitCompletion = Prisma.HabitCompletionModel
  */
 export type PlannedExercise = Prisma.PlannedExerciseModel
 /**
- * Model Task
+ * Model rho_sys_Task
  * 
  */
-export type Task = Prisma.TaskModel
+export type rho_sys_Task = Prisma.rho_sys_TaskModel
 /**
- * Model SystemOwner
+ * Model rho_sys_Owner
  * 
  */
-export type SystemOwner = Prisma.SystemOwnerModel
+export type rho_sys_Owner = Prisma.rho_sys_OwnerModel
 /**
- * Model SystemSession
+ * Model rho_sys_Session
  * 
  */
-export type SystemSession = Prisma.SystemSessionModel
+export type rho_sys_Session = Prisma.rho_sys_SessionModel
 /**
- * Model SystemApiToken
+ * Model rho_sys_ApiToken
  * 
  */
-export type SystemApiToken = Prisma.SystemApiTokenModel
+export type rho_sys_ApiToken = Prisma.rho_sys_ApiTokenModel
