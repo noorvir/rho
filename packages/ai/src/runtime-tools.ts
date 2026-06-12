@@ -53,21 +53,22 @@ export function backgroundTaskExtension(
 }
 
 /**
- * Agent extension that registers the rho_query tool: read-only SQL against
- * the shared runtime database, for answering questions about the user's data
- * in realtime channel turns. The connection is opened read-only, so writes
- * are impossible regardless of the SQL submitted.
+ * Agent extension that registers the rho_query tool: SQL data access to the
+ * shared runtime database for realtime conversation turns — reads and row
+ * writes. Schema statements and writes to rho_sys_* tables are rejected;
+ * structural changes go through background agents.
  */
 export function rhoQueryExtension(query: (sql: string) => Promise<string>): ExtensionFactory {
 	return (pi: ExtensionAPI) => {
 		pi.registerTool({
 			name: "rho_query",
-			label: "Query Rho data",
+			label: "Rho data",
 			description:
-				"Run a read-only SQL query (SQLite) against the user's shared database to answer questions about their data. Writes are impossible on this connection — use a background task for changes.",
-			promptSnippet: "Read-only SQL over the user's data; use for data questions in conversation",
+				"Run one SQL statement (SQLite) against the user's shared database to read or change their data: SELECT, INSERT, UPDATE, DELETE. Use it to answer data questions and to save or fix data directly (add a contact, complete a todo). Schema changes (CREATE/ALTER/DROP) are rejected — those happen through background agents. Inspect a table first with PRAGMA table_info(name) when unsure of columns.",
+			promptSnippet:
+				"Read and change the user's data with SQL; schema changes are rejected and go through background agents",
 			parameters: Type.Object({
-				sql: Type.String({ description: "A single SELECT (or PRAGMA) statement." }),
+				sql: Type.String({ description: "A single SQL data statement (SELECT/INSERT/UPDATE/DELETE/PRAGMA)." }),
 			}),
 			async execute(_toolCallId, params) {
 				const rows = await query(params.sql);

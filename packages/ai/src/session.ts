@@ -10,7 +10,7 @@ import {
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
 import { createAgentEventStream } from "./event-stream.ts";
-import { getRhoSystemPrompt, rhoSystemPromptExtension } from "./system-prompt.ts";
+import { getRhoSystemPrompt, type RhoPromptRole, rhoSystemPromptExtension } from "./system-prompt.ts";
 import type { AgentEventStream } from "./types.ts";
 
 export interface RhoAgentSessionOptions {
@@ -26,6 +26,8 @@ export interface RhoAgentSessionOptions {
 	tools?: string[];
 	/** Tool names to disable, applied after the allowlist. */
 	excludeTools?: string[];
+	/** Prompt variant: channels get orchestration-only knowledge. Defaults to full. */
+	role?: RhoPromptRole;
 }
 
 export type RhoAgentExtensionSource =
@@ -64,7 +66,7 @@ export async function createRhoAgentSession(options: RhoAgentSessionOptions): Pr
 		settingsManager,
 		additionalExtensionPaths: extensionPaths,
 		extensionFactories: [rhoSystemPromptExtension, ...extensionFactories],
-		systemPrompt: getRhoSystemPrompt(),
+		systemPrompt: getRhoSystemPrompt(options.role),
 	});
 	await resourceLoader.reload();
 

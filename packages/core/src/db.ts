@@ -50,18 +50,38 @@ const maxLimit = 500;
 const queryRowLimit = 200;
 const queryTextLimit = 10_000;
 
+// Data statements only: schema changes (CREATE/ALTER/DROP/…) must go through
+// the rho-managed migration flow, never ad-hoc SQL.
+const allowedSqlKeywords = new Set(["select", "with", "insert", "update", "delete", "pragma", "explain"]);
+const readOnlySqlKeywords = new Set(["select", "pragma", "explain"]);
+
 /**
- * Runs one SQL statement against the shared database on a read-only
- * connection — writes fail at the SQLite layer regardless of the statement.
- * Returns a JSON string of up to 200 rows, truncated to a bounded size.
+ * Runs one SQL data statement against the shared database: reads and row
+ * writes are allowed, schema statements and any write touching the rho_sys_*
+ * system tables are rejected. Returns a JSON string of up to 200 rows,
+ * truncated to a bounded size.
  */
 export async function queryRuntimeDatabase(databaseUrl: string, sql: string): Promise<string> {
+	const statement = sql.trim();
+	const keyword = statement.split(/[\s(]/, 1)[0]?.toLowerCase() ?? "";
+	if (!allowedSqlKeywords.has(keyword)) {
+		throw new Error(
+			`Only data statements are allowed (${[...allowedSqlKeywords].join(", ")}). ` +
+				"Schema changes go through a background agent, never ad-hoc SQL.",
+		);
+	}
+	if (!readOnlySqlKeywords.has(keyword) && /rho_sys_/i.test(statement)) {
+		throw new Error("The rho_sys_* system tables are read-only.");
+	}
+
 	const { Database } = await import("bun:sqlite");
 	const path = databaseUrl.replace(/^file:/, "");
-	const database = new Database(path, { readonly: true });
+	const database = new Database(path);
 
 	try {
-		const rows = database.query(sql).all();
+		// query() prepares a single statement, so stacked statements after a
+		// semicolon never run.
+		const rows = database.query(statement).all();
 		const limited = rows.slice(0, queryRowLimit);
 		const suffix =
 			rows.length > limited.length ? `\n(${rows.length} rows total, showing ${limited.length})` : "";
