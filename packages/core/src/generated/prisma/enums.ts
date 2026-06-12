@@ -9,6 +9,16 @@
 * 🟢 You can import this file directly.
 */
 
+export const rho_sys_TaskStatus = {
+  queued: 'queued',
+  running: 'running',
+  done: 'done',
+  failed: 'failed'
+} as const
+
+export type rho_sys_TaskStatus = (typeof rho_sys_TaskStatus)[keyof typeof rho_sys_TaskStatus]
+
+
 export const Relationship = {
   BookClub: 'BookClub',
   Family: 'Family',
@@ -19,22 +29,3 @@ export const Relationship = {
 } as const
 
 export type Relationship = (typeof Relationship)[keyof typeof Relationship]
-
-
-export const ReadingStatus = {
-  want_to_read: 'want_to_read',
-  currently_reading: 'currently_reading',
-  finished: 'finished'
-} as const
-
-export type ReadingStatus = (typeof ReadingStatus)[keyof typeof ReadingStatus]
-
-
-export const TaskStatus = {
-  queued: 'queued',
-  running: 'running',
-  done: 'done',
-  failed: 'failed'
-} as const
-
-export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus]

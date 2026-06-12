@@ -51,17 +51,12 @@ export const AnyNull = runtime.AnyNull
 
 
 export const ModelName = {
-  Contact: 'Contact',
-  Org: 'Org',
-  Todo: 'Todo',
-  Book: 'Book',
-  Habit: 'Habit',
-  HabitCompletion: 'HabitCompletion',
-  PlannedExercise: 'PlannedExercise',
   rho_sys_Task: 'rho_sys_Task',
   rho_sys_Owner: 'rho_sys_Owner',
   rho_sys_Session: 'rho_sys_Session',
-  rho_sys_ApiToken: 'rho_sys_ApiToken'
+  rho_sys_ApiToken: 'rho_sys_ApiToken',
+  Contact: 'Contact',
+  Org: 'Org'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -75,93 +70,6 @@ export const TransactionIsolationLevel = runtime.makeStrictEnum({
 } as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
-
-
-export const ContactScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  relationship: 'relationship',
-  email: 'email',
-  phone: 'phone',
-  city: 'city',
-  region: 'region',
-  country: 'country',
-  birthday: 'birthday',
-  notes: 'notes',
-  favorite: 'favorite',
-  lastContactedAt: 'lastContactedAt',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type ContactScalarFieldEnum = (typeof ContactScalarFieldEnum)[keyof typeof ContactScalarFieldEnum]
-
-
-export const OrgScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  url: 'url',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type OrgScalarFieldEnum = (typeof OrgScalarFieldEnum)[keyof typeof OrgScalarFieldEnum]
-
-
-export const TodoScalarFieldEnum = {
-  id: 'id',
-  title: 'title',
-  completed: 'completed',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type TodoScalarFieldEnum = (typeof TodoScalarFieldEnum)[keyof typeof TodoScalarFieldEnum]
-
-
-export const BookScalarFieldEnum = {
-  id: 'id',
-  title: 'title',
-  author: 'author',
-  status: 'status',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type BookScalarFieldEnum = (typeof BookScalarFieldEnum)[keyof typeof BookScalarFieldEnum]
-
-
-export const HabitScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type HabitScalarFieldEnum = (typeof HabitScalarFieldEnum)[keyof typeof HabitScalarFieldEnum]
-
-
-export const HabitCompletionScalarFieldEnum = {
-  id: 'id',
-  habitId: 'habitId',
-  date: 'date',
-  completedAt: 'completedAt'
-} as const
-
-export type HabitCompletionScalarFieldEnum = (typeof HabitCompletionScalarFieldEnum)[keyof typeof HabitCompletionScalarFieldEnum]
-
-
-export const PlannedExerciseScalarFieldEnum = {
-  id: 'id',
-  date: 'date',
-  name: 'name',
-  details: 'details',
-  sortOrder: 'sortOrder',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type PlannedExerciseScalarFieldEnum = (typeof PlannedExerciseScalarFieldEnum)[keyof typeof PlannedExerciseScalarFieldEnum]
 
 
 export const Rho_sys_TaskScalarFieldEnum = {
@@ -221,6 +129,37 @@ export const Rho_sys_ApiTokenScalarFieldEnum = {
 } as const
 
 export type Rho_sys_ApiTokenScalarFieldEnum = (typeof Rho_sys_ApiTokenScalarFieldEnum)[keyof typeof Rho_sys_ApiTokenScalarFieldEnum]
+
+
+export const ContactScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  relationship: 'relationship',
+  email: 'email',
+  phone: 'phone',
+  city: 'city',
+  region: 'region',
+  country: 'country',
+  birthday: 'birthday',
+  notes: 'notes',
+  favorite: 'favorite',
+  lastContactedAt: 'lastContactedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ContactScalarFieldEnum = (typeof ContactScalarFieldEnum)[keyof typeof ContactScalarFieldEnum]
+
+
+export const OrgScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  url: 'url',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type OrgScalarFieldEnum = (typeof OrgScalarFieldEnum)[keyof typeof OrgScalarFieldEnum]
 
 
 export const SortOrder = {

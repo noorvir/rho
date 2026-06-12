@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "reviewId": "2026-05-27T19-59-31-168Z",
+  "updatedAt": "2026-06-09T14:56:56.420Z",
+  "threads": [
+    {
+      "id": 37,
+      "file": "packages/ai/src/providers.ts",
+      "range": {
+        "startLine": 30,
+        "startCharacter": 27,
+        "endLine": 30,
+        "endCharacter": 54
+      },
+      "comments": [
+        {
+          "id": 78,
+          "body": "why are you using env vars? rho ai is a library. nothin should be loaded from env everything needs to be injected in. also, dont we have getRhoAgentDir somewhere else? this should probably also be injected in. at worst, we should have a default config file but the ai lib shoult not load from env.",
+          "author": "You",
+          "createdAt": "2026-06-09T14:45:11.581Z",
+          "updatedAt": "2026-06-09T14:45:11.581Z"
+        },
+        {
+          "id": 80,
+          "body": "Handled. `@rho/ai` no longer resolves provider/model paths from env/defaults. Provider/model helpers now require an injected `agentDir`; the CLI owns `RHO_AGENT_DIR`/default path resolution before calling the library.",
+          "author": "Pi",
+          "createdAt": "2026-06-09T14:56:56.420Z",
+          "updatedAt": "2026-06-09T14:56:56.420Z"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "file": "packages/ai/src/providers.ts",
+      "range": {
+        "startLine": 34,
+        "startCharacter": 0,
+        "endLine": 34,
+        "endCharacter": 23
+      },
+      "comments": [
+        {
+          "id": 79,
+          "body": "this should be typed. the ai package again should not be doing parsing etc. thats the job of the cli ro server or whatever. the ai package needs to be a well defined interface . including supported providers. pi should already have that no?",
+          "author": "You",
+          "createdAt": "2026-06-09T14:46:24.848Z",
+          "updatedAt": "2026-06-09T14:46:24.848Z"
+        },
+        {
+          "id": 81,
+          "body": "Handled. Provider login now uses a typed `RhoSubscriptionProvider` (`\"codex\"`) in `@rho/ai`, and model selection now takes a typed `{ provider, modelId }` reference. CLI/server callers own string parsing and unsupported-provider handling.",
+          "author": "Pi",
+          "createdAt": "2026-06-09T14:56:56.420Z",
+          "updatedAt": "2026-06-09T14:56:56.420Z"
+        }
+      ]
+    }
+  ]
+}

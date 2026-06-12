@@ -1,0 +1,156 @@
+{
+  "version": 1,
+  "reviewId": "2026-06-11T09-53-38-930Z",
+  "updatedAt": "2026-06-11T16:17:40.411Z",
+  "threads": [
+    {
+      "id": 39,
+      "file": ".agent/plans/2026-06-11-useful-rho-prompts-tasks.md",
+      "range": {
+        "startLine": 70,
+        "startCharacter": 67,
+        "endLine": 72,
+        "endCharacter": 13
+      },
+      "comments": [
+        {
+          "id": 82,
+          "body": "Not sure about failing loudly. what we want is to trigger compaction. we dont want to crash the server",
+          "author": "You",
+          "createdAt": "2026-06-11T09:53:40.476Z",
+          "updatedAt": "2026-06-11T09:53:40.476Z"
+        },
+        {
+          "id": 87,
+          "body": "Fixed: rho_context no longer throws at runtime — it returns the docs as-is, and oversized context falls to normal session compaction. The size budget is enforced only by a test now, so doc growth is caught at build time instead of crashing anything.",
+          "author": "Pi",
+          "createdAt": "2026-06-11T11:05:00.000Z",
+          "updatedAt": "2026-06-11T11:05:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "file": ".agent/plans/2026-06-11-useful-rho-prompts-tasks.md",
+      "range": {
+        "startLine": 94,
+        "startCharacter": 0,
+        "endLine": 97,
+        "endCharacter": 18
+      },
+      "comments": [
+        {
+          "id": 83,
+          "body": "who owns this lifecycle? ie. if the background agent crashes or the server restarts, how do the background agents get restarted? i mean i know that there is the state preserved but who's making them durable?",
+          "author": "You",
+          "createdAt": "2026-06-11T09:57:13.196Z",
+          "updatedAt": "2026-06-11T09:57:13.196Z"
+        },
+        {
+          "id": 88,
+          "body": "The TaskRunner inside the server process owns the lifecycle. Durability comes from three pieces: (1) the task row in rho.sqlite (status, attempt count, heartbeat, session file) is the source of truth; (2) each task runs in its own pi session whose file is the resume checkpoint; (3) on every server start the runner recovers — tasks stuck in `running` are requeued with attempt+1 (or failed + user notified once attempts are exhausted), and finished tasks whose outcome message was never delivered are re-delivered. Nothing depends on the process surviving. This was exercised for real during the e2e: a dev-server restart mid-task resumed from the row and completed on attempt 2.",
+          "author": "Pi",
+          "createdAt": "2026-06-11T11:05:00.000Z",
+          "updatedAt": "2026-06-11T11:05:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "file": ".agent/plans/2026-06-11-useful-rho-prompts-tasks.md",
+      "range": {
+        "startLine": 115,
+        "startCharacter": 0,
+        "endLine": 117,
+        "endCharacter": 77
+      },
+      "comments": [
+        {
+          "id": 84,
+          "body": "correct. except that we might later add so widget to expose information . maybe the tools called as a collapsed list. or maybe dev mode or something. but not for now.",
+          "author": "You",
+          "createdAt": "2026-06-11T10:00:03.024Z",
+          "updatedAt": "2026-06-11T10:00:03.024Z"
+        },
+        {
+          "id": 89,
+          "body": "Agreed — recorded in the plan under Later: a collapsed tool-activity list / dev-mode widget as an optional transparency surface. Not in this pass.",
+          "author": "Pi",
+          "createdAt": "2026-06-11T11:05:00.000Z",
+          "updatedAt": "2026-06-11T11:05:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "file": ".agent/plans/2026-06-11-useful-rho-prompts-tasks.md",
+      "range": {
+        "startLine": 142,
+        "startCharacter": 0,
+        "endLine": 144,
+        "endCharacter": 46
+      },
+      "comments": [
+        {
+          "id": 85,
+          "body": "can you explain this further? noth sure i understand.",
+          "author": "You",
+          "createdAt": "2026-06-11T10:02:05.414Z",
+          "updatedAt": "2026-06-11T10:02:05.414Z"
+        },
+        {
+          "id": 90,
+          "body": "Clarification: background_task is not a static global tool. Every incoming channel message builds its agent session with a fresh tool instance whose create-callback closes over that message's conversation key, channel id, and target. The model never passes routing information — it can't get it wrong — and the task row is created already knowing exactly which conversation and channel its outcome must be delivered to.",
+          "author": "Pi",
+          "createdAt": "2026-06-11T11:05:00.000Z",
+          "updatedAt": "2026-06-11T11:05:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "file": ".agent/plans/2026-06-11-useful-rho-prompts-tasks.md",
+      "range": {
+        "startLine": 186,
+        "startCharacter": 0,
+        "endLine": 187,
+        "endCharacter": 67
+      },
+      "comments": [
+        {
+          "id": 86,
+          "body": "no not just this. but build an app fromt scratch! lets add a few layers testing:\n- lets add a contacts app that builds on top of the existing contacts table. this tests the agents ability to reuse exising tables\n- then ask to build an events all to track any upcoming event. this should also have invites which point to the existing contacts table while also creating a new schema for events . this tests the agent can add new tables while reusing exisiting one\n\n\nin all of this, im thinking that actually we need a shared runtime for the extensions. i.e. they all need access to the same prisma.schema file then most likely we need that as a runtime package that has the db inside it. right now, the db stuff is in core which will not be accessible to the running agents since that the foundational building block thats installed as a package and not modifyable. the modifyable stuff live with the extensions. so maybe we need to have a runtime package there?\n\ni dont want multiple sqlite dbs though. so a single runtime db which contains both the system tables (like tasks etc) and extensions added tables. the systemtable can be prefixed by _sys_",
+          "author": "You",
+          "createdAt": "2026-06-11T10:11:58.629Z",
+          "updatedAt": "2026-06-11T10:11:58.629Z"
+        },
+        {
+          "id": 91,
+          "body": "Added both layered scenarios to the plan's validation section: a contacts app that must reuse the existing contacts table, then an events app that must create a new events schema while referencing contacts for invites. The shared-runtime direction is recorded in the plan too: move schema/migrations/generated client out of @rho/core (installed, non-modifiable) into a runtime-owned package living with the modifiable extension layer — one SQLite db for system + extension tables, system tables prefixed (e.g. _sys_). Today's `rho.db` handed to extensions from core is the stopgap until that package exists.",
+          "author": "Pi",
+          "createdAt": "2026-06-11T11:05:00.000Z",
+          "updatedAt": "2026-06-11T11:05:00.000Z"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "file": "packages/ai/package.json",
+      "range": {
+        "startLine": 27,
+        "startCharacter": 0,
+        "endLine": 27,
+        "endCharacter": 0
+      },
+      "comments": [
+        {
+          "id": 92,
+          "body": "what are we adding typebox? ",
+          "author": "You",
+          "createdAt": "2026-06-11T16:17:40.410Z",
+          "updatedAt": "2026-06-11T16:17:40.410Z"
+        }
+      ]
+    }
+  ]
+}

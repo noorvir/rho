@@ -14,8 +14,7 @@
 	},
 	"files": [
 		"dist",
-		"db-template",
-		"README.md"
+		"prisma"
 	],
 	"scripts": {
 		"build": "tsgo -b tsconfig.json",

@@ -42,7 +42,7 @@ export type Rho_sys_TaskMinAggregateOutputType = {
   targetId: string | null
   title: string | null
   instructions: string | null
-  status: $Enums.TaskStatus | null
+  status: $Enums.rho_sys_TaskStatus | null
   attempt: number | null
   error: string | null
   summary: string | null
@@ -62,7 +62,7 @@ export type Rho_sys_TaskMaxAggregateOutputType = {
   targetId: string | null
   title: string | null
   instructions: string | null
-  status: $Enums.TaskStatus | null
+  status: $Enums.rho_sys_TaskStatus | null
   attempt: number | null
   error: string | null
   summary: string | null
@@ -259,7 +259,7 @@ export type Rho_sys_TaskGroupByOutputType = {
   targetId: string
   title: string
   instructions: string
-  status: $Enums.TaskStatus
+  status: $Enums.rho_sys_TaskStatus
   attempt: number
   error: string | null
   summary: string | null
@@ -302,7 +302,7 @@ export type rho_sys_TaskWhereInput = {
   targetId?: Prisma.StringFilter<"rho_sys_Task"> | string
   title?: Prisma.StringFilter<"rho_sys_Task"> | string
   instructions?: Prisma.StringFilter<"rho_sys_Task"> | string
-  status?: Prisma.EnumTaskStatusFilter<"rho_sys_Task"> | $Enums.TaskStatus
+  status?: Prisma.Enumrho_sys_TaskStatusFilter<"rho_sys_Task"> | $Enums.rho_sys_TaskStatus
   attempt?: Prisma.IntFilter<"rho_sys_Task"> | number
   error?: Prisma.StringNullableFilter<"rho_sys_Task"> | string | null
   summary?: Prisma.StringNullableFilter<"rho_sys_Task"> | string | null
@@ -345,7 +345,7 @@ export type rho_sys_TaskWhereUniqueInput = Prisma.AtLeast<{
   targetId?: Prisma.StringFilter<"rho_sys_Task"> | string
   title?: Prisma.StringFilter<"rho_sys_Task"> | string
   instructions?: Prisma.StringFilter<"rho_sys_Task"> | string
-  status?: Prisma.EnumTaskStatusFilter<"rho_sys_Task"> | $Enums.TaskStatus
+  status?: Prisma.Enumrho_sys_TaskStatusFilter<"rho_sys_Task"> | $Enums.rho_sys_TaskStatus
   attempt?: Prisma.IntFilter<"rho_sys_Task"> | number
   error?: Prisma.StringNullableFilter<"rho_sys_Task"> | string | null
   summary?: Prisma.StringNullableFilter<"rho_sys_Task"> | string | null
@@ -393,7 +393,7 @@ export type rho_sys_TaskScalarWhereWithAggregatesInput = {
   targetId?: Prisma.StringWithAggregatesFilter<"rho_sys_Task"> | string
   title?: Prisma.StringWithAggregatesFilter<"rho_sys_Task"> | string
   instructions?: Prisma.StringWithAggregatesFilter<"rho_sys_Task"> | string
-  status?: Prisma.EnumTaskStatusWithAggregatesFilter<"rho_sys_Task"> | $Enums.TaskStatus
+  status?: Prisma.Enumrho_sys_TaskStatusWithAggregatesFilter<"rho_sys_Task"> | $Enums.rho_sys_TaskStatus
   attempt?: Prisma.IntWithAggregatesFilter<"rho_sys_Task"> | number
   error?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Task"> | string | null
   summary?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Task"> | string | null
@@ -413,7 +413,7 @@ export type rho_sys_TaskCreateInput = {
   targetId: string
   title: string
   instructions: string
-  status?: $Enums.TaskStatus
+  status?: $Enums.rho_sys_TaskStatus
   attempt?: number
   error?: string | null
   summary?: string | null
@@ -433,7 +433,7 @@ export type rho_sys_TaskUncheckedCreateInput = {
   targetId: string
   title: string
   instructions: string
-  status?: $Enums.TaskStatus
+  status?: $Enums.rho_sys_TaskStatus
   attempt?: number
   error?: string | null
   summary?: string | null
@@ -453,7 +453,7 @@ export type rho_sys_TaskUpdateInput = {
   targetId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   instructions?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumTaskStatusFieldUpdateOperationsInput | $Enums.TaskStatus
+  status?: Prisma.Enumrho_sys_TaskStatusFieldUpdateOperationsInput | $Enums.rho_sys_TaskStatus
   attempt?: Prisma.IntFieldUpdateOperationsInput | number
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -473,7 +473,7 @@ export type rho_sys_TaskUncheckedUpdateInput = {
   targetId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   instructions?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumTaskStatusFieldUpdateOperationsInput | $Enums.TaskStatus
+  status?: Prisma.Enumrho_sys_TaskStatusFieldUpdateOperationsInput | $Enums.rho_sys_TaskStatus
   attempt?: Prisma.IntFieldUpdateOperationsInput | number
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -493,7 +493,7 @@ export type rho_sys_TaskCreateManyInput = {
   targetId: string
   title: string
   instructions: string
-  status?: $Enums.TaskStatus
+  status?: $Enums.rho_sys_TaskStatus
   attempt?: number
   error?: string | null
   summary?: string | null
@@ -513,7 +513,7 @@ export type rho_sys_TaskUpdateManyMutationInput = {
   targetId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   instructions?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumTaskStatusFieldUpdateOperationsInput | $Enums.TaskStatus
+  status?: Prisma.Enumrho_sys_TaskStatusFieldUpdateOperationsInput | $Enums.rho_sys_TaskStatus
   attempt?: Prisma.IntFieldUpdateOperationsInput | number
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -533,7 +533,7 @@ export type rho_sys_TaskUncheckedUpdateManyInput = {
   targetId?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   instructions?: Prisma.StringFieldUpdateOperationsInput | string
-  status?: Prisma.EnumTaskStatusFieldUpdateOperationsInput | $Enums.TaskStatus
+  status?: Prisma.Enumrho_sys_TaskStatusFieldUpdateOperationsInput | $Enums.rho_sys_TaskStatus
   attempt?: Prisma.IntFieldUpdateOperationsInput | number
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   summary?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -613,8 +613,32 @@ export type rho_sys_TaskSumOrderByAggregateInput = {
   attempt?: Prisma.SortOrder
 }
 
-export type EnumTaskStatusFieldUpdateOperationsInput = {
-  set?: $Enums.TaskStatus
+export type StringFieldUpdateOperationsInput = {
+  set?: string
+}
+
+export type Enumrho_sys_TaskStatusFieldUpdateOperationsInput = {
+  set?: $Enums.rho_sys_TaskStatus
+}
+
+export type IntFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
+export type NullableStringFieldUpdateOperationsInput = {
+  set?: string | null
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
+export type DateTimeFieldUpdateOperationsInput = {
+  set?: Date | string
 }
 
 
@@ -712,7 +736,7 @@ export type $rho_sys_TaskPayload<ExtArgs extends runtime.Types.Extensions.Intern
     targetId: string
     title: string
     instructions: string
-    status: $Enums.TaskStatus
+    status: $Enums.rho_sys_TaskStatus
     attempt: number
     error: string | null
     summary: string | null
@@ -1152,7 +1176,7 @@ export interface rho_sys_TaskFieldRefs {
   readonly targetId: Prisma.FieldRef<"rho_sys_Task", 'String'>
   readonly title: Prisma.FieldRef<"rho_sys_Task", 'String'>
   readonly instructions: Prisma.FieldRef<"rho_sys_Task", 'String'>
-  readonly status: Prisma.FieldRef<"rho_sys_Task", 'TaskStatus'>
+  readonly status: Prisma.FieldRef<"rho_sys_Task", 'rho_sys_TaskStatus'>
   readonly attempt: Prisma.FieldRef<"rho_sys_Task", 'Int'>
   readonly error: Prisma.FieldRef<"rho_sys_Task", 'String'>
   readonly summary: Prisma.FieldRef<"rho_sys_Task", 'String'>

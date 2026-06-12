@@ -8,15 +8,10 @@
  *
  * 🟢 You can import this file directly.
  */
-export type * from './models/Contact.ts'
-export type * from './models/Org.ts'
-export type * from './models/Todo.ts'
-export type * from './models/Book.ts'
-export type * from './models/Habit.ts'
-export type * from './models/HabitCompletion.ts'
-export type * from './models/PlannedExercise.ts'
 export type * from './models/rho_sys_Task.ts'
 export type * from './models/rho_sys_Owner.ts'
 export type * from './models/rho_sys_Session.ts'
 export type * from './models/rho_sys_ApiToken.ts'
+export type * from './models/Contact.ts'
+export type * from './models/Org.ts'
 export type * from './commonInputTypes.ts'

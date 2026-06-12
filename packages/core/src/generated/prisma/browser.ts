@@ -18,41 +18,6 @@ export { Prisma }
 export * as $Enums from './enums.ts'
 export * from './enums.ts';
 /**
- * Model Contact
- * 
- */
-export type Contact = Prisma.ContactModel
-/**
- * Model Org
- * 
- */
-export type Org = Prisma.OrgModel
-/**
- * Model Todo
- * 
- */
-export type Todo = Prisma.TodoModel
-/**
- * Model Book
- * 
- */
-export type Book = Prisma.BookModel
-/**
- * Model Habit
- * 
- */
-export type Habit = Prisma.HabitModel
-/**
- * Model HabitCompletion
- * 
- */
-export type HabitCompletion = Prisma.HabitCompletionModel
-/**
- * Model PlannedExercise
- * 
- */
-export type PlannedExercise = Prisma.PlannedExerciseModel
-/**
  * Model rho_sys_Task
  * 
  */
@@ -72,3 +37,13 @@ export type rho_sys_Session = Prisma.rho_sys_SessionModel
  * 
  */
 export type rho_sys_ApiToken = Prisma.rho_sys_ApiTokenModel
+/**
+ * Model Contact
+ * 
+ */
+export type Contact = Prisma.ContactModel
+/**
+ * Model Org
+ * 
+ */
+export type Org = Prisma.OrgModel

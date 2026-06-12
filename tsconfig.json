@@ -1,14 +1,29 @@
 {
 	"files": [],
 	"references": [
-		{ "path": "./apps/server" },
-		{ "path": "./packages/lib" },
-		{ "path": "./packages/apps-sdk" },
-		{ "path": "./packages/ui" },
-		{ "path": "./examples/extensions/workout-tracker" },
-		{ "path": "./packages/channels" },
-		{ "path": "./packages/ai" },
-		{ "path": "./packages/core" },
-		{ "path": "./packages/cli" }
+		{
+			"path": "./apps/server"
+		},
+		{
+			"path": "./packages/lib"
+		},
+		{
+			"path": "./packages/apps-sdk"
+		},
+		{
+			"path": "./packages/ui"
+		},
+		{
+			"path": "./packages/channels"
+		},
+		{
+			"path": "./packages/ai"
+		},
+		{
+			"path": "./packages/core"
+		},
+		{
+			"path": "./packages/cli"
+		}
 	]
 }

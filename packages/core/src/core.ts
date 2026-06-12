@@ -89,6 +89,11 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		generatedClientDir: opts.generatedClientDir,
 	});
 	const prisma = prismaHandle.client;
+	if (opts.generatedClientDir) {
+		// The static client only knows system models; runtimes with a generated
+		// home client swap it in before anything queries runtime-added models.
+		await prismaHandle.reload();
+	}
 	const conversations = new KeyedMutex();
 
 	const extensionLoader =

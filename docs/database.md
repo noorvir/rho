@@ -39,7 +39,7 @@ to:
 | Role | Source-repo path |
 |------|------------------|
 | Canonical schema | `packages/core/prisma/schema.prisma` |
-| Shared database | the file behind `RHO_DATABASE_URL` (dev default `packages/core/dev.db`) |
+| Shared database | `$RHO_HOME/db/rho.sqlite` (dev uses a repo-local home, e.g. `.rho-dev/`) |
 | Generated client | `packages/core/src/generated/prisma/` |
 
 Apply schema changes with the runtime procedure below — it works the same

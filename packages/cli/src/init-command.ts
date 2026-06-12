@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { cp, mkdir, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -22,19 +22,25 @@ export async function runInitCommand(): Promise<void> {
 		await mkdir(dir, { recursive: true });
 	}
 
-	// Seed db/ from core's template without overwriting runtime-owned files.
-	// The schema belongs to the runtime after init; template migrations are
-	// additive and copied so `migrate deploy` can apply new system migrations
-	// after upgrades.
-	const template = dirname(require.resolve("@rho/core/package.json"));
-	const templateDb = join(template, "db-template");
+	// Seed db/ from core's canonical schema without overwriting runtime-owned
+	// files. The schema belongs to the runtime after init; template migrations
+	// are additive and copied so `migrate deploy` can apply new system
+	// migrations after upgrades.
+	const core = dirname(require.resolve("@rho/core/package.json"));
 	if (!existsSync(join(dbDir, "schema.prisma"))) {
-		await cp(join(templateDb, "schema.prisma"), join(dbDir, "schema.prisma"));
+		const schema = await readFile(join(core, "prisma", "schema.prisma"), "utf8");
+		// Core generates its own types next to its source; the runtime client
+		// belongs inside the home db directory.
+		const runtimeSchema = schema.replace(
+			'output       = "../src/generated/prisma"',
+			'output       = "./generated/prisma"',
+		);
+		await writeFile(join(dbDir, "schema.prisma"), runtimeSchema);
 	}
 	if (!existsSync(join(dbDir, "prisma.config.ts"))) {
-		await cp(join(templateDb, "prisma.config.ts"), join(dbDir, "prisma.config.ts"));
+		await writeFile(join(dbDir, "prisma.config.ts"), prismaConfigSource());
 	}
-	await cp(join(templateDb, "migrations"), join(dbDir, "migrations"), {
+	await cp(join(core, "prisma", "migrations"), join(dbDir, "migrations"), {
 		recursive: true,
 		force: false,
 	});
@@ -118,6 +124,21 @@ function extensionsPackage(): Record<string, unknown> {
 		},
 		overrides: links,
 	};
+}
+
+function prismaConfigSource(): string {
+	return `// Plain object on purpose: this directory has no node_modules, so the config
+// must not import anything. The runtime always passes DATABASE_URL.
+export default {
+	schema: "schema.prisma",
+	migrations: {
+		path: "migrations",
+	},
+	datasource: {
+		url: process.env.DATABASE_URL ?? "file:./rho.sqlite",
+	},
+};
+`;
 }
 
 function rhoPackageLinks(): Record<string, string> {

@@ -31,8 +31,8 @@ export * from "./enums.ts"
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Contacts
- * const contacts = await prisma.contact.findMany()
+ * // Fetch zero or more Rho_sys_Tasks
+ * const rho_sys_Tasks = await prisma.rho_sys_Task.findMany()
  * ```
  * 
  * Read more in our [docs](https://pris.ly/d/client).
@@ -41,41 +41,6 @@ export const PrismaClient = $Class.getPrismaClientClass()
 export type PrismaClient<LogOpts extends Prisma.LogLevel = never, OmitOpts extends Prisma.PrismaClientOptions["omit"] = Prisma.PrismaClientOptions["omit"], ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = $Class.PrismaClient<LogOpts, OmitOpts, ExtArgs>
 export { Prisma }
 
-/**
- * Model Contact
- * 
- */
-export type Contact = Prisma.ContactModel
-/**
- * Model Org
- * 
- */
-export type Org = Prisma.OrgModel
-/**
- * Model Todo
- * 
- */
-export type Todo = Prisma.TodoModel
-/**
- * Model Book
- * 
- */
-export type Book = Prisma.BookModel
-/**
- * Model Habit
- * 
- */
-export type Habit = Prisma.HabitModel
-/**
- * Model HabitCompletion
- * 
- */
-export type HabitCompletion = Prisma.HabitCompletionModel
-/**
- * Model PlannedExercise
- * 
- */
-export type PlannedExercise = Prisma.PlannedExerciseModel
 /**
  * Model rho_sys_Task
  * 
@@ -96,3 +61,13 @@ export type rho_sys_Session = Prisma.rho_sys_SessionModel
  * 
  */
 export type rho_sys_ApiToken = Prisma.rho_sys_ApiTokenModel
+/**
+ * Model Contact
+ * 
+ */
+export type Contact = Prisma.ContactModel
+/**
+ * Model Org
+ * 
+ */
+export type Org = Prisma.OrgModel

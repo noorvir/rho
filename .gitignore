@@ -33,4 +33,4 @@ packages/mobile/Config/Signing.local.xcconfig
 .agent/current.md
 .agent/research/
 .agent/rho-api-secret
-.pi-review
+.pi-review.rho-dev/

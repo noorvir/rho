@@ -16,12 +16,33 @@ export type {
 	RhoAgentExtensionSource,
 	RhoAppApiBuilderContext,
 	RhoAppApiContext,
+	RhoDb,
 	RhoExtensionContext,
 	RhoExtensionDefinition,
 	RhoHostPlatform,
+	RhoRuntimeModels,
 } from "@rho/core";
 
 export type { RhoAppInstance, RhoAppMount } from "./react.ts";
+
+/**
+ * Loosely-typed Prisma delegate for a model an extension added to the
+ * runtime schema. Declare it on the RhoRuntimeModels augmentation so
+ * `rho.db.<model>` returns typed rows; argument shapes are not checked.
+ */
+export interface RhoModelDelegate<Row> {
+	findMany(args?: unknown): Promise<Row[]>;
+	findFirst(args?: unknown): Promise<Row | null>;
+	findUnique(args: unknown): Promise<Row | null>;
+	create(args: unknown): Promise<Row>;
+	createMany(args: unknown): Promise<{ count: number }>;
+	update(args: unknown): Promise<Row>;
+	updateMany(args: unknown): Promise<{ count: number }>;
+	upsert(args: unknown): Promise<Row>;
+	delete(args: unknown): Promise<Row>;
+	deleteMany(args?: unknown): Promise<{ count: number }>;
+	count(args?: unknown): Promise<number>;
+}
 
 export interface RhoAppContext {
 	app: {
