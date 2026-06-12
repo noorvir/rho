@@ -281,7 +281,8 @@ navigation, and platform correctness (tap targets, input sizes that don't
 trigger mobile zoom, client-side routing), so app code mostly composes them
 and fills in content:
 
-- `Screen` — one per route: page title, optional header actions, vertical rhythm.
+- `Screen` — one per route: page title, optional header actions, and a `back`
+  link for detail screens (`back={{ href: "/", label: "Back" }}`).
 - `Section` — a titled group inside a screen. Headings and spacing only, never a box.
 - `List` + `Row` — grouped rows; the only bordered surface. `Row` takes
   `leading`/`title`/`subtitle`/`trailing`, plus `href` (navigation) or `onPress` (action).
@@ -299,7 +300,9 @@ Design rules:
 - Every data fetch renders all three lifecycle states: `LoadingState` while
   pending, `ErrorState` on failure, `EmptyState` when there is nothing yet.
 - Navigate between app routes with `Link` or `Row href` — never raw `<a>`
-  tags, which cause full page reloads.
+  tags, which cause full page reloads. Detail screens use `Screen back`.
+- The shell owns global navigation. Do not build breadcrumbs, app-level nav
+  bars, or tab bars inside an app.
 - Use Tailwind classes for spacing, color accents, and custom content layout
   inside the primitives. Stick to theme tokens (`text-muted-foreground`,
   `bg-card`, `border-border`, `text-destructive`) so apps follow the user's

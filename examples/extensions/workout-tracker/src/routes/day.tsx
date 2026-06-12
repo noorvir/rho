@@ -4,7 +4,6 @@ import {
 	EmptyState,
 	ErrorState,
 	Field,
-	Link,
 	List,
 	LoadingState,
 	Row,
@@ -59,12 +58,11 @@ export function Day({ date }: DayProps) {
 	const exercises = day.data?.exercises ?? [];
 
 	return (
-		<div className="mx-auto w-full max-w-3xl space-y-4">
-			<Link className="text-sm text-muted-foreground hover:text-foreground" href="/">
-				← Back to week
-			</Link>
-
-			<Screen description="Planned exercises for this day." title={formatDayTitle(date)}>
+		<Screen
+			back={{ href: "/", label: "Back to week" }}
+			description="Planned exercises for this day."
+			title={formatDayTitle(date)}
+		>
 				<Section title="Planned">
 					{day.isPending && <LoadingState />}
 					{day.isError && <ErrorState description="Could not load this day. Please try again." />}
@@ -100,9 +98,8 @@ export function Day({ date }: DayProps) {
 							Add exercise
 						</Button>
 					</form>
-				</Section>
-			</Screen>
-		</div>
+			</Section>
+		</Screen>
 	);
 }
 

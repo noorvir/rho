@@ -11,6 +11,7 @@
 export type * from './models/Contact.ts'
 export type * from './models/Org.ts'
 export type * from './models/Todo.ts'
+export type * from './models/Book.ts'
 export type * from './models/PlannedExercise.ts'
 export type * from './models/Task.ts'
 export type * from './models/SystemOwner.ts'

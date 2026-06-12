@@ -188,6 +188,23 @@ export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedDateTimeFilter<$PrismaModel>
 }
 
+export type EnumReadingStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReadingStatus | Prisma.EnumReadingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ReadingStatus[]
+  notIn?: $Enums.ReadingStatus[]
+  not?: Prisma.NestedEnumReadingStatusFilter<$PrismaModel> | $Enums.ReadingStatus
+}
+
+export type EnumReadingStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReadingStatus | Prisma.EnumReadingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ReadingStatus[]
+  notIn?: $Enums.ReadingStatus[]
+  not?: Prisma.NestedEnumReadingStatusWithAggregatesFilter<$PrismaModel> | $Enums.ReadingStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumReadingStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumReadingStatusFilter<$PrismaModel>
+}
+
 export type EnumTaskStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.TaskStatus | Prisma.EnumTaskStatusFieldRefInput<$PrismaModel>
   in?: $Enums.TaskStatus[]
@@ -394,6 +411,23 @@ export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedDateTimeFilter<$PrismaModel>
   _max?: Prisma.NestedDateTimeFilter<$PrismaModel>
+}
+
+export type NestedEnumReadingStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReadingStatus | Prisma.EnumReadingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ReadingStatus[]
+  notIn?: $Enums.ReadingStatus[]
+  not?: Prisma.NestedEnumReadingStatusFilter<$PrismaModel> | $Enums.ReadingStatus
+}
+
+export type NestedEnumReadingStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ReadingStatus | Prisma.EnumReadingStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ReadingStatus[]
+  notIn?: $Enums.ReadingStatus[]
+  not?: Prisma.NestedEnumReadingStatusWithAggregatesFilter<$PrismaModel> | $Enums.ReadingStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumReadingStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumReadingStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumTaskStatusFilter<$PrismaModel = never> = {

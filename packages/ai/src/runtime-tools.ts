@@ -61,8 +61,8 @@ export function rhoReloadExtension(reload: () => Promise<string>): ExtensionFact
 			name: "rho_reload",
 			label: "Reload Rho",
 			description:
-				"Reload the Rho runtime so newly created or edited extensions become visible in the user's apps. Call after creating or changing an extension.",
-			promptSnippet: "Reload the Rho runtime to apply new or edited extensions",
+				"Reload the Rho runtime so newly created or edited extensions become visible in the user's apps, and swap in the regenerated database client after schema changes. Call after creating or changing an extension or running a migration. Never restart the rho server instead — it hosts this session.",
+			promptSnippet: "Reload the Rho runtime to apply new or edited extensions and schema changes",
 			parameters: Type.Object({}),
 			async execute() {
 				const summary = await reload();

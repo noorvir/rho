@@ -387,6 +387,7 @@ export const ModelName = {
   Contact: 'Contact',
   Org: 'Org',
   Todo: 'Todo',
+  Book: 'Book',
   PlannedExercise: 'PlannedExercise',
   Task: 'Task',
   SystemOwner: 'SystemOwner',
@@ -407,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "contact" | "org" | "todo" | "plannedExercise" | "task" | "systemOwner" | "systemSession" | "systemApiToken"
+    modelProps: "contact" | "org" | "todo" | "book" | "plannedExercise" | "task" | "systemOwner" | "systemSession" | "systemApiToken"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -630,6 +631,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.TodoCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.TodoCountAggregateOutputType> | number
+        }
+      }
+    }
+    Book: {
+      payload: Prisma.$BookPayload<ExtArgs>
+      fields: Prisma.BookFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BookFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BookFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>
+        }
+        findFirst: {
+          args: Prisma.BookFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BookFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>
+        }
+        findMany: {
+          args: Prisma.BookFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>[]
+        }
+        create: {
+          args: Prisma.BookCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>
+        }
+        createMany: {
+          args: Prisma.BookCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BookCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>[]
+        }
+        delete: {
+          args: Prisma.BookDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>
+        }
+        update: {
+          args: Prisma.BookUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>
+        }
+        deleteMany: {
+          args: Prisma.BookDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BookUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BookUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>[]
+        }
+        upsert: {
+          args: Prisma.BookUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BookPayload>
+        }
+        aggregate: {
+          args: Prisma.BookAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBook>
+        }
+        groupBy: {
+          args: Prisma.BookGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BookCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BookCountAggregateOutputType> | number
         }
       }
     }
@@ -1081,6 +1156,18 @@ export const TodoScalarFieldEnum = {
 export type TodoScalarFieldEnum = (typeof TodoScalarFieldEnum)[keyof typeof TodoScalarFieldEnum]
 
 
+export const BookScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  author: 'author',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookScalarFieldEnum = (typeof BookScalarFieldEnum)[keyof typeof BookScalarFieldEnum]
+
+
 export const PlannedExerciseScalarFieldEnum = {
   id: 'id',
   date: 'date',
@@ -1211,6 +1298,13 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
 
 
 /**
+ * Reference to a field of type 'ReadingStatus'
+ */
+export type EnumReadingStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ReadingStatus'>
+    
+
+
+/**
  * Reference to a field of type 'TaskStatus'
  */
 export type EnumTaskStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TaskStatus'>
@@ -1336,6 +1430,7 @@ export type GlobalOmitConfig = {
   contact?: Prisma.ContactOmit
   org?: Prisma.OrgOmit
   todo?: Prisma.TodoOmit
+  book?: Prisma.BookOmit
   plannedExercise?: Prisma.PlannedExerciseOmit
   task?: Prisma.TaskOmit
   systemOwner?: Prisma.SystemOwnerOmit

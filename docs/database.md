@@ -33,10 +33,8 @@ roles map to:
 | Shared database | the file behind `RHO_DATABASE_URL` (dev default `packages/core/dev.db`) |
 | Generated client | `packages/core/src/generated/prisma/` |
 
-Apply schema changes in the source repo with, from `packages/core`:
-`DATABASE_URL=<runtime database url> bun run db:migrate -- --name <change>`
-then `bun run db:generate`. The dev server restarts automatically when the
-generated client changes.
+Apply schema changes with the runtime procedure below — it works the same
+against a dev or installed runtime database.
 
 ## Ownership
 
@@ -63,6 +61,43 @@ Rho changes the installed database in this order:
 7. Regenerate `db/generated/` from the updated runtime schema.
 
 Rho must not let extension code run its own install-time schema mutation against the shared database. Extension schema changes go through this Rho-owned Prisma migration flow so existing apps and user data stay coordinated. Rho must not reset or delete existing data unless the user explicitly approved that destructive change.
+
+## Applying schema changes to a running server
+
+Never kill or restart the rho server to apply schema changes. The server
+hosts the agent's own session and the user's background tasks; a restart
+kills them mid-run. `rho_reload` swaps the regenerated database client into
+the running server, so new models work without a restart.
+
+Validate on a copy before touching the live database:
+
+1. Edit the canonical schema, then snapshot the live database file:
+
+   ```sh
+   bun -e "const { Database } = require('bun:sqlite'); const db = new Database('<live db file>'); db.exec(\"VACUUM INTO '<copy file>'\"); db.close()"
+   ```
+
+2. Create the migration and apply it to the copy first, from `packages/core`:
+
+   ```sh
+   DATABASE_URL=file:<copy file> bun run db:migrate -- --name <change>
+   ```
+
+3. For risky changes, boot a disposable test server against the copy and
+   check it, then kill only that test server:
+
+   ```sh
+   RHO_PORT=7332 RHO_DATABASE_URL=file:<copy file> bun apps/server/dist/cli.js
+   ```
+
+4. Apply the now-validated migration to the live database:
+
+   ```sh
+   DATABASE_URL=<live url> bunx prisma migrate deploy --config prisma.config.ts
+   ```
+
+5. Regenerate the client (`bun run db:generate`), then call `rho_reload`.
+   New models are usable immediately; no rebuild or restart is needed.
 
 ## Extension data
 

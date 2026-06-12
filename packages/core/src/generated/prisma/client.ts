@@ -57,6 +57,11 @@ export type Org = Prisma.OrgModel
  */
 export type Todo = Prisma.TodoModel
 /**
+ * Model Book
+ * 
+ */
+export type Book = Prisma.BookModel
+/**
  * Model PlannedExercise
  * 
  */

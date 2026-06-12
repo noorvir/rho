@@ -21,6 +21,15 @@ export const Relationship = {
 export type Relationship = (typeof Relationship)[keyof typeof Relationship]
 
 
+export const ReadingStatus = {
+  want_to_read: 'want_to_read',
+  currently_reading: 'currently_reading',
+  finished: 'finished'
+} as const
+
+export type ReadingStatus = (typeof ReadingStatus)[keyof typeof ReadingStatus]
+
+
 export const TaskStatus = {
   queued: 'queued',
   running: 'running',

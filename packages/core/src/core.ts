@@ -24,7 +24,7 @@ import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import type { Task } from "./generated/prisma/client.ts";
-import { createRhoPrisma } from "./prisma.ts";
+import { createReloadableRhoPrisma } from "./prisma.ts";
 import { type ReloadResult, reload } from "./reload.ts";
 import { KeyedMutex, TaskRunner } from "./tasks.ts";
 
@@ -81,7 +81,8 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 			rootDir: stateDir,
 		});
 
-	const prisma = createRhoPrisma(opts.databaseUrl);
+	const prismaHandle = createReloadableRhoPrisma(opts.databaseUrl);
+	const prisma = prismaHandle.client;
 	const conversations = new KeyedMutex();
 
 	const extensionLoader =
@@ -177,14 +178,16 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		replaceApps,
 		replaceChannels,
 		replaceAgentExtensions,
-		reload: async () =>
-			reload({
+		reload: async () => {
+			await prismaHandle.reload();
+			return reload({
 				extensionLoader,
 				replaceApps,
 				replaceChannels,
 				replaceAgentExtensions,
 				activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
-			}),
+			});
+		},
 		activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 		close: async () => {
 			await tasks.stop();

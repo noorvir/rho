@@ -54,6 +54,7 @@ export const ModelName = {
   Contact: 'Contact',
   Org: 'Org',
   Todo: 'Todo',
+  Book: 'Book',
   PlannedExercise: 'PlannedExercise',
   Task: 'Task',
   SystemOwner: 'SystemOwner',
@@ -114,6 +115,18 @@ export const TodoScalarFieldEnum = {
 } as const
 
 export type TodoScalarFieldEnum = (typeof TodoScalarFieldEnum)[keyof typeof TodoScalarFieldEnum]
+
+
+export const BookScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  author: 'author',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type BookScalarFieldEnum = (typeof BookScalarFieldEnum)[keyof typeof BookScalarFieldEnum]
 
 
 export const PlannedExerciseScalarFieldEnum = {

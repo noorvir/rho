@@ -67,10 +67,14 @@ construction (depth-aware components), not by prompt discipline.
 
 - [x] Design discussion with user: primitive set, no-Card decision, light
       default aesthetic (iOS-grouped-leaning), user creativity preserved.
-- [ ] Implement `@rho/ui` package + wiring (tsconfig refs, Dockerfile build,
+- [x] Implement `@rho/ui` package + wiring (tsconfig refs, Dockerfile build,
       app CSS `@source`).
-- [ ] Template + docs doctrine.
-- [ ] Convert todo-list and workout-tracker examples.
+- [x] Template + docs doctrine.
+- [x] Convert todo-list and workout-tracker examples.
+- [x] Adoption test passed: agent built reading-list from product
+      requirements alone, used primitives correctly, zero nested cards.
+- [x] `Screen back` slot for detail screens; doctrine: shell owns global
+      navigation, no app-level breadcrumbs/nav bars.
 - [ ] Web visual review with user; iterate.
 - [ ] Later iteration: mobile pass, more inputs (date/switch), Row trailing
       actions.
