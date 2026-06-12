@@ -34,6 +34,8 @@ export const env = {
 	RHO_EXTENSIONS_DIR: join(RHO_HOME, "extensions"),
 	/** Runtime-generated Prisma client dir, when the home db has been initialized. */
 	RHO_GENERATED_CLIENT_DIR: existsSync(generatedClientDir) ? generatedClientDir : undefined,
+	/** Runtime db dir, when the home db has been initialized; enables rho_migrate. */
+	RHO_DB_DIR: existsSync(join(homeDbDir, "schema.prisma")) ? homeDbDir : undefined,
 };
 
 function splitPaths(value: string): string[] {

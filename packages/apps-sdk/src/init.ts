@@ -19,7 +19,7 @@ if (!slug) {
 
 const name = titleize(slug);
 const templateDir = new URL("../template/app-extension/", import.meta.url).pathname;
-const targetDir = resolve(targetArg ?? join("examples/extensions", slug));
+const targetDir = resolve(targetArg ?? slug);
 
 await mkdir(targetDir, { recursive: true });
 await cp(templateDir, targetDir, { recursive: true, errorOnExist: false });

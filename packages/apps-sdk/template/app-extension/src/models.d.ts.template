@@ -1,0 +1,16 @@
+import type { RhoModelDelegate } from "@rho/apps-sdk";
+
+// Declare the models this extension adds to the runtime schema so
+// `rho.db.<model>` is typed. Keep row shapes in sync with schema.prisma.
+//
+// interface Item {
+// 	id: number;
+// 	name: string;
+// 	createdAt: Date;
+// }
+
+declare module "@rho/core" {
+	interface RhoRuntimeModels {
+		// item: RhoModelDelegate<Item>;
+	}
+}

@@ -6,6 +6,25 @@ Apps render inside the Rho `/apps` shell. They are not standalone web pages: the
 
 This page uses a Todo app as the running example.
 
+## Building an app: fast path
+
+Everything below runs in the extensions workspace (`$RHO_HOME/extensions`):
+
+1. Scaffold: `bunx create-rho-app-extension "Todo List" todo-list`, then
+   `bun install` — always from the workspace root, never inside an app folder.
+2. Implement the API in `src/api.ts` (oRPC handlers over `rho.db`) and the UI
+   in `src/routes/` with `@rho/ui` primitives. The scaffold contains working
+   examples of every file.
+3. New models: append them to `$RHO_HOME/db/schema.prisma`, mirror them in
+   the app's `src/models.d.ts`, then call the `rho_migrate` tool once — it
+   validates the migration on a copy, applies it live, regenerates the
+   client, and reloads the runtime.
+4. For code-only changes, call `rho_reload`.
+5. Verify with one or two API calls; the app serves at `/apps/<slug>`.
+
+The sections below describe the full contract; prefer the scaffold over
+re-deriving it from runtime internals.
+
 ## How apps are registered
 
 An app extension registers apps from its Rho entrypoint with `createAppExtension`.

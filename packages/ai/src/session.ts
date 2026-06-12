@@ -33,6 +33,7 @@ export interface RhoAgentSession {
 	readonly sessionId: string;
 	readonly sessionFile: string | undefined;
 	prompt(text: string, options?: RhoAgentPromptOptions): AgentEventStream;
+	setThinkingLevel(level: "minimal" | "low" | "medium" | "high"): void;
 	abort(): Promise<void>;
 	dispose(): void;
 }
@@ -72,6 +73,9 @@ export async function createRhoAgentSession(options: RhoAgentSessionOptions): Pr
 		},
 		prompt(text, promptOptions) {
 			return createAgentEventStream((emit) => runPrompt(session, text, promptOptions ?? {}, emit));
+		},
+		setThinkingLevel(level) {
+			session.setThinkingLevel(level);
 		},
 		abort() {
 			return session.abort();

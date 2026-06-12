@@ -38,6 +38,9 @@ export async function runTaskSession(input: TaskSessionInput): Promise<TaskSessi
 		sessionManager,
 		agentExtensions: input.agentExtensions,
 	});
+	// Task work is formulaic; medium thinking roughly halves per-turn latency
+	// compared to the high level interactive chats may configure.
+	session.setThinkingLevel("medium");
 	input.onSession?.(session.sessionFile ?? sessionManager.getSessionFile());
 
 	const abort = () => {

@@ -9,7 +9,8 @@ In a running runtime, extensions live in the extensions workspace at
 as a folder there; the workspace's shared `package.json` already provides
 `@rho/apps-sdk`, `@rho/ui`, React, and oRPC. After adding a folder with its
 own `package.json`, run `bun install` in `$RHO_HOME/extensions`, then call
-`rho_reload`. The `examples/extensions` paths below apply when developing
+`rho_reload`. Always run `bun install` from the workspace root — running it
+inside an app folder corrupts the shared dependency links. The `examples/extensions` paths below apply when developing
 rho itself from the source repository.
 
 ## Create an app extension

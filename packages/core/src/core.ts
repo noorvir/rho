@@ -10,6 +10,7 @@ import {
 	type RhoAgentExtensionSource,
 	respondInConversation,
 	rhoContextExtension,
+	rhoMigrateExtension,
 	rhoReloadExtension,
 	type StateManager,
 } from "@rho/ai";
@@ -24,6 +25,7 @@ import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
+import { migrateRuntimeSchema } from "./migrate.ts";
 import { createReloadableRhoPrisma } from "./prisma.ts";
 import { type ReloadResult, reload } from "./reload.ts";
 import { KeyedMutex, TaskRunner } from "./tasks.ts";
@@ -40,6 +42,8 @@ export interface RhoCoreOptions {
 	databaseUrl: string;
 	/** Absolute directory of the runtime-generated Prisma client (`db/generated/prisma`); reloads import from it. */
 	generatedClientDir?: string;
+	/** Absolute runtime db directory (`$RHO_HOME/db`); enables the rho_migrate tool. */
+	dbDir?: string;
 	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
 	docsDir?: string;
 	/** Absolute extensions workspace directory. Defaults to `<cwd>/.rho/extensions`. */
@@ -114,6 +118,17 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		type: "factory",
 		factory: rhoReloadExtension(async () => reloadSummary(await core.reload())),
 	});
+	if (opts.dbDir) {
+		const dbDir = opts.dbDir;
+		runtimeToolSources.push({
+			type: "factory",
+			factory: rhoMigrateExtension(async (name) => {
+				const migrated = await migrateRuntimeSchema({ dbDir, databaseUrl: opts.databaseUrl }, name);
+				const reloaded = reloadSummary(await core.reload());
+				return `${migrated}\n${reloaded}`;
+			}),
+		});
+	}
 
 	const sessionExtensions = (): RhoAgentExtensionSource[] => [
 		...runtimeToolSources,

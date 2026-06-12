@@ -52,6 +52,30 @@ export function backgroundTaskExtension(
 }
 
 /**
+ * Agent extension that registers the rho_migrate tool, wired to the runtime's
+ * safe schema-migration flow (validate on a copy, apply live, regenerate,
+ * reload). Returns a human-readable result summary to the model.
+ */
+export function rhoMigrateExtension(migrate: (name: string) => Promise<string>): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_migrate",
+			label: "Migrate Rho schema",
+			description:
+				"Apply a runtime database schema change safely after editing the runtime schema.prisma: validates the migration on a copy of the live database, applies it live, regenerates the client, and reloads the runtime so new models are usable immediately. Use this instead of running prisma commands manually. Never edit or remove rho_sys_* models.",
+			promptSnippet: "Safely migrate the Rho database after editing the runtime schema",
+			parameters: Type.Object({
+				name: Type.String({ description: "Short snake_case migration name, e.g. add_books" }),
+			}),
+			async execute(_toolCallId, params) {
+				const summary = await migrate(params.name);
+				return { content: [{ type: "text", text: summary }], details: undefined };
+			},
+		});
+	};
+}
+
+/**
  * Agent extension that registers the rho_reload tool, wired to the runtime's
  * extension reload. Returns a human-readable result summary to the model.
  */

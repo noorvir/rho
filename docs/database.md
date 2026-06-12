@@ -83,40 +83,19 @@ Rho must not let extension code run its own install-time schema mutation against
 
 Never kill or restart the rho server to apply schema changes. The server
 hosts the agent's own session and the user's background tasks; a restart
-kills them mid-run. `rho_reload` swaps the regenerated database client into
-the running server, so new models work without a restart.
+kills them mid-run.
 
-Validate on a copy before touching the live database:
+Edit the runtime `schema.prisma`, then call the `rho_migrate` tool with a
+short migration name. It performs the whole safe procedure in one step:
+snapshots the live database, validates the migration on the copy, applies it
+to the live database, regenerates the client, and reloads the runtime. New
+models are usable immediately; no rebuild or restart is needed.
 
-1. Edit the canonical schema, then snapshot the live database file:
-
-   ```sh
-   bun -e "const { Database } = require('bun:sqlite'); const db = new Database('<live db file>'); db.exec(\"VACUUM INTO '<copy file>'\"); db.close()"
-   ```
-
-2. Create the migration and apply it to the copy first (installed runtime:
-   from `$RHO_HOME/extensions` with `--config ../db/prisma.config.ts`;
-   source repo: from `packages/core`):
-
-   ```sh
-   DATABASE_URL=file:<copy file> bunx prisma migrate dev --name <change> --config <db dir>/prisma.config.ts
-   ```
-
-3. For risky changes, boot a disposable test server against the copy and
-   check it, then kill only that test server:
-
-   ```sh
-   RHO_PORT=7332 RHO_DATABASE_URL=file:<copy file> bun apps/server/dist/cli.js
-   ```
-
-4. Apply the now-validated migration to the live database:
-
-   ```sh
-   DATABASE_URL=<live url> bunx prisma migrate deploy --config prisma.config.ts
-   ```
-
-5. Regenerate the client (`bun run db:generate`), then call `rho_reload`.
-   New models are usable immediately; no rebuild or restart is needed.
+If `rho_migrate` is unavailable, do the same manually: snapshot with
+`VACUUM INTO`, run `prisma migrate dev --name <change>` against the copy
+(from `$RHO_HOME/extensions`, `--config ../db/prisma.config.ts`), then
+`prisma migrate deploy` against the live database, regenerate, and call
+`rho_reload`.
 
 ## Extension data
 

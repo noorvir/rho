@@ -17,7 +17,7 @@
 		"./package.json": "./package.json"
 	},
 	"bin": {
-		"create-rho-app-extension": "./src/init.ts"
+		"create-rho-app-extension": "./dist/init.js"
 	},
 	"files": [
 		"dist",
