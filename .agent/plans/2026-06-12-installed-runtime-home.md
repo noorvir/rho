@@ -120,6 +120,18 @@ directory that core receives as configuration:
       faster model for task sessions.
 - [ ] Document the models.d.ts augmentation pattern in docs (template +
       extension-schema docs) so agents pick it up.
+- [x] Orchestrator/implementer separation: channel sessions are read-only
+      (excludeTools: bash/edit/write/rho_migrate/rho_reload; pi gotcha: the
+      `tools` allowlist also removes extension tools — use the denylist),
+      rho_query gives realtime read-only SQL for data questions,
+      background_task description is delegation-first. Task sessions get
+      their own model/thinking via RHO_TASK_MODEL/RHO_TASK_THINKING_LEVEL.
+      Validated: gpt-5.5 and gpt-5.4-mini at low thinking both delegate
+      builds (capability removal forces it) and the implementer override
+      builds correctly regardless of the chat model.
+- [ ] Task instruction ceremony trim (36-turn task path vs 9-turn inline);
+      ensure final rho_reload is the last task step (one build needed a
+      manual reload after completion).
 - [ ] Dev mode on the same layout (repo currently keeps RHO_DATABASE_URL +
       RHO_EXTENSION_PATHS overrides).
 - [ ] npm packaging slice: publish single `rho` package; installed-layout
