@@ -1,14 +1,28 @@
 import SwiftUI
 import UIKit
 
+enum ComposerMediaAction {
+    case camera
+    case photos
+    case location
+}
+
+struct PendingImage: Identifiable, Equatable {
+    let id = UUID()
+    let image: UIImage
+}
+
 /// Positions the composer bar with UIKit's keyboardLayoutGuide: docked above
 /// the bottom safe area when the keyboard is hidden, and attached to the
 /// keyboard's animated frame (including interactive dismissal) when visible.
 /// Holds no keyboard session, so sheet pull-down keeps working.
 struct ComposerOverlay: UIViewRepresentable {
     @Binding var draft: String
+    let pendingImages: [PendingImage]
     let isSending: Bool
     let onSend: () -> Void
+    let onRemoveImage: (UUID) -> Void
+    let onMediaAction: (ComposerMediaAction) -> Void
 
     func makeUIView(context: Context) -> ComposerOverlayView {
         let hosting = UIHostingController(rootView: rootView)
@@ -31,7 +45,14 @@ struct ComposerOverlay: UIViewRepresentable {
     }
 
     private var rootView: AgentInput {
-        AgentInput(draft: $draft, isSending: isSending, onSend: onSend)
+        AgentInput(
+            draft: $draft,
+            pendingImages: pendingImages,
+            isSending: isSending,
+            onSend: onSend,
+            onRemoveImage: onRemoveImage,
+            onMediaAction: onMediaAction
+        )
     }
 
     final class Coordinator {
@@ -72,8 +93,11 @@ final class ComposerOverlayView: UIView {
 
 struct AgentInput: View {
     @Binding var draft: String
+    let pendingImages: [PendingImage]
     let isSending: Bool
     let onSend: () -> Void
+    let onRemoveImage: (UUID) -> Void
+    let onMediaAction: (ComposerMediaAction) -> Void
 
     @State private var isMediaTrayPresented = false
 
@@ -87,6 +111,31 @@ struct AgentInput: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if !pendingImages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(pendingImages) { pending in
+                            Image(uiImage: pending.image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 64, height: 64)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .overlay(alignment: .topTrailing) {
+                                    Button {
+                                        onRemoveImage(pending.id)
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 17))
+                                            .foregroundStyle(.white, .black.opacity(0.55))
+                                    }
+                                    .padding(3)
+                                }
+                        }
+                    }
+                }
+                .padding(.bottom, 10)
+            }
+
             HStack(spacing: 10) {
                 Button {
                     isMediaTrayPresented.toggle()
@@ -111,7 +160,8 @@ struct AgentInput: View {
                             if canSend {
                                 onSend()
                             }
-                        }
+                        },
+                        onMediaAction: onMediaAction
                     )
 
                     Image(systemName: "sticker")
@@ -126,7 +176,9 @@ struct AgentInput: View {
                         .stroke(Color.black.opacity(0.18), lineWidth: 1)
                 }
 
-                Button(action: {}) {
+                Button {
+                    onMediaAction(.camera)
+                } label: {
                     Image(systemName: "camera")
                         .font(.system(size: 23, weight: .regular))
                         .foregroundStyle(.black)
@@ -161,6 +213,7 @@ private struct ChatTextField: UIViewRepresentable {
     @Binding var text: String
     @Binding var isMediaTrayPresented: Bool
     let onSend: () -> Void
+    let onMediaAction: (ComposerMediaAction) -> Void
 
     func makeUIView(context: Context) -> UITextField {
         let field = UITextField()
@@ -213,7 +266,10 @@ private struct ChatTextField: UIViewRepresentable {
                 return trayContainer
             }
 
-            let controller = UIHostingController(rootView: MediaOptionsGrid())
+            let grid = MediaOptionsGrid { [weak self] action in
+                self?.parent.onMediaAction(action)
+            }
+            let controller = UIHostingController(rootView: grid)
             controller.view.backgroundColor = .clear
             controller.safeAreaRegions = []
             trayController = controller
@@ -262,13 +318,15 @@ private struct ChatTextField: UIViewRepresentable {
 }
 
 private struct MediaOptionsGrid: View {
+    let onSelect: (ComposerMediaAction) -> Void
+
     private let options = [
-        MediaOption(title: "Photos", icon: "photo.on.rectangle.angled", color: .blue),
-        MediaOption(title: "Camera", icon: "camera.fill", color: .black.opacity(0.82)),
-        MediaOption(title: "Location", icon: "mappin", color: .green),
-        MediaOption(title: "Contact", icon: "person.crop.circle", color: .black.opacity(0.56)),
-        MediaOption(title: "Document", icon: "doc.fill", color: .cyan),
-        MediaOption(title: "AI images", icon: "sparkles", color: .blue),
+        MediaOption(title: "Photos", icon: "photo.on.rectangle.angled", color: .blue, action: .photos),
+        MediaOption(title: "Camera", icon: "camera.fill", color: .black.opacity(0.82), action: .camera),
+        MediaOption(title: "Location", icon: "mappin", color: .green, action: .location),
+        MediaOption(title: "Contact", icon: "person.crop.circle", color: .black.opacity(0.56), action: nil),
+        MediaOption(title: "Document", icon: "doc.fill", color: .cyan, action: nil),
+        MediaOption(title: "AI images", icon: "sparkles", color: .blue, action: nil),
     ]
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 18), count: 3)
@@ -276,22 +334,29 @@ private struct MediaOptionsGrid: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 32) {
             ForEach(options) { option in
-                VStack(spacing: 9) {
-                    ZStack {
-                        Circle()
-                            .fill(Color.black.opacity(0.035))
-                            .frame(width: 72, height: 72)
-
-                        Image(systemName: option.icon)
-                            .font(.system(size: 29, weight: .semibold))
-                            .foregroundStyle(option.color)
+                Button {
+                    if let action = option.action {
+                        onSelect(action)
                     }
+                } label: {
+                    VStack(spacing: 9) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.black.opacity(0.035))
+                                .frame(width: 72, height: 72)
 
-                    Text(option.title)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.black)
-                        .lineLimit(1)
+                            Image(systemName: option.icon)
+                                .font(.system(size: 29, weight: .semibold))
+                                .foregroundStyle(option.color)
+                        }
+
+                        Text(option.title)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.black)
+                            .lineLimit(1)
+                    }
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 22)
@@ -305,6 +370,7 @@ private struct MediaOption: Identifiable {
     let title: String
     let icon: String
     let color: Color
+    let action: ComposerMediaAction?
 
     var id: String { title }
 }

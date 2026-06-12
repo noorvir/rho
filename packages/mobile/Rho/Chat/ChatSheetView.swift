@@ -1,3 +1,5 @@
+import CoreLocation
+import PhotosUI
 import SwiftUI
 import UIKit
 
@@ -16,6 +18,11 @@ struct ChatSheetView: View {
     @State private var errorText: String?
     @State private var workingTasks: [TaskSummary] = []
     @State private var taskPoller: Task<Void, Never>?
+    @State private var pendingImages: [PendingImage] = []
+    @State private var isCameraPresented = false
+    @State private var isPhotosPresented = false
+    @State private var isLocationPresented = false
+    @State private var photoSelection: [PhotosPickerItem] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,10 +76,39 @@ struct ChatSheetView: View {
         }
         .background(Color.white.ignoresSafeArea())
         .overlay {
-            ComposerOverlay(draft: $draft, isSending: isSending) {
-                sendDraft()
+            ComposerOverlay(
+                draft: $draft,
+                pendingImages: pendingImages,
+                isSending: isSending,
+                onSend: { sendDraft() },
+                onRemoveImage: { id in pendingImages.removeAll { $0.id == id } },
+                onMediaAction: handleMediaAction
+            )
+            .ignoresSafeArea()
+        }
+        .fullScreenCover(isPresented: $isCameraPresented) {
+            CameraPicker { image in
+                pendingImages.append(PendingImage(image: image))
             }
             .ignoresSafeArea()
+        }
+        .photosPicker(
+            isPresented: $isPhotosPresented,
+            selection: $photoSelection,
+            maxSelectionCount: 10,
+            matching: .images
+        )
+        .sheet(isPresented: $isLocationPresented) {
+            LocationPickerSheet { coordinate in
+                sendCurrentLocation(coordinate)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+        .onChange(of: photoSelection) { _, items in
+            guard !items.isEmpty else { return }
+            photoSelection = []
+            Task { await loadPickedPhotos(items) }
         }
         .task(id: conversationID) {
             await loadHistory(for: conversationID)
@@ -120,6 +156,38 @@ struct ChatSheetView: View {
         }
     }
 
+    private func handleMediaAction(_ action: ComposerMediaAction) {
+        dismissKeyboard()
+        switch action {
+        case .camera:
+            isCameraPresented = true
+        case .photos:
+            isPhotosPresented = true
+        case .location:
+            isLocationPresented = true
+        }
+    }
+
+    private func sendCurrentLocation(_ coordinate: CLLocationCoordinate2D) {
+        let lat = String(format: "%.6f", coordinate.latitude)
+        let lng = String(format: "%.6f", coordinate.longitude)
+        send("📍 Current location: https://maps.apple.com/?ll=\(lat),\(lng)")
+    }
+
+    private func loadPickedPhotos(_ items: [PhotosPickerItem]) async {
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data)
+            else {
+                continue
+            }
+
+            await MainActor.run {
+                pendingImages.append(PendingImage(image: image))
+            }
+        }
+    }
+
     private func dismissKeyboard() {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
@@ -128,8 +196,15 @@ struct ChatSheetView: View {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
 
-        let id = conversationID
         draft = ""
+        pendingImages = []
+        send(text)
+    }
+
+    private func send(_ text: String) {
+        guard !isSending else { return }
+
+        let id = conversationID
         errorText = nil
         isSending = true
 
