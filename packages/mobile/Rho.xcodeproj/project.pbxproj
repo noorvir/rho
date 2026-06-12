@@ -10,6 +10,11 @@
 		A00000000000000000000001 /* RhoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000011 /* RhoApp.swift */; };
 		A00000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000012 /* ContentView.swift */; };
 		A00000000000000000000003 /* ChatSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000013 /* ChatSheetView.swift */; };
+		A0000000000000000000000A /* ChatComposer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000021 /* ChatComposer.swift */; };
+		A0000000000000000000000B /* ChatHistorySheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000022 /* ChatHistorySheetView.swift */; };
+		A0000000000000000000000C /* ChatConversationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000023 /* ChatConversationStore.swift */; };
+		A0000000000000000000000D /* ChatBubble.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000024 /* ChatBubble.swift */; };
+		A0000000000000000000000E /* ChatClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* ChatClient.swift */; };
 		A00000000000000000000005 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* AppShellView.swift */; };
 		A00000000000000000000006 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* BottomBar.swift */; };
 		A00000000000000000000007 /* MobileBuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* MobileBuildInfo.swift */; };
@@ -23,6 +28,11 @@
 		A00000000000000000000011 /* RhoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RhoApp.swift; sourceTree = "<group>"; };
 		A00000000000000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A00000000000000000000013 /* ChatSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatSheetView.swift; sourceTree = "<group>"; };
+		A00000000000000000000021 /* ChatComposer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatComposer.swift; sourceTree = "<group>"; };
+		A00000000000000000000022 /* ChatHistorySheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatHistorySheetView.swift; sourceTree = "<group>"; };
+		A00000000000000000000023 /* ChatConversationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatConversationStore.swift; sourceTree = "<group>"; };
+		A00000000000000000000024 /* ChatBubble.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatBubble.swift; sourceTree = "<group>"; };
+		A00000000000000000000025 /* ChatClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatClient.swift; sourceTree = "<group>"; };
 		A00000000000000000000015 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		A00000000000000000000016 /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
 		A00000000000000000000019 /* MobileBuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileBuildInfo.swift; sourceTree = "<group>"; };
@@ -55,7 +65,7 @@
 			children = (
 				A00000000000000000000011 /* RhoApp.swift */,
 				A00000000000000000000012 /* ContentView.swift */,
-				A00000000000000000000013 /* ChatSheetView.swift */,
+				A00000000000000000000034 /* Chat */,
 				A00000000000000000000015 /* AppShellView.swift */,
 				A00000000000000000000016 /* BottomBar.swift */,
 				A00000000000000000000019 /* MobileBuildInfo.swift */,
@@ -63,6 +73,19 @@
 				A0000000000000000000001B /* Assets.xcassets */,
 			);
 			path = Rho;
+			sourceTree = "<group>";
+		};
+		A00000000000000000000034 /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				A00000000000000000000013 /* ChatSheetView.swift */,
+				A00000000000000000000021 /* ChatComposer.swift */,
+				A00000000000000000000022 /* ChatHistorySheetView.swift */,
+				A00000000000000000000023 /* ChatConversationStore.swift */,
+				A00000000000000000000024 /* ChatBubble.swift */,
+				A00000000000000000000025 /* ChatClient.swift */,
+			);
+			path = Chat;
 			sourceTree = "<group>";
 		};
 		A00000000000000000000032 /* Products */ = {
@@ -154,6 +177,11 @@
 				A00000000000000000000001 /* RhoApp.swift in Sources */,
 				A00000000000000000000002 /* ContentView.swift in Sources */,
 				A00000000000000000000003 /* ChatSheetView.swift in Sources */,
+				A0000000000000000000000A /* ChatComposer.swift in Sources */,
+				A0000000000000000000000B /* ChatHistorySheetView.swift in Sources */,
+				A0000000000000000000000C /* ChatConversationStore.swift in Sources */,
+				A0000000000000000000000D /* ChatBubble.swift in Sources */,
+				A0000000000000000000000E /* ChatClient.swift in Sources */,
 				A00000000000000000000005 /* AppShellView.swift in Sources */,
 				A00000000000000000000006 /* BottomBar.swift in Sources */,
 				A00000000000000000000007 /* MobileBuildInfo.swift in Sources */,
