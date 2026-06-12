@@ -37,9 +37,11 @@ export async function migrateRuntimeSchema(
 	await snapshotDatabase(options.databaseUrl, copyPath);
 
 	try {
-		// Creates the migration, applies it to the copy, and runs generators.
 		prisma(options.dbDir, `file:${copyPath}`, ["migrate", "dev", "--name", migrationName]);
 		prisma(options.dbDir, options.databaseUrl, ["migrate", "deploy"]);
+		// migrate dev does not reliably run generators; regenerate explicitly so
+		// the reload that follows picks up the new models.
+		prisma(options.dbDir, options.databaseUrl, ["generate"]);
 	} finally {
 		await rm(copyPath, { force: true }).catch(() => {});
 	}
