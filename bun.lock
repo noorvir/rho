@@ -258,6 +258,9 @@
         "jiti": "2.7.0",
         "prisma": "7.8.0",
       },
+      "devDependencies": {
+        "@types/bun": "^1.3.5",
+      },
     },
     "packages/lib": {
       "name": "@rho/lib",

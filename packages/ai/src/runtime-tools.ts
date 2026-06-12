@@ -27,12 +27,13 @@ export function backgroundTaskExtension(
 			name: "background_task",
 			label: "Background Task",
 			description:
-				"Start a durable background task for work that takes more than about a minute. " +
+				"Delegate implementation work to a background agent with full tools. This is the only way to build or change anything from a conversation — apps, extensions, files, schema, installs — and the right way to run any work over about a minute. Never refuse buildable requests because this conversation lacks write tools; delegate them here instead. " +
 				"The task runs after this reply ends and its outcome is delivered to the user automatically. " +
 				"After calling this, finish your reply with a short acknowledgement and a rough time expectation.",
-			promptSnippet: "Run long work as a background task; the user is notified when it finishes",
+			promptSnippet:
+				"Delegate building/changing anything (and other long work) to a background task; the user is notified when it finishes",
 			promptGuidelines: [
-				"For work that takes more than about a minute, call background_task, then reply with one or two plain-language sentences: what you'll do and roughly how long it takes. No technical steps or jargon. Do not do the long work in the conversation.",
+				"To build or change anything, or for work over about a minute, call background_task, then reply with one or two plain-language sentences: what you'll do and roughly how long it takes. No technical steps or jargon. Do not attempt the work in the conversation and do not refuse because this conversation lacks write tools.",
 			],
 			parameters: backgroundTaskParams,
 			async execute(_toolCallId, params) {
@@ -46,6 +47,31 @@ export function backgroundTaskExtension(
 					],
 					details: result,
 				};
+			},
+		});
+	};
+}
+
+/**
+ * Agent extension that registers the rho_query tool: read-only SQL against
+ * the shared runtime database, for answering questions about the user's data
+ * in realtime channel turns. The connection is opened read-only, so writes
+ * are impossible regardless of the SQL submitted.
+ */
+export function rhoQueryExtension(query: (sql: string) => Promise<string>): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_query",
+			label: "Query Rho data",
+			description:
+				"Run a read-only SQL query (SQLite) against the user's shared database to answer questions about their data. Writes are impossible on this connection — use a background task for changes.",
+			promptSnippet: "Read-only SQL over the user's data; use for data questions in conversation",
+			parameters: Type.Object({
+				sql: Type.String({ description: "A single SELECT (or PRAGMA) statement." }),
+			}),
+			async execute(_toolCallId, params) {
+				const rows = await query(params.sql);
+				return { content: [{ type: "text", text: rows }], details: undefined };
 			},
 		});
 	};

@@ -11,6 +11,7 @@ import {
 	respondInConversation,
 	rhoContextExtension,
 	rhoMigrateExtension,
+	rhoQueryExtension,
 	rhoReloadExtension,
 	type StateManager,
 } from "@rho/ai";
@@ -23,6 +24,7 @@ import {
 } from "@rho/channels";
 import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
+import { queryRuntimeDatabase } from "./db.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
 import { migrateRuntimeSchema } from "./migrate.ts";
@@ -121,6 +123,10 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 	runtimeToolSources.push({
 		type: "factory",
 		factory: rhoReloadExtension(async () => reloadSummary(await core.reload())),
+	});
+	runtimeToolSources.push({
+		type: "factory",
+		factory: rhoQueryExtension((sql) => queryRuntimeDatabase(opts.databaseUrl, sql)),
 	});
 	if (opts.dbDir) {
 		const dbDir = opts.dbDir;

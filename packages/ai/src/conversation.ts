@@ -94,11 +94,15 @@ async function runConversation(
 	const conversation = await input.state.resolve(input.key);
 	const sessionManager = SessionManager.open(conversation.sessionFile);
 
+	// Channel turns are orchestration: answer, look things up, delegate
+	// implementation to background tasks. Mutating tools are implementer-only,
+	// so even weak models cannot build inline — the capability is absent.
 	const session = await createRhoAgentSession({
 		cwd: input.cwd,
 		agentDir: input.agentDir,
 		sessionManager,
 		agentExtensions: input.agentExtensions,
+		excludeTools: ["bash", "edit", "write", "rho_migrate", "rho_reload"],
 	});
 	const abort = () => {
 		void session.abort();

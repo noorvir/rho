@@ -22,6 +22,10 @@ export interface RhoAgentSessionOptions {
 	agentExtensions?: RhoAgentExtensionSource[];
 	/** Overrides the settings-default model for this session. */
 	model?: RhoAgentModelRef;
+	/** Allowlist of built-in tool names; extension tools stay enabled. */
+	tools?: string[];
+	/** Tool names to disable, applied after the allowlist. */
+	excludeTools?: string[];
 }
 
 export type RhoAgentExtensionSource =
@@ -65,6 +69,8 @@ export async function createRhoAgentSession(options: RhoAgentSessionOptions): Pr
 	await resourceLoader.reload();
 
 	const { session } = await createAgentSession({
+		tools: options.tools,
+		excludeTools: options.excludeTools,
 		cwd,
 		agentDir,
 		settingsManager,

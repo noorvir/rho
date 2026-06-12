@@ -32,6 +32,7 @@ export {
 	type BackgroundTaskRequest,
 	backgroundTaskExtension,
 	rhoMigrateExtension,
+	rhoQueryExtension,
 	rhoReloadExtension,
 } from "./runtime-tools.ts";
 export {

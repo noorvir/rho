@@ -47,6 +47,34 @@ export interface TableOptions {
 const defaultLimit = 100;
 const maxLimit = 500;
 
+const queryRowLimit = 200;
+const queryTextLimit = 10_000;
+
+/**
+ * Runs one SQL statement against the shared database on a read-only
+ * connection — writes fail at the SQLite layer regardless of the statement.
+ * Returns a JSON string of up to 200 rows, truncated to a bounded size.
+ */
+export async function queryRuntimeDatabase(databaseUrl: string, sql: string): Promise<string> {
+	const { Database } = await import("bun:sqlite");
+	const path = databaseUrl.replace(/^file:/, "");
+	const database = new Database(path, { readonly: true });
+
+	try {
+		const rows = database.query(sql).all();
+		const limited = rows.slice(0, queryRowLimit);
+		const suffix =
+			rows.length > limited.length ? `\n(${rows.length} rows total, showing ${limited.length})` : "";
+		const text = JSON.stringify(limited, null, 1) + suffix;
+		if (text.length > queryTextLimit) {
+			return `${text.slice(0, queryTextLimit)}\n…truncated`;
+		}
+		return text;
+	} finally {
+		database.close();
+	}
+}
+
 export async function getTables(databaseUrl: string): Promise<TableSummary[]> {
 	return withDatabase(databaseUrl, async (database) => {
 		const result = await database.execute(
