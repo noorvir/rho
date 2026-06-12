@@ -29,10 +29,9 @@ export async function bundleAppClient(entry: string): Promise<string> {
 				// trees; two bundled Reacts break the hooks dispatcher at runtime.
 				name: "dedupe-react",
 				setup(build) {
-					build.onResolve(
-						{ filter: /^(react|react-dom|@tanstack\/react-query)(\/.*)?$/ },
-						(args) => ({ path: Bun.resolveSync(args.path, appDir) }),
-					);
+					build.onResolve({ filter: /^(react|react-dom|@tanstack\/react-query)(\/.*)?$/ }, (args) => ({
+						path: Bun.resolveSync(args.path, appDir),
+					}));
 				},
 			},
 		],

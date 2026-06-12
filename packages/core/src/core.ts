@@ -44,6 +44,8 @@ export interface RhoCoreOptions {
 	generatedClientDir?: string;
 	/** Absolute runtime db directory (`$RHO_HOME/db`); enables the rho_migrate tool. */
 	dbDir?: string;
+	/** Reasoning effort for background task sessions; defaults to medium. */
+	taskThinkingLevel?: "minimal" | "low" | "medium" | "high";
 	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
 	docsDir?: string;
 	/** Absolute extensions workspace directory. Defaults to `<cwd>/.rho/extensions`. */
@@ -143,6 +145,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		sessionsDir: join(stateDir, "sessions"),
 		agentExtensions: sessionExtensions,
 		conversations,
+		taskThinkingLevel: opts.taskThinkingLevel,
 	});
 
 	const runtime = new ChannelRuntime({

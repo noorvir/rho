@@ -30,6 +30,8 @@ export interface TaskRunnerOptions {
 	agentExtensions: () => RhoAgentExtensionSource[];
 	/** Serializes writes to conversation sessions against active chat turns. */
 	conversations: KeyedMutex;
+	/** Reasoning effort for task sessions; defaults to medium. */
+	taskThinkingLevel?: "minimal" | "low" | "medium" | "high";
 	pollIntervalMs?: number;
 }
 
@@ -170,6 +172,7 @@ export class TaskRunner {
 				agentDir: this.options.agentDir,
 				prompt: checkpoint ? resumePrompt() : initialPrompt(task),
 				agentExtensions: this.options.agentExtensions(),
+				thinkingLevel: this.options.taskThinkingLevel,
 				onSession: (file) => {
 					if (!file || file === sessionFile) {
 						return;

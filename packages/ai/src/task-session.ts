@@ -11,6 +11,8 @@ export interface TaskSessionInput {
 	agentDir: string;
 	prompt: string;
 	agentExtensions?: RhoAgentExtensionSource[];
+	/** Reasoning effort for the task; defaults to medium. */
+	thinkingLevel?: "minimal" | "low" | "medium" | "high";
 	signal?: AbortSignal;
 	/** Reports the session file as soon as the session exists, before any work runs. */
 	onSession?: (sessionFile: string | undefined) => void;
@@ -38,9 +40,9 @@ export async function runTaskSession(input: TaskSessionInput): Promise<TaskSessi
 		sessionManager,
 		agentExtensions: input.agentExtensions,
 	});
-	// Task work is formulaic; medium thinking roughly halves per-turn latency
-	// compared to the high level interactive chats may configure.
-	session.setThinkingLevel("medium");
+	// Task work is formulaic; medium thinking keeps per-turn latency below
+	// the high level interactive chats may configure.
+	session.setThinkingLevel(input.thinkingLevel ?? "medium");
 	input.onSession?.(session.sessionFile ?? sessionManager.getSessionFile());
 
 	const abort = () => {

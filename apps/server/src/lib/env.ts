@@ -36,7 +36,16 @@ export const env = {
 	RHO_GENERATED_CLIENT_DIR: existsSync(generatedClientDir) ? generatedClientDir : undefined,
 	/** Runtime db dir, when the home db has been initialized; enables rho_migrate. */
 	RHO_DB_DIR: existsSync(join(homeDbDir, "schema.prisma")) ? homeDbDir : undefined,
+	RHO_TASK_THINKING_LEVEL: taskThinkingLevel(),
 };
+
+function taskThinkingLevel(): "minimal" | "low" | "medium" | "high" | undefined {
+	const value = loadEnvWithNullishCheck("RHO_TASK_THINKING_LEVEL", false);
+	if (value === "minimal" || value === "low" || value === "medium" || value === "high") {
+		return value;
+	}
+	return undefined;
+}
 
 function splitPaths(value: string): string[] {
 	return value
