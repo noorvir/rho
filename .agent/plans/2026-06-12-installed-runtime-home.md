@@ -80,11 +80,26 @@ directory that core receives as configuration:
       `assertSystemModels` tripwire before every swap. Tested: rogue client
       generated from a runtime-style `db/` dir without system tables is
       refused, live client unaffected.
-- [ ] Core: configured db dir (schema/migrations/generated/sqlite paths),
-      reloadable prisma imports from it; vendored system-model types.
-- [ ] CLI: `rho init` seeding (system tables incl. personal-data primitives),
-      extensions workspace skeleton.
-- [ ] Server boot: migrate deploy; extensions dir from home.
-- [ ] Docker/Railway: home dir on volume.
-- [ ] Dev mode on the same layout.
-- [ ] End-to-end validation (fresh install + Railway redeploy survival).
+- [x] System models renamed to `rho_sys_*` (models and tables) via a
+      data-preserving hand-written migration; docs + prompt mark them
+      read-only.
+- [x] CLI: `rho init` — seeds db from core's `db-template/` (system tables +
+      contacts/orgs), runs migrate deploy + generate, creates the extensions
+      workspace (hoisted linker; file:-linked @rho packages with overrides).
+      Idempotent; Docker CMD runs it on every boot.
+- [x] Server: `RHO_HOME` env with per-var overrides; extensionsDir +
+      generatedClientDir wired through core options.
+- [x] Railway: `RHO_HOME=/data/rho`; RHO_DATABASE_URL/RHO_STATE_DIR/
+      RHO_EXTENSION_PATHS removed. Fresh home db seeded on volume; owner
+      setup re-run (password "password" — user should change it).
+- [x] Redeploy survival proven: prod agent built bookmarks app; source moved
+      to /data/rho/extensions (agent initially placed it in the image's
+      examples dir — prompt guidance added, examples path removed from prod);
+      schema + migration landed in /data/rho/db correctly; after full
+      redeploy the app loads from the volume.
+- [ ] Re-verify: next prod agent app build lands in $RHO_HOME/extensions
+      unaided (guidance is new and untested).
+- [ ] Dev mode on the same layout (repo currently keeps RHO_DATABASE_URL +
+      RHO_EXTENSION_PATHS overrides).
+- [ ] npm packaging slice: publish single `rho` package; installed-layout
+      smoke test without a repo checkout.
