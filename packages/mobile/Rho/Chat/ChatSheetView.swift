@@ -82,6 +82,7 @@ struct ChatSheetView: View {
                 isSending: isSending,
                 onSend: { sendDraft() },
                 onRemoveImage: { id in pendingImages.removeAll { $0.id == id } },
+                onAudioRecorded: { audio in sendVoiceMessage(audio) },
                 onMediaAction: handleMediaAction
             )
             .ignoresSafeArea()
@@ -166,6 +167,14 @@ struct ChatSheetView: View {
         case .location:
             isLocationPresented = true
         }
+    }
+
+    private func sendVoiceMessage(_ audio: PendingAudio) {
+        try? FileManager.default.removeItem(at: audio.url)
+
+        let total = Int(audio.duration)
+        let duration = String(format: "%d:%02d", total / 60, total % 60)
+        send("🎤 Voice message (\(duration))")
     }
 
     private func sendCurrentLocation(_ coordinate: CLLocationCoordinate2D) {

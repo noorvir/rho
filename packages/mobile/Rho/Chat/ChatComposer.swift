@@ -22,6 +22,7 @@ struct ComposerOverlay: UIViewRepresentable {
     let isSending: Bool
     let onSend: () -> Void
     let onRemoveImage: (UUID) -> Void
+    let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
 
     func makeUIView(context: Context) -> ComposerOverlayView {
@@ -51,6 +52,7 @@ struct ComposerOverlay: UIViewRepresentable {
             isSending: isSending,
             onSend: onSend,
             onRemoveImage: onRemoveImage,
+            onAudioRecorded: onAudioRecorded,
             onMediaAction: onMediaAction
         )
     }
@@ -97,9 +99,11 @@ struct AgentInput: View {
     let isSending: Bool
     let onSend: () -> Void
     let onRemoveImage: (UUID) -> Void
+    let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
 
     @State private var isMediaTrayPresented = false
+    @State private var recorder = VoiceRecorder()
 
     private var trimmedDraft: String {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -136,74 +140,178 @@ struct AgentInput: View {
                 .padding(.bottom, 10)
             }
 
-            HStack(spacing: 10) {
-                Button {
-                    isMediaTrayPresented.toggle()
-                } label: {
-                    Image(systemName: isMediaTrayPresented ? "keyboard" : "plus")
-                        .font(.system(size: 22, weight: .regular))
-                        .foregroundStyle(.black)
-                        .frame(width: 32, height: 32)
-                        .contentTransition(.identity)
-                        .transaction { transaction in
-                            transaction.animation = nil
-                        }
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isMediaTrayPresented ? "Hide media options" : "Show media options")
+            ZStack {
+                composerBar
+                    .opacity(recorder.state == .idle ? 1 : 0)
+                    .allowsHitTesting(recorder.state == .idle)
 
-                HStack(spacing: 8) {
-                    ChatTextField(
-                        text: $draft,
-                        isMediaTrayPresented: $isMediaTrayPresented,
-                        onSend: {
-                            if canSend {
-                                onSend()
-                            }
-                        },
-                        onMediaAction: onMediaAction
-                    )
-
-                    Image(systemName: "sticker")
-                        .font(.system(size: 21, weight: .regular))
-                        .foregroundStyle(.black)
+                if recorder.state != .idle {
+                    recordingBar
                 }
-                .padding(.horizontal, 14)
-                .frame(height: 38)
-                .background(.white, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .stroke(Color.black.opacity(0.18), lineWidth: 1)
-                }
-
-                Button {
-                    onMediaAction(.camera)
-                } label: {
-                    Image(systemName: "camera")
-                        .font(.system(size: 23, weight: .regular))
-                        .foregroundStyle(.black)
-                        .frame(width: 32, height: 32)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Camera")
-
-                Button {
-                    if canSend {
-                        onSend()
-                    }
-                } label: {
-                    Image(systemName: canSend ? "arrow.up.circle.fill" : "mic")
-                        .font(.system(size: canSend ? 29 : 24, weight: .regular))
-                        .foregroundStyle(canSend ? .black : .black)
-                        .frame(width: 32, height: 32)
-                }
-                .disabled(isSending)
-                .buttonStyle(.plain)
-                .accessibilityLabel(canSend ? "Send message" : "Voice message")
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
+    }
+
+    private var composerBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                isMediaTrayPresented.toggle()
+            } label: {
+                Image(systemName: isMediaTrayPresented ? "keyboard" : "plus")
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(.black)
+                    .frame(width: 32, height: 32)
+                    .contentTransition(.identity)
+                    .transaction { transaction in
+                        transaction.animation = nil
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(isMediaTrayPresented ? "Hide media options" : "Show media options")
+
+            HStack(spacing: 8) {
+                ChatTextField(
+                    text: $draft,
+                    isMediaTrayPresented: $isMediaTrayPresented,
+                    onSend: {
+                        if canSend {
+                            onSend()
+                        }
+                    },
+                    onMediaAction: onMediaAction
+                )
+
+                Image(systemName: "sticker")
+                    .font(.system(size: 21, weight: .regular))
+                    .foregroundStyle(.black)
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 38)
+            .background(.white, in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(Color.black.opacity(0.18), lineWidth: 1)
+            }
+
+            Button {
+                onMediaAction(.camera)
+            } label: {
+                Image(systemName: "camera")
+                    .font(.system(size: 23, weight: .regular))
+                    .foregroundStyle(.black)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Camera")
+
+            Button {
+                if canSend {
+                    onSend()
+                } else {
+                    recorder.start()
+                }
+            } label: {
+                Image(systemName: canSend ? "arrow.up.circle.fill" : "mic")
+                    .font(.system(size: canSend ? 29 : 24, weight: .regular))
+                    .foregroundStyle(.black)
+                    .frame(width: 32, height: 32)
+            }
+            .disabled(isSending)
+            .buttonStyle(.plain)
+            .accessibilityLabel(canSend ? "Send message" : "Record voice message")
+        }
+    }
+
+    private var recordingBar: some View {
+        VStack(spacing: 16) {
+            HStack(spacing: 12) {
+                Text(timeString(recorder.elapsed))
+                    .font(.system(size: 22).monospacedDigit())
+                    .foregroundStyle(.black)
+
+                Spacer(minLength: 12)
+
+                WaveformView(levels: recorder.levels)
+                    .frame(height: 22)
+            }
+            .padding(.top, 6)
+
+            HStack {
+                Button {
+                    recorder.cancel()
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 22, weight: .regular))
+                        .foregroundStyle(.black)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Discard recording")
+
+                Spacer()
+
+                Button {
+                    recorder.togglePause()
+                } label: {
+                    Image(systemName: recorder.state == .paused ? "record.circle" : "pause.circle")
+                        .font(.system(size: 34, weight: .regular))
+                        .foregroundStyle(.red)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(recorder.state == .paused ? "Resume recording" : "Pause recording")
+
+                Spacer()
+
+                Button {
+                    if let audio = recorder.finish() {
+                        onAudioRecorded(audio)
+                    }
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 44, height: 44)
+
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 19, weight: .medium))
+                            .foregroundStyle(.white)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Send voice message")
+            }
+        }
+    }
+
+    private func timeString(_ interval: TimeInterval) -> String {
+        let total = Int(interval)
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+}
+
+private struct WaveformView: View {
+    let levels: [Float]
+
+    private let barCount = 48
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<barCount, id: \.self) { index in
+                Capsule()
+                    .fill(Color.black.opacity(0.45))
+                    .frame(width: 2.5, height: barHeight(at: index))
+            }
+        }
+        .animation(.linear(duration: 0.05), value: levels)
+    }
+
+    private func barHeight(at index: Int) -> CGFloat {
+        let offset = barCount - levels.count
+        guard index >= offset else { return 3 }
+        return 3 + CGFloat(levels[index - offset]) * 19
     }
 }
 

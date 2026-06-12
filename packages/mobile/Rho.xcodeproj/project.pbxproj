@@ -17,6 +17,7 @@
 		A0000000000000000000000E /* ChatClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000025 /* ChatClient.swift */; };
 		A0000000000000000000000F /* CameraPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000026 /* CameraPicker.swift */; };
 		A00000000000000000000009 /* LocationPickerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000027 /* LocationPickerSheet.swift */; };
+		A00000000000000000000004 /* VoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* VoiceRecorder.swift */; };
 		A00000000000000000000005 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* AppShellView.swift */; };
 		A00000000000000000000006 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* BottomBar.swift */; };
 		A00000000000000000000007 /* MobileBuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* MobileBuildInfo.swift */; };
@@ -37,6 +38,7 @@
 		A00000000000000000000025 /* ChatClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatClient.swift; sourceTree = "<group>"; };
 		A00000000000000000000026 /* CameraPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPicker.swift; sourceTree = "<group>"; };
 		A00000000000000000000027 /* LocationPickerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPickerSheet.swift; sourceTree = "<group>"; };
+		A00000000000000000000028 /* VoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceRecorder.swift; sourceTree = "<group>"; };
 		A00000000000000000000015 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		A00000000000000000000016 /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
 		A00000000000000000000019 /* MobileBuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileBuildInfo.swift; sourceTree = "<group>"; };
@@ -90,6 +92,7 @@
 				A00000000000000000000025 /* ChatClient.swift */,
 				A00000000000000000000026 /* CameraPicker.swift */,
 				A00000000000000000000027 /* LocationPickerSheet.swift */,
+				A00000000000000000000028 /* VoiceRecorder.swift */,
 			);
 			path = Chat;
 			sourceTree = "<group>";
@@ -190,6 +193,7 @@
 				A0000000000000000000000E /* ChatClient.swift in Sources */,
 				A0000000000000000000000F /* CameraPicker.swift in Sources */,
 				A00000000000000000000009 /* LocationPickerSheet.swift in Sources */,
+				A00000000000000000000004 /* VoiceRecorder.swift in Sources */,
 				A00000000000000000000005 /* AppShellView.swift in Sources */,
 				A00000000000000000000006 /* BottomBar.swift in Sources */,
 				A00000000000000000000007 /* MobileBuildInfo.swift in Sources */,
