@@ -1,5 +1,7 @@
 import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { cp, rm } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "./generated/prisma/client.ts";
 
@@ -24,6 +26,7 @@ let reloadCount = 0;
 
 export function createReloadableRhoPrisma(databaseUrl: string): ReloadableRhoPrisma {
 	let current = createRhoPrisma(databaseUrl);
+	let currentCopyDir: string | undefined;
 
 	const client = new Proxy(current, {
 		get(_target, property) {
@@ -35,34 +38,58 @@ export function createReloadableRhoPrisma(databaseUrl: string): ReloadableRhoPri
 		},
 	});
 
-	async function reload(): Promise<void> {
-		reloadCount += 1;
-		const moduleUrl = generatedClientUrl();
-		moduleUrl.searchParams.set("reload", String(reloadCount));
+	// Copies left behind by previous processes are never referenced again.
+	const initialCleanup = rm(reloadCopiesDir(), { recursive: true, force: true }).catch(() => {});
 
-		const generated: { PrismaClient: typeof PrismaClient } = await import(moduleUrl.href);
-		const next = new generated.PrismaClient({ adapter: new PrismaLibSql({ url: databaseUrl }) });
+	async function reload(): Promise<void> {
+		await initialCleanup;
+		reloadCount += 1;
+
+		// The module cache would serve stale internals on repeat imports, even
+		// with a cache-busted entry specifier, so each reload imports a fresh
+		// copy of the generated client — a new module graph end to end. The
+		// copy lives inside the package so bare imports still resolve.
+		const generated = generatedClient();
+		const copyDir = join(reloadCopiesDir(), `reload-${process.pid}-${reloadCount}`);
+		await cp(generated.dir, copyDir, { recursive: true });
+
+		const moduleUrl = pathToFileURL(join(copyDir, generated.entry));
+		const module: { PrismaClient: typeof PrismaClient } = await import(moduleUrl.href);
+		const next = new module.PrismaClient({ adapter: new PrismaLibSql({ url: databaseUrl }) });
 
 		const previous = current;
+		const previousCopyDir = currentCopyDir;
 		current = next;
+		currentCopyDir = copyDir;
+
 		await previous.$disconnect();
+		if (previousCopyDir) {
+			await rm(previousCopyDir, { recursive: true, force: true }).catch(() => {});
+		}
 	}
 
 	return { client, reload };
 }
 
-// The static import above is resolved once at startup, so a regenerated
-// client needs a fresh, cache-busted dynamic import. Prefer the TypeScript
-// source, which `prisma generate` writes directly; the compiled copy in
-// dist/ only refreshes on a package build.
-function generatedClientUrl(): URL {
+function reloadCopiesDir(): string {
+	return fileURLToPath(new URL("../.prisma-reload", import.meta.url));
+}
+
+// The static import above is resolved once at startup; reloads need the
+// latest generated code. Prefer the TypeScript source, which
+// `prisma generate` writes directly; the compiled copy in dist/ only
+// refreshes on a package build.
+function generatedClient(): { dir: string; entry: string } {
 	if (import.meta.url.endsWith(".ts")) {
-		return new URL("./generated/prisma/client.ts", import.meta.url);
+		const dir = fileURLToPath(new URL("./generated/prisma", import.meta.url));
+		return { dir, entry: "client.ts" };
 	}
 
-	const source = new URL("../src/generated/prisma/client.ts", import.meta.url);
-	if (existsSync(fileURLToPath(source))) {
-		return source;
+	const source = fileURLToPath(new URL("../src/generated/prisma", import.meta.url));
+	if (existsSync(source)) {
+		return { dir: source, entry: "client.ts" };
 	}
-	return new URL("./generated/prisma/client.js", import.meta.url);
+
+	const dist = fileURLToPath(new URL("./generated/prisma", import.meta.url));
+	return { dir: dist, entry: "client.js" };
 }
