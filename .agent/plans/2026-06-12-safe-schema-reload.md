@@ -37,11 +37,11 @@ other background work. This must become a first-class runtime operation:
 
 ## Success Criteria
 
-- [ ] An agent task that adds a new model completes without any server
+- [x] An agent task that adds a new model completes without any server
       restart: migration validated on a copy, applied live, `rho_reload`
       called, new model queryable immediately.
-- [ ] In-flight sessions and tasks survive schema changes.
-- [ ] Docs describe the procedure; system prompt carries the no-restart rule.
+- [x] In-flight sessions and tasks survive schema changes.
+- [x] Docs describe the procedure; system prompt carries the no-restart rule.
 
 ## Tests / Validation
 
@@ -53,6 +53,10 @@ other background work. This must become a first-class runtime operation:
 
 - [x] Hot-swap implementation (`prisma.ts`, `core.ts`), `rho_reload`
       description, docs/database.md procedure, system prompt rule.
-- [ ] E2E validation with a fresh agent-built app.
+- [x] E2E validation: habit-tracker built by agent. Attempt 1 exposed a
+      module-cache bug (cache-busted entry imported stale internals on repeat
+      reloads); fixed by importing a fresh per-reload copy of the generated
+      client. Attempt 2 completed with zero agent-initiated restarts and the
+      agent reported "no server restart needed".
 - [ ] Later: runtime-db package split; supervised restart path for installed
       runtimes where the generated client ships compiled only.
