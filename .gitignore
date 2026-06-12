@@ -33,5 +33,6 @@ packages/mobile/Config/Signing.local.xcconfig
 .agent/current.md
 .agent/research/
 .agent/rho-api-secret
-.pi-review.rho-dev/
+.pi-review/
+.rho-dev/
 .rho-bench-agent/

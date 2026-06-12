@@ -120,15 +120,35 @@ directory that core receives as configuration:
       faster model for task sessions.
 - [ ] Document the models.d.ts augmentation pattern in docs (template +
       extension-schema docs) so agents pick it up.
-- [x] Orchestrator/implementer separation: channel sessions are read-only
-      (excludeTools: bash/edit/write/rho_migrate/rho_reload; pi gotcha: the
-      `tools` allowlist also removes extension tools — use the denylist),
-      rho_query gives realtime read-only SQL for data questions,
-      background_task description is delegation-first. Task sessions get
-      their own model/thinking via RHO_TASK_MODEL/RHO_TASK_THINKING_LEVEL.
-      Validated: gpt-5.5 and gpt-5.4-mini at low thinking both delegate
-      builds (capability removal forces it) and the implementer override
-      builds correctly regardless of the chat model.
+- [x] Orchestrator/implementer separation — final design after experiments:
+      - Boundary is data vs structure. Channel agents handle conversation,
+        research, files, and the user's data directly; structural change
+        (apps, extensions, channels, schema) happens only through background
+        agents.
+      - Channel system prompt is a separate, knowledge-minimal variant
+        (role: "channel"): no build/recipe knowledge at all; delegation is
+        described as how rho works, not as a rule. Small models follow
+        world-models better than prohibitions — with the full prompt,
+        gpt-5.4-mini built inline; with the minimal prompt it delegates,
+        including under explicit "do it now, no background task" pressure.
+      - Channel sessions keep full file/bash tools (decision: do not strip
+        mutation; over-optimization) but exclude rho_migrate and rho_reload
+        — with the structure levers visible, claude-haiku-4-5 pattern-matched
+        inline schema changes; without them its attempts are inert and it
+        delegates.
+      - rho_query is the data tool: read-write SQL, single statement, DDL
+        keywords rejected (schema goes through migrations), writes touching
+        rho_sys_* rejected. Known gap: raw SQL bypasses Prisma enum
+        validation.
+      - Implementer competence matters more than channel competence:
+        haiku-as-implementer falsely reported schema work done; gpt-5.5
+        implementer is reliable. RHO_TASK_MODEL/RHO_TASK_THINKING_LEVEL pin
+        the implementer independently of the chat model.
+      - pi gotcha: CreateAgentSessionOptions.tools (allowlist) also removes
+        extension tools — use excludeTools.
+      - Dev-mode-only hazard: with cwd = the rho source repo, weak models
+        find and edit packages/core/prisma/schema.prisma (doppelgänger of
+        the runtime schema). Installed runtimes have no source tree.
 - [ ] Task instruction ceremony trim (36-turn task path vs 9-turn inline);
       ensure final rho_reload is the last task step (one build needed a
       manual reload after completion).
