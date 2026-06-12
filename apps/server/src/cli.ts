@@ -7,6 +7,7 @@ import { createRhoAuth } from "./auth.ts";
 import { installCrashGuards } from "./lib/crash-guards.ts";
 import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
+import { createRhoStore } from "./store.ts";
 
 installCrashGuards();
 
@@ -28,11 +29,13 @@ const auth = createRhoAuth({
 	databaseUrl: env.RHO_DATABASE_URL,
 	ownerToken: env.RHO_OWNER_TOKEN,
 });
+const store = createRhoStore(env.RHO_STORE_DIR);
 
 const server = serve({
 	fetch: createServer({
 		core,
 		auth,
+		store,
 		databaseUrl: env.RHO_DATABASE_URL,
 		appModules: "bundle",
 		webRoot,

@@ -4,15 +4,18 @@ import type { RhoCore } from "@rho/core";
 import type { MiddlewareHandler } from "hono";
 import type { RhoAuth } from "../auth.ts";
 import { rhoErrorResponseBody } from "../errors.ts";
+import type { RhoStore } from "../store.ts";
 import { agentRouter } from "./agent.ts";
 import { appsRouter } from "./apps.ts";
 import { authRouter } from "./auth.ts";
 import { dataRouter } from "./data.ts";
+import { storeRouter } from "./store.ts";
 import type { AppModuleMode, HttpContext } from "./types.ts";
 
 export interface HttpOptions {
 	auth: RhoAuth;
 	core: RhoCore;
+	store: RhoStore;
 	databaseUrl: string;
 	appModules: AppModuleMode;
 }
@@ -22,6 +25,7 @@ export const httpRouter = {
 	auth: authRouter(),
 	data: dataRouter(),
 	agent: agentRouter(),
+	store: storeRouter(),
 };
 
 export type HttpRouter = typeof httpRouter;
@@ -36,6 +40,7 @@ export function createHttpMiddleware(options: HttpOptions): MiddlewareHandler {
 		const requestContext = {
 			auth: options.auth,
 			core: options.core,
+			store: options.store,
 			databaseUrl: options.databaseUrl,
 			appModules: options.appModules,
 			requestUrl: context.req.url,

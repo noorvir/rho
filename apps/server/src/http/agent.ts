@@ -29,8 +29,12 @@ export function agentRouter() {
 				throw badRequest(messageInput.error, "Failed to handle message");
 			}
 
-			const message = messageFromHttp(messageInput.data);
-			const output = await tc(context.core.handleMessage(message));
+			const message = tc(() => messageFromHttp(messageInput.data, context.store));
+			if (message.error) {
+				throw badRequest(message.error, "Failed to handle message");
+			}
+
+			const output = await tc(context.core.handleMessage(message.data));
 			if (output.error) {
 				throw badRequest(output.error, "Failed to handle message");
 			}
@@ -72,8 +76,13 @@ export function agentRouter() {
 				return;
 			}
 
-			const message = messageFromHttp(messageInput.data);
-			const output = await tc(context.core.handleMessage(message));
+			const message = tc(() => messageFromHttp(messageInput.data, context.store));
+			if (message.error) {
+				yield { type: "error" as const, error: errorMessage(message.error) };
+				return;
+			}
+
+			const output = await tc(context.core.handleMessage(message.data));
 			if (output.error) {
 				yield { type: "error" as const, error: errorMessage(output.error) };
 				return;

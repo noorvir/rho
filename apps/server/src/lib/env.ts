@@ -13,6 +13,7 @@ const generatedClientDir = join(homeDbDir, "generated", "prisma");
 const RHO_PORT = Number(loadEnvWithNullishCheck("RHO_PORT", false, process.env.PORT ?? "7331"));
 const RHO_AGENT_DIR = resolve(loadEnvWithNullishCheck("RHO_AGENT_DIR", false, join(RHO_HOME, "agent")));
 const RHO_STATE_DIR = resolve(loadEnvWithNullishCheck("RHO_STATE_DIR", false, join(RHO_HOME, "state")));
+const RHO_STORE_DIR = resolve(loadEnvWithNullishCheck("RHO_STORE_DIR", false, join(RHO_HOME, "store")));
 const RHO_DOCS_DIR = resolve(
 	loadEnvWithNullishCheck("RHO_DOCS_DIR", false, fileURLToPath(new URL("../../../../docs/", import.meta.url))),
 );
@@ -22,6 +23,7 @@ export const env = {
 	RHO_PORT,
 	RHO_AGENT_DIR,
 	RHO_STATE_DIR,
+	RHO_STORE_DIR,
 	RHO_DOCS_DIR,
 	RHO_DATABASE_URL: loadEnvWithNullishCheck(
 		"RHO_DATABASE_URL",

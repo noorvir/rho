@@ -3,6 +3,7 @@ export { createRhoAgent, type RhoAgentConfigOptions } from "./config.ts";
 export {
 	appendConversationMessage,
 	type ConversationHistory,
+	type ConversationAttachment,
 	type ConversationHistoryMessage,
 	type ConversationInput,
 	loadConversation,

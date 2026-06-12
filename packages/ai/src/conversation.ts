@@ -1,4 +1,5 @@
 import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
+import type { ImageContent } from "@earendil-works/pi-ai";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { createAgentEventStream } from "./event-stream.ts";
 import { createRhoAgentSession, type RhoAgentExtensionSource } from "./session.ts";
@@ -19,6 +20,13 @@ export interface ConversationHistoryMessage {
 	role: "user" | "assistant";
 	text: string;
 	timestamp: number;
+	attachments: ConversationAttachment[];
+}
+
+/** A store-relative file reference recorded on a user turn via an `[attachment: ...]` line. */
+export interface ConversationAttachment {
+	path: string;
+	mimeType: string;
 }
 
 export interface ConversationHistory {
@@ -43,19 +51,19 @@ export async function loadConversation(
 		messages: context.messages.flatMap((message) => {
 			if (message.role === "custom" && message.display) {
 				const text = customMessageText(message.content);
-				return text ? [{ role: "assistant" as const, text, timestamp: message.timestamp }] : [];
+				return text ? [{ role: "assistant" as const, text, timestamp: message.timestamp, attachments: [] }] : [];
 			}
 
 			if (message.role !== "user" && message.role !== "assistant") {
 				return [];
 			}
 
-			const text = messageText(message);
-			if (!text) {
+			const { text, attachments } = splitAttachmentLines(messageText(message));
+			if (!text && attachments.length === 0) {
 				return [];
 			}
 
-			return [{ role: message.role, text, timestamp: message.timestamp }];
+			return [{ role: message.role, text, timestamp: message.timestamp, attachments }];
 		}),
 	};
 }
@@ -112,7 +120,11 @@ async function runConversation(
 
 	input.signal.addEventListener("abort", abort, { once: true });
 	try {
-		const stream = session.prompt(messageText(input.message), { expandPromptTemplates: false });
+		const images = messageImages(input.message);
+		const stream = session.prompt(messageText(input.message), {
+			expandPromptTemplates: false,
+			images: images.length > 0 ? images : undefined,
+		});
 		for await (const event of stream) {
 			emit(event);
 		}
@@ -121,6 +133,37 @@ async function runConversation(
 		input.signal.removeEventListener("abort", abort);
 		session.dispose();
 	}
+}
+
+const attachmentLinePattern = /^\[attachment: (.+) \(([^()]+)\)\]$/;
+
+/**
+ * Separates `[attachment: <path> (<mime>)]` lines from a turn's display text.
+ * The lines stay in the agent transcript; clients get them back as structured
+ * attachment references instead.
+ */
+function splitAttachmentLines(text: string): { text: string; attachments: ConversationAttachment[] } {
+	const attachments: ConversationAttachment[] = [];
+	const lines: string[] = [];
+
+	for (const line of text.split("\n")) {
+		const match = line.match(attachmentLinePattern);
+		if (match) {
+			attachments.push({ path: match[1], mimeType: match[2] });
+		} else {
+			lines.push(line);
+		}
+	}
+
+	return { text: lines.join("\n").trim(), attachments };
+}
+
+function messageImages(message: AgentMessage): ImageContent[] {
+	if (message.role !== "user" || typeof message.content === "string") {
+		return [];
+	}
+
+	return message.content.filter((part): part is ImageContent => part.type === "image");
 }
 
 function messageText(message: AgentMessage): string {

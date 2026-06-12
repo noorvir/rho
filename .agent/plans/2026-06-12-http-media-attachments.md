@@ -13,6 +13,10 @@ voice transcribed to text. Replace the mobile placeholders ("🎤 Voice message
 - WhatsApp/Telegram channel ports.
 - Video understanding.
 - Live/realtime voice (the `RealtimeChannel` surface stays untouched).
+- Full store layout design (memories, journals, artifacts, agent cwd
+  integration) — deliberate later pass; v1 is conversation uploads only.
+- S3 backup / FUSE mount — only constrain the design (plain files, paths as
+  identity) so these stay possible.
 
 ## Research findings (Hermes, OpenClaw)
 
@@ -52,42 +56,79 @@ Rho-specific leverage:
   (`ImageContent`/`AudioContent` with `MediaRef`) and `Attachment`
   (`data`/`url`/`file` variants). Nothing new to invent at the type layer.
 - The pi SDK accepts images natively on `prompt(text, { images: [{ type:
-  "image", source: { type: "base64", mediaType, data } }] })`, so inbound
-  images can flow straight through without a vision-fallback layer.
+  "image", source: { type: "base64", mediaType, data } }] })`. Verified:
+  pi's own TUI paste/`@file.png` flow reads the file from disk and converts
+  to exactly this base64 part — the model API always gets base64. pi
+  persists the user turn (including image parts) in its session file.
 - pi has no audio input → voice requires a transcription step (STT provider)
   before the agent, exactly like Hermes/OpenClaw.
 
 ## Current Direction
 
-Follow the Hermes/OpenClaw shape, minimally:
+Images first, end-to-end, with disk-backed media storage (no S3) and
+history that returns attachment references.
 
-1. **HTTP boundary** (`apps/server`): extend the HTTP message input with
-   attachments (base64 data + mimeType + name), validate caps (count, size,
-   allowed mime types), and map them into `ChannelMessage.content` /
-   `attachments` instead of the hardcoded `attachments: []`.
-2. **Core → agent images**: thread image content through
-   `handleMessage` → conversation prompt as pi base64 images. The message
-   text stays the caption.
-3. **Core → agent voice**: a transcription boundary in `packages/ai`
-   (provider-backed STT, selection injected via runtime config, not
-   hardcoded vendor). Transcript becomes the turn text, marked as a voice
-   message; original audio attachment retained on the stored message.
-4. **Mobile client**: send pending images and recorded m4a as base64
-   attachments on the existing `agent/messages:stream` request; render sent
-   images/voice in the local bubble list.
+**The store (rho's blob store / agent filesystem):**
 
-Storage: start with in-memory `data` refs end-to-end (bounded by request
-caps). A media directory / `file` refs only if message persistence or replay
-needs it — decide during implementation, don't pre-build.
+- A plain directory tree rooted at a server-configured path
+  (`RHO_STORE_DIR`). The filesystem is the store: paths are identity, no
+  metadata database, mime derived from extension. This keeps it
+  FUSE-mountable and verbatim-backupable to S3 later.
+- Modeled on OpenClaw's agent workspace: a plain home directory the agent
+  owns, where memories/journals/notes are ordinary markdown files. The full
+  layout (memories, artifacts, notes) is a later design pass; v1 implements
+  only conversation uploads: `uploads/<conversationKey>/<uuid>.<ext>`.
+
+**HTTP API (apps/server, root-level `/store`):**
+
+- `GET /store/<path>` — authed; streams **any** file in the store with the
+  right content type. Path-traversal guarded (resolved path must stay under
+  the store root). This is the general download API — history thumbnails,
+  and later memories/artifacts, all come from here.
+- `POST /store/uploads` — conversation upload (base64 JSON body with
+  conversationId, name, mimeType, data), enforces caps, writes the file,
+  returns `{ path }` (store-relative).
+- `agent/messages:stream` body gains `attachments: [{ path }]` — messages
+  reference store paths instead of inlining bytes.
+
+**Message pipeline:**
+
+- `messageFromHttp` resolves store paths → `ImageContent` with `file`
+  `MediaRef`s on `ChannelMessage.content` (replacing the hardcoded
+  `attachments: []`).
+- Core/ai: extend the conversation input so the turn carries image refs;
+  `runConversation` reads the files, base64s them, and passes
+  `session.prompt(text, { images })` — identical to pi's own paste flow.
+
+**History references:**
+
+- Context: rho keeps no message database — history is re-derived from the pi
+  session file, which records image bytes but no ids/paths we can serve back
+  to clients. So the store path must be recorded next to the user turn.
+- Before prompting, append a custom session entry (`rho:attachments`,
+  details = `[{ path, mimeType, name }]`); `loadConversation` merges it into
+  the adjacent user message. The pi session stays the single source of
+  history truth; no parallel message store.
+- History messages gain `attachments: [{ path, mimeType, name }]`; clients
+  fetch bytes from `GET /store/<path>`.
+
+**Mobile client:**
+
+- On send with pending images: upload each → collect store paths → send
+  message with `attachments`. Render image bubbles locally; history renders
+  via `GET /store/<path>`.
+
+**Voice (after images):** same store + an STT boundary in `packages/ai`
+(provider injected via runtime config); transcript becomes the turn text.
 
 ## Open questions
 
 - STT provider + config surface (which env vars, which package owns the
   client).
-- Size caps per type (image vs audio) and whether to downscale images
-  client-side before upload.
-- Should the history endpoint return attachments so mobile can render media
-  in past conversations, or is local echo enough for v1?
+- Size caps per type and whether to downscale images client-side before
+  upload (a 12MP photo is ~3–5 MB; fine on LAN, slow remotely).
+- Upload as base64 JSON vs multipart — base64 JSON is simpler with the
+  existing oRPC contract; multipart avoids the ~33% overhead.
 
 ## Success Criteria
 
@@ -110,8 +151,13 @@ needs it — decide during implementation, don't pre-build.
 ## Progress
 
 - [x] Research: Hermes + OpenClaw media handling; pi SDK image support.
+- [x] Verify pi image path: disk → base64 `ImageContent` → `prompt({ images })`.
+- [x] Phase 1: store root + `GET /store/<path>` + `POST /store/uploads`.
+      Uploads land at `uploads/sessions/<session-id>/<uuid>.<ext>`.
+- [x] Phase 2: attachments on messages:stream → pi prompt images; curl demo
+      passed (agent accurately described an uploaded screenshot).
+- [x] Phase 3: history attachment refs (parsed from `[attachment: ...]`
+      prompt lines; no sidecar entry needed).
+- [ ] Phase 4: mobile upload + image bubbles.
+- [ ] Phase 5: voice/STT.
 - [ ] Decide STT provider/config.
-- [ ] Implement HTTP attachment boundary.
-- [ ] Implement image pass-through to pi.
-- [ ] Implement voice transcription.
-- [ ] Mobile upload + bubble rendering.

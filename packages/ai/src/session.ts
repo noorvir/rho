@@ -1,4 +1,5 @@
 import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
+import type { ImageContent } from "@earendil-works/pi-ai";
 import {
 	AuthStorage,
 	createAgentSession,
@@ -37,6 +38,7 @@ export type RhoAgentExtensionSource =
 export interface RhoAgentPromptOptions {
 	signal?: AbortSignal;
 	expandPromptTemplates?: boolean;
+	images?: ImageContent[];
 }
 
 export interface RhoAgentModelRef {
@@ -150,6 +152,7 @@ async function runPrompt(
 	try {
 		await session.prompt(text, {
 			expandPromptTemplates: options.expandPromptTemplates ?? true,
+			images: options.images,
 			source: "rpc",
 		});
 		return session.state.messages;

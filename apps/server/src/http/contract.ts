@@ -38,9 +38,15 @@ const tableSchema = z.object({
 	offset: z.number(),
 });
 
+const attachmentSchema = z.object({
+	path: z.string(),
+	mimeType: z.string(),
+});
+
 const messageSchema = z.object({
 	role: z.enum(["user", "assistant"]),
 	text: z.string(),
+	attachments: z.array(attachmentSchema),
 });
 
 const taskSchema = z.object({
@@ -63,7 +69,15 @@ const chatEventSchema = z.discriminatedUnion("type", [
 const messageInputSchema = z.object({
 	conversationId: z.string().min(1),
 	sender: z.object({ id: z.string().min(1) }).passthrough(),
-	text: z.string().min(1),
+	text: z.string(),
+	attachments: z.array(z.object({ path: z.string().min(1) })).optional(),
+});
+
+const storeUploadSchema = z.object({
+	sessionId: z.string().min(1),
+	mimeType: z.string().min(1),
+	/** Base64-encoded file bytes. */
+	data: z.string().min(1),
 });
 
 export const httpContract = {
@@ -148,6 +162,16 @@ export const httpContract = {
 			.route({ method: "GET", path: "/agent/conversations/{id}/tasks" })
 			.input(z.object({ id: z.string().min(1) }))
 			.output(z.object({ tasks: z.array(taskSchema) })),
+	},
+	store: {
+		upload: oc
+			.route({ method: "POST", path: "/store/uploads" })
+			.input(storeUploadSchema)
+			.output(z.object({ path: z.string() })),
+		download: oc
+			.route({ method: "GET", path: "/store/{+path}" })
+			.input(z.object({ path: z.string().min(1) }))
+			.output(z.instanceof(File)),
 	},
 };
 

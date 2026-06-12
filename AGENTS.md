@@ -27,6 +27,14 @@
 - In `apps/server/src/http`, feature files should export `*Router()` functions with route definitions, schemas, handlers, local auth middleware, and small helpers kept in the same file. Keep `index.ts` as composition only.
 - In `apps/server/src/http` routers, await service/core calls into named variables and wrap them with `tc(...)`; map failures to `ORPCError` at the HTTP boundary. Do not inline awaited calls in returned objects, conditions, or handler arguments.
 
+## Mobile (packages/mobile)
+
+- For keyboard-coupled UI, use the UIKit primitives that own the keyboard, not SwiftUI layout plus manual sync. A composer bar that must track the keyboard is positioned with `keyboardLayoutGuide`; swapping the keyboard body for a custom panel (media tray) uses the text field's `inputView` + `reloadInputViews()`. Do not position keyboard-tracking views with `safeAreaInset`/offsets driven by keyboard notifications — inside sheets, SwiftUI applies keyboard safe-area changes without the keyboard's animation and the view teleports.
+- Never hold a permanent first-responder/input session (hidden-anchor `inputAccessoryView` pattern) to keep a bar docked. iOS treats it as an always-open keyboard, which blocks sheet pull-down dismissal and adds phantom bottom insets.
+- Reparenting a view that contains the current first responder resigns it. Don't move a composer between containers during focus changes.
+- Verify keyboard/animation work on the physical device, not just the simulator: Maestro/XCTest suppresses the software keyboard, and animation timing differs. With `pymobiledevice3` tunneld running, capture live device screenshots via `pymobiledevice3 developer dvt screenshot`.
+- Device builds read `RHO_CHAT_BASE_URL` from the gitignored `packages/mobile/Config/Signing.local.xcconfig`; for testing against a local server, point it at the Mac's LAN IP, not `127.0.0.1`.
+
 ## Package boundaries
 
 - `packages/ui` is for reusable components that help people build rho user extensions/apps. Do not use it as the dumping ground for `apps/server/web` shell-only components or the first-party web app design system.

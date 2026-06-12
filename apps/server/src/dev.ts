@@ -9,6 +9,7 @@ import { createRhoAuth } from "./auth.ts";
 import { installCrashGuards } from "./lib/crash-guards.ts";
 import { env } from "./lib/env.ts";
 import { createServer } from "./server.ts";
+import { createRhoStore } from "./store.ts";
 
 installCrashGuards();
 
@@ -32,6 +33,7 @@ const auth = createRhoAuth({
 const app = createServer({
 	core,
 	auth,
+	store: createRhoStore(env.RHO_STORE_DIR),
 	databaseUrl: env.RHO_DATABASE_URL,
 	appModules: "vite",
 });
@@ -97,6 +99,7 @@ function isApiPath(pathname: string): boolean {
 		pathname.startsWith("/api/auth/") ||
 		pathname.startsWith("/tables/") ||
 		pathname.startsWith("/agent/") ||
+		pathname.startsWith("/store/") ||
 		isAppApiPath(pathname)
 	);
 }

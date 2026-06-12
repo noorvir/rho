@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
 	agentEventTextDelta,
@@ -8,6 +9,7 @@ import {
 	createFileStateManager,
 	loadConversation,
 	type RhoAgentExtensionSource,
+	type RhoContent,
 	respondInConversation,
 	rhoContextExtension,
 	rhoMigrateExtension,
@@ -264,6 +266,10 @@ async function* agentResponse(input: AgentResponseInput): AsyncIterable<ChannelM
 	const release = await input.conversations.acquire(key);
 
 	try {
+		const images = await messageImages(input.message);
+		const text = messageText(input.message);
+		const content: string | RhoContent[] = images.length === 0 ? text : [{ type: "text", text }, ...images];
+
 		const stream = respondInConversation({
 			state: input.state,
 			key,
@@ -272,7 +278,7 @@ async function* agentResponse(input: AgentResponseInput): AsyncIterable<ChannelM
 			agentExtensions: input.agentExtensions,
 			message: {
 				role: "user",
-				content: messageText(input.message),
+				content,
 				timestamp: input.message.timestamp.getTime(),
 			},
 			signal: new AbortController().signal,
@@ -292,17 +298,40 @@ async function* agentResponse(input: AgentResponseInput): AsyncIterable<ChannelM
 		}
 
 		const messages = await stream.result();
-		const text = lastAssistantText(messages);
-		if (!text) {
+		const finalText = lastAssistantText(messages);
+		if (!finalText) {
 			throw new Error(
 				"The Rho agent did not produce a response. Check the deployed agent provider, model, and auth configuration.",
 			);
 		}
 
-		yield agentMessage(input.message, text);
+		yield agentMessage(input.message, finalText);
 	} finally {
 		release();
 	}
+}
+
+/**
+ * Loads file-backed image content from a channel message as base64 image
+ * parts for the agent prompt, mirroring pi's own image paste flow.
+ */
+async function messageImages(message: ChannelMessage): Promise<RhoContent[]> {
+	const images: RhoContent[] = [];
+
+	for (const part of message.content) {
+		if (part.type !== "image" || part.media.kind !== "file") {
+			continue;
+		}
+
+		const bytes = await readFile(part.media.path);
+		images.push({
+			type: "image",
+			data: bytes.toString("base64"),
+			mimeType: part.media.mimeType,
+		});
+	}
+
+	return images;
 }
 
 function agentMessage(input: ChannelMessage, text: string): ChannelMessage {
