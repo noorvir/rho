@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
  * most battle-tested.
  */
 export async function bundleAppClient(entry: string): Promise<string> {
+	const appDir = dirname(entry);
 	const result = await Bun.build({
 		entrypoints: [entry],
 		target: "browser",
@@ -21,6 +22,20 @@ export async function bundleAppClient(entry: string): Promise<string> {
 		minify: true,
 		sourcemap: "none",
 		define: { "process.env.NODE_ENV": JSON.stringify("production") },
+		plugins: [
+			{
+				// React-family imports must resolve to one copy. The app and the
+				// file:-linked @rho packages can sit in different node_modules
+				// trees; two bundled Reacts break the hooks dispatcher at runtime.
+				name: "dedupe-react",
+				setup(build) {
+					build.onResolve(
+						{ filter: /^(react|react-dom|@tanstack\/react-query)(\/.*)?$/ },
+						(args) => ({ path: Bun.resolveSync(args.path, appDir) }),
+					);
+				},
+			},
+		],
 	});
 
 	if (!result.success || result.outputs.length === 0) {
