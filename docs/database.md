@@ -40,6 +40,12 @@ against a dev or installed runtime database.
 
 Rho owns `db/schema.prisma`. That file is the only schema file for the installed runtime.
 
+The `_rho_*` tables (tasks, owner, sessions, API tokens) are rho system
+tables: core depends on them, and they must never be removed or renamed.
+`rho_reload` refuses to swap in a database client that lost any of them.
+Seeded shared models such as contacts and orgs are different: extensions may
+evolve them with non-destructive migrations.
+
 An extension may also have its own schema file inside its package. That package schema is for standalone mode: running the extension by itself for development, tests, demos, or previews before it is installed into a user's Rho runtime.
 
 Installed extensions do not edit `db/schema.prisma` themselves. When an installed extension needs database changes, Rho performs the change as a host operation.

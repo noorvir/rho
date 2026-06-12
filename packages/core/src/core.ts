@@ -38,6 +38,8 @@ export interface RhoCoreOptions {
 	stateDir?: string;
 	/** Shared SQLite database URL, for example `file:/path/to/rho.sqlite`. */
 	databaseUrl: string;
+	/** Absolute directory of the runtime-generated Prisma client (`db/generated/prisma`); reloads import from it. */
+	generatedClientDir?: string;
 	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
 	docsDir?: string;
 	/** Absolute extension entrypoints or directories to load. */
@@ -81,7 +83,9 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 			rootDir: stateDir,
 		});
 
-	const prismaHandle = createReloadableRhoPrisma(opts.databaseUrl);
+	const prismaHandle = createReloadableRhoPrisma(opts.databaseUrl, {
+		generatedClientDir: opts.generatedClientDir,
+	});
 	const prisma = prismaHandle.client;
 	const conversations = new KeyedMutex();
 

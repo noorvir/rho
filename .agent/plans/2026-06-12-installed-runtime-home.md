@@ -38,6 +38,10 @@ directory that core receives as configuration:
   client instance is constructed from `db/generated/` (the superset schema);
   the existing reloadable-prisma proxy/swap machinery gains a configured
   generated-client dir instead of repo-relative path guessing.
+- Core-owned tables are enforced, not assumed: the `_rho_*` system models are
+  a checked invariant. Reload refuses any regenerated client missing them, so
+  extensions and agents cannot remove core tables. Seeded shared models
+  (contacts, orgs) stay agent-evolvable.
 - Extensions get typed access to their own models by importing from the
   shared `db/generated/` next to them.
 - Extension loading (jiti), app bundling (Bun.build), and per-app CSS already
@@ -69,8 +73,13 @@ directory that core receives as configuration:
 - [x] Direction agreed with user: immutable core, runtime home dir, single
       shared schema seeded with system tables, stop committing agent-built
       extensions.
-- [ ] Decide: single `RHO_HOME` env var with conventional subdirs (existing
-      vars become overrides).
+- [x] Decisions: single `RHO_HOME` env var (existing vars become overrides);
+      seed = system tables + contacts/orgs (evolvable); single `rho` npm
+      package; `_rho_*` models enforced as non-removable at reload.
+- [x] Core: `generatedClientDir` option threaded to the reloadable client;
+      `assertSystemModels` tripwire before every swap. Tested: rogue client
+      generated from a runtime-style `db/` dir without system tables is
+      refused, live client unaffected.
 - [ ] Core: configured db dir (schema/migrations/generated/sqlite paths),
       reloadable prisma imports from it; vendored system-model types.
 - [ ] CLI: `rho init` seeding (system tables incl. personal-data primitives),

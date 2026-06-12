@@ -11,6 +11,38 @@ export function createRhoPrisma(databaseUrl: string): RhoPrisma {
 	return new PrismaClient({ adapter: new PrismaLibSql({ url: databaseUrl }) });
 }
 
+// Client delegates for the rho-owned `_rho_*` tables that core itself
+// depends on. Extensions and agents may evolve the rest of the schema, but a
+// client that lost any of these is refused.
+const systemModels = ["task", "systemOwner", "systemSession", "systemApiToken"];
+
+/**
+ * Throws when the client is missing any rho system model. Used as a tripwire
+ * before swapping in a regenerated client, so a schema change that removed
+ * system tables can never reach the running server.
+ */
+export function assertSystemModels(client: RhoPrisma): void {
+	const missing = systemModels.filter((model) => {
+		const delegate: unknown = Reflect.get(client, model);
+		return delegate === undefined || delegate === null;
+	});
+	if (missing.length > 0) {
+		throw new Error(
+			`Database client is missing rho system models: ${missing.join(", ")}. ` +
+				"The _rho_* system tables are rho-owned and must never be removed from the schema.",
+		);
+	}
+}
+
+export interface ReloadableRhoPrismaOptions {
+	/**
+	 * Absolute directory of the generated Prisma client to import on reload.
+	 * Installed runtimes pass their `db/generated/prisma` directory; without it
+	 * the location is inferred from core's own source layout (dev repo).
+	 */
+	generatedClientDir?: string;
+}
+
 export interface ReloadableRhoPrisma {
 	/** Stable client reference; safe to capture for the process lifetime. */
 	client: RhoPrisma;
@@ -24,7 +56,10 @@ export interface ReloadableRhoPrisma {
 
 let reloadCount = 0;
 
-export function createReloadableRhoPrisma(databaseUrl: string): ReloadableRhoPrisma {
+export function createReloadableRhoPrisma(
+	databaseUrl: string,
+	options: ReloadableRhoPrismaOptions = {},
+): ReloadableRhoPrisma {
 	let current = createRhoPrisma(databaseUrl);
 	let currentCopyDir: string | undefined;
 
@@ -49,13 +84,14 @@ export function createReloadableRhoPrisma(databaseUrl: string): ReloadableRhoPri
 		// with a cache-busted entry specifier, so each reload imports a fresh
 		// copy of the generated client — a new module graph end to end. The
 		// copy lives inside the package so bare imports still resolve.
-		const generated = generatedClient();
+		const generated = generatedClient(options.generatedClientDir);
 		const copyDir = join(reloadCopiesDir(), `reload-${process.pid}-${reloadCount}`);
 		await cp(generated.dir, copyDir, { recursive: true });
 
 		const moduleUrl = pathToFileURL(join(copyDir, generated.entry));
 		const module: { PrismaClient: typeof PrismaClient } = await import(moduleUrl.href);
 		const next = new module.PrismaClient({ adapter: new PrismaLibSql({ url: databaseUrl }) });
+		assertSystemModels(next);
 
 		const previous = current;
 		const previousCopyDir = currentCopyDir;
@@ -79,7 +115,12 @@ function reloadCopiesDir(): string {
 // latest generated code. Prefer the TypeScript source, which
 // `prisma generate` writes directly; the compiled copy in dist/ only
 // refreshes on a package build.
-function generatedClient(): { dir: string; entry: string } {
+function generatedClient(configuredDir?: string): { dir: string; entry: string } {
+	if (configuredDir) {
+		const entry = existsSync(join(configuredDir, "client.ts")) ? "client.ts" : "client.js";
+		return { dir: configuredDir, entry };
+	}
+
 	if (import.meta.url.endsWith(".ts")) {
 		const dir = fileURLToPath(new URL("./generated/prisma", import.meta.url));
 		return { dir, entry: "client.ts" };
