@@ -1,8 +1,10 @@
 import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
 import {
+	AuthStorage,
 	createAgentSession,
 	DefaultResourceLoader,
 	type ExtensionFactory,
+	ModelRegistry,
 	type AgentSession as PiAgentSession,
 	type SessionManager,
 	SettingsManager,
@@ -18,6 +20,8 @@ export interface RhoAgentSessionOptions {
 	agentDir: string;
 	sessionManager?: SessionManager;
 	agentExtensions?: RhoAgentExtensionSource[];
+	/** Overrides the settings-default model for this session. */
+	model?: RhoAgentModelRef;
 }
 
 export type RhoAgentExtensionSource =
@@ -27,6 +31,11 @@ export type RhoAgentExtensionSource =
 export interface RhoAgentPromptOptions {
 	signal?: AbortSignal;
 	expandPromptTemplates?: boolean;
+}
+
+export interface RhoAgentModelRef {
+	provider: string;
+	modelId: string;
 }
 
 export interface RhoAgentSession {
@@ -63,6 +72,16 @@ export async function createRhoAgentSession(options: RhoAgentSessionOptions): Pr
 		sessionManager: options.sessionManager,
 	});
 	await session.bindExtensions({});
+
+	if (options.model) {
+		const authStorage = AuthStorage.create(`${agentDir}/auth.json`);
+		const registry = ModelRegistry.create(authStorage, `${agentDir}/models.json`);
+		const model = registry.find(options.model.provider, options.model.modelId);
+		if (!model) {
+			throw new Error(`Configured session model not found: ${options.model.provider}/${options.model.modelId}`);
+		}
+		await session.setModel(model);
+	}
 
 	return {
 		get sessionId() {

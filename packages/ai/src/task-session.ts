@@ -1,5 +1,5 @@
 import { SessionManager } from "@earendil-works/pi-coding-agent";
-import { createRhoAgentSession, type RhoAgentExtensionSource } from "./session.ts";
+import { createRhoAgentSession, type RhoAgentExtensionSource, type RhoAgentModelRef } from "./session.ts";
 
 /** All paths must be absolute; entrypoints resolve relative input. */
 export interface TaskSessionInput {
@@ -13,6 +13,8 @@ export interface TaskSessionInput {
 	agentExtensions?: RhoAgentExtensionSource[];
 	/** Reasoning effort for the task; defaults to medium. */
 	thinkingLevel?: "minimal" | "low" | "medium" | "high";
+	/** Overrides the settings-default model for the task. */
+	model?: RhoAgentModelRef;
 	signal?: AbortSignal;
 	/** Reports the session file as soon as the session exists, before any work runs. */
 	onSession?: (sessionFile: string | undefined) => void;
@@ -39,6 +41,7 @@ export async function runTaskSession(input: TaskSessionInput): Promise<TaskSessi
 		agentDir: input.agentDir,
 		sessionManager,
 		agentExtensions: input.agentExtensions,
+		model: input.model,
 	});
 	// Task work is formulaic; medium thinking keeps per-turn latency below
 	// the high level interactive chats may configure.

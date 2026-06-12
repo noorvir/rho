@@ -46,6 +46,8 @@ export interface RhoCoreOptions {
 	dbDir?: string;
 	/** Reasoning effort for background task sessions; defaults to medium. */
 	taskThinkingLevel?: "minimal" | "low" | "medium" | "high";
+	/** Overrides the settings-default model for background task sessions. */
+	taskModel?: { provider: string; modelId: string };
 	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
 	docsDir?: string;
 	/** Absolute extensions workspace directory. Defaults to `<cwd>/.rho/extensions`. */
@@ -146,6 +148,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		agentExtensions: sessionExtensions,
 		conversations,
 		taskThinkingLevel: opts.taskThinkingLevel,
+		taskModel: opts.taskModel,
 	});
 
 	const runtime = new ChannelRuntime({

@@ -37,7 +37,21 @@ export const env = {
 	/** Runtime db dir, when the home db has been initialized; enables rho_migrate. */
 	RHO_DB_DIR: existsSync(join(homeDbDir, "schema.prisma")) ? homeDbDir : undefined,
 	RHO_TASK_THINKING_LEVEL: taskThinkingLevel(),
+	RHO_TASK_MODEL: taskModel(),
 };
+
+/** Parses `provider/modelId`, for example `openai-codex/gpt-5.5`. */
+function taskModel(): { provider: string; modelId: string } | undefined {
+	const value = loadEnvWithNullishCheck("RHO_TASK_MODEL", false);
+	if (!value) {
+		return undefined;
+	}
+	const separator = value.indexOf("/");
+	if (separator <= 0 || separator === value.length - 1) {
+		throw new Error(`RHO_TASK_MODEL must be "provider/modelId", got: ${value}`);
+	}
+	return { provider: value.slice(0, separator), modelId: value.slice(separator + 1) };
+}
 
 function taskThinkingLevel(): "minimal" | "low" | "medium" | "high" | undefined {
 	const value = loadEnvWithNullishCheck("RHO_TASK_THINKING_LEVEL", false);

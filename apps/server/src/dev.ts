@@ -20,6 +20,7 @@ const core = await createRhoCore({
 	generatedClientDir: env.RHO_GENERATED_CLIENT_DIR,
 	dbDir: env.RHO_DB_DIR,
 	taskThinkingLevel: env.RHO_TASK_THINKING_LEVEL,
+	taskModel: env.RHO_TASK_MODEL,
 	docsDir: env.RHO_DOCS_DIR,
 	extensionsDir: env.RHO_EXTENSIONS_DIR,
 	extensionPaths: env.RHO_EXTENSION_PATHS,

@@ -32,6 +32,8 @@ export interface TaskRunnerOptions {
 	conversations: KeyedMutex;
 	/** Reasoning effort for task sessions; defaults to medium. */
 	taskThinkingLevel?: "minimal" | "low" | "medium" | "high";
+	/** Overrides the settings-default model for task sessions. */
+	taskModel?: { provider: string; modelId: string };
 	pollIntervalMs?: number;
 }
 
@@ -173,6 +175,7 @@ export class TaskRunner {
 				prompt: checkpoint ? resumePrompt() : initialPrompt(task),
 				agentExtensions: this.options.agentExtensions(),
 				thinkingLevel: this.options.taskThinkingLevel,
+				model: this.options.taskModel,
 				onSession: (file) => {
 					if (!file || file === sessionFile) {
 						return;
