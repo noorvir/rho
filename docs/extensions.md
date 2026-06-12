@@ -4,6 +4,14 @@ Rho extensions are source-code packages that add apps, channels, or agent capabi
 
 The app extension path is the primary extension path. Use the app SDK init script to create one from the built-in template, then install or load the extension through Rho.
 
+In a running runtime, extensions live in the extensions workspace at
+`$RHO_HOME/extensions` (default `~/.rho/extensions`). Create each extension
+as a folder there; the workspace's shared `package.json` already provides
+`@rho/apps-sdk`, `@rho/ui`, React, and oRPC. After adding a folder with its
+own `package.json`, run `bun install` in `$RHO_HOME/extensions`, then call
+`rho_reload`. The `examples/extensions` paths below apply when developing
+rho itself from the source repository.
+
 ## Create an app extension
 
 From this repository, run the template script:

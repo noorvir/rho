@@ -2,12 +2,17 @@
 
 import { runAgentCommand, runOneShot, runTuiCommand } from "./agent-command.ts";
 import { formatAgentError } from "./errors.ts";
+import { runInitCommand } from "./init-command.ts";
 import { runModelCommand } from "./model-command.ts";
 import { runProviderCommand } from "./provider-command.ts";
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
 	const [command, ...rest] = args;
 
+	if (command === "init") {
+		await runInitCommand();
+		return;
+	}
 	if (command === "agent") {
 		await runAgentCommand(rest);
 		return;
@@ -36,6 +41,7 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
 
 function printUsage(): void {
 	console.error(`Usage:
+  rho init
   rho agent
   rho agent -p "message"
   rho agent "message"

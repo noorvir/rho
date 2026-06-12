@@ -23,9 +23,18 @@ db/
 
 ## Runtime layouts
 
-In an installed runtime the paths above live under the runtime's `db/`
-directory. When Rho runs from its source repository (development), the same
-roles map to:
+In an installed runtime the paths above live under `$RHO_HOME/db/` (default
+`~/.rho/db/`), created by `rho init`. The prisma CLI is installed in the
+extensions workspace at `$RHO_HOME/extensions`, so run schema commands from
+there:
+
+```sh
+cd $RHO_HOME/extensions
+DATABASE_URL=file:$RHO_HOME/db/rho.sqlite bunx prisma migrate dev --name <change> --config ../db/prisma.config.ts
+```
+
+When Rho runs from its source repository (development), the same roles map
+to:
 
 | Role | Source-repo path |
 |------|------------------|
@@ -40,11 +49,13 @@ against a dev or installed runtime database.
 
 Rho owns `db/schema.prisma`. That file is the only schema file for the installed runtime.
 
-The `_rho_*` tables (tasks, owner, sessions, API tokens) are rho system
-tables: core depends on them, and they must never be removed or renamed.
-`rho_reload` refuses to swap in a database client that lost any of them.
-Seeded shared models such as contacts and orgs are different: extensions may
-evolve them with non-destructive migrations.
+The `rho_sys_*` tables and models (`rho_sys_Task`, `rho_sys_Owner`,
+`rho_sys_Session`, `rho_sys_ApiToken`) are rho system tables. Treat them as
+read-only infrastructure: never edit, rename, or remove their models in the
+schema, and never write to them directly — only the rho runtime itself uses
+them. `rho_reload` refuses to swap in a database client that lost any of
+them. Seeded shared models such as contacts and orgs are different:
+extensions may evolve them with non-destructive migrations.
 
 An extension may also have its own schema file inside its package. That package schema is for standalone mode: running the extension by itself for development, tests, demos, or previews before it is installed into a user's Rho runtime.
 
@@ -83,10 +94,12 @@ Validate on a copy before touching the live database:
    bun -e "const { Database } = require('bun:sqlite'); const db = new Database('<live db file>'); db.exec(\"VACUUM INTO '<copy file>'\"); db.close()"
    ```
 
-2. Create the migration and apply it to the copy first, from `packages/core`:
+2. Create the migration and apply it to the copy first (installed runtime:
+   from `$RHO_HOME/extensions` with `--config ../db/prisma.config.ts`;
+   source repo: from `packages/core`):
 
    ```sh
-   DATABASE_URL=file:<copy file> bun run db:migrate -- --name <change>
+   DATABASE_URL=file:<copy file> bunx prisma migrate dev --name <change> --config <db dir>/prisma.config.ts
    ```
 
 3. For risky changes, boot a disposable test server against the copy and

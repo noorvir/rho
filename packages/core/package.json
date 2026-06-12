@@ -14,6 +14,7 @@
 	},
 	"files": [
 		"dist",
+		"db-template",
 		"README.md"
 	],
 	"scripts": {
@@ -33,9 +34,7 @@
 		"@rho/channels": "0.0.0",
 		"@rho/lib": "0.0.0",
 		"dotenv": "17.2.3",
-		"jiti": "2.7.0"
-	},
-	"devDependencies": {
+		"jiti": "2.7.0",
 		"prisma": "7.8.0"
 	},
 	"keywords": [

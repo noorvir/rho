@@ -1,26 +1,39 @@
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadEnvWithNullishCheck } from "@rho/lib";
 
-const defaultAgentDir = join(homedir(), ".rho", "agent");
+// All runtime-mutable state lives under the rho home directory; individual
+// RHO_* variables override the derived defaults for special setups.
+const RHO_HOME = resolve(loadEnvWithNullishCheck("RHO_HOME", false, join(homedir(), ".rho")));
+const homeDbDir = join(RHO_HOME, "db");
+const generatedClientDir = join(homeDbDir, "generated", "prisma");
 
 const RHO_PORT = Number(loadEnvWithNullishCheck("RHO_PORT", false, process.env.PORT ?? "7331"));
-const RHO_AGENT_DIR = resolve(loadEnvWithNullishCheck("RHO_AGENT_DIR", false, defaultAgentDir));
-const stateDir = loadEnvWithNullishCheck("RHO_STATE_DIR", false);
-const RHO_STATE_DIR = stateDir ? resolve(stateDir) : undefined;
+const RHO_AGENT_DIR = resolve(loadEnvWithNullishCheck("RHO_AGENT_DIR", false, join(RHO_HOME, "agent")));
+const RHO_STATE_DIR = resolve(loadEnvWithNullishCheck("RHO_STATE_DIR", false, join(RHO_HOME, "state")));
 const RHO_DOCS_DIR = resolve(
 	loadEnvWithNullishCheck("RHO_DOCS_DIR", false, fileURLToPath(new URL("../../../../docs/", import.meta.url))),
 );
 
 export const env = {
+	RHO_HOME,
 	RHO_PORT,
 	RHO_AGENT_DIR,
 	RHO_STATE_DIR,
 	RHO_DOCS_DIR,
-	RHO_DATABASE_URL: loadEnvWithNullishCheck("RHO_DATABASE_URL"),
+	RHO_DATABASE_URL: loadEnvWithNullishCheck(
+		"RHO_DATABASE_URL",
+		false,
+		`file:${join(homeDbDir, "rho.sqlite")}`,
+	),
 	RHO_OWNER_TOKEN: loadEnvWithNullishCheck("RHO_OWNER_TOKEN"),
 	RHO_EXTENSION_PATHS: splitPaths(loadEnvWithNullishCheck("RHO_EXTENSION_PATHS", false)),
+	/** Home extensions workspace; loaded alongside RHO_EXTENSION_PATHS. */
+	RHO_EXTENSIONS_DIR: join(RHO_HOME, "extensions"),
+	/** Runtime-generated Prisma client dir, when the home db has been initialized. */
+	RHO_GENERATED_CLIENT_DIR: existsSync(generatedClientDir) ? generatedClientDir : undefined,
 };
 
 function splitPaths(value: string): string[] {

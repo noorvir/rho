@@ -42,6 +42,8 @@ export interface RhoCoreOptions {
 	generatedClientDir?: string;
 	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
 	docsDir?: string;
+	/** Absolute extensions workspace directory. Defaults to `<cwd>/.rho/extensions`. */
+	extensionsDir?: string;
 	/** Absolute extension entrypoints or directories to load. */
 	extensionPaths?: string[];
 	extensionLoader?: ExtensionLoader;
@@ -73,7 +75,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 	const channelRegistry = new ChannelRegistry(channels);
 
 	const stateDir = opts.stateDir ?? join(opts.agentDir, "rho-state");
-	const extensionsDir = join(cwd, ".rho", "extensions");
+	const extensionsDir = opts.extensionsDir ?? join(cwd, ".rho", "extensions");
 	const extensionPaths = opts.extensionPaths ?? [];
 
 	const state =
