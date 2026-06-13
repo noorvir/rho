@@ -528,7 +528,7 @@ final class AuthStore: ObservableObject {
     init() {
         let storedBaseURL = KeychainStore.read("baseURL")
         let defaultBaseURL = MobileBuildInfo.chatBaseURL.absoluteString
-        serverURLText = storedBaseURL ?? defaultBaseURL
+        serverURLText = AuthStore.usableBaseURL(storedBaseURL) ?? defaultBaseURL
         accessToken = KeychainStore.read("accessToken")
         refreshToken = KeychainStore.read("refreshToken")
         isAuthenticated = accessToken != nil && refreshToken != nil
@@ -569,6 +569,18 @@ final class AuthStore: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONEncoder().encode(RefreshRequest(refreshToken: token))
         _ = try? await URLSession.shared.data(for: request)
+    }
+
+    /// A stored localhost URL can never be reached from a physical device
+    /// (it would point at the phone itself), so treat it as stale there.
+    private static func usableBaseURL(_ stored: String?) -> String? {
+        #if targetEnvironment(simulator)
+        return stored
+        #else
+        guard let stored else { return nil }
+        let isLocalhost = stored.contains("127.0.0.1") || stored.contains("localhost")
+        return isLocalhost ? nil : stored
+        #endif
     }
 
     func authorizedRequest(url: URL) -> URLRequest {

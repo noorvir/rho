@@ -26,8 +26,20 @@ struct ChatHistoryMessage: Decodable {
         }
     }
 
+    struct Attachment: Decodable {
+        let path: String
+        let mimeType: String
+    }
+
     let role: Role
     let text: String
+    let attachments: [Attachment]?
+
+    var imagePaths: [String] {
+        (attachments ?? [])
+            .filter { $0.mimeType.hasPrefix("image/") }
+            .map(\.path)
+    }
 }
 
 struct TaskSummary: Decodable {
@@ -74,11 +86,27 @@ final class ChatClient {
         return try JSONDecoder().decode(TaskList.self, from: data).tasks
     }
 
-    func send(text: String) -> AsyncThrowingStream<ChatEvent, Error> {
+    func uploadImage(data: Data, mimeType: String) async throws -> String {
+        let url = baseURL.appendingPathComponent("store/uploads")
+        let body = StoreUploadRequest(
+            sessionId: conversationID,
+            mimeType: mimeType,
+            data: data.base64EncodedString()
+        )
+
+        let responseData = try await postData(for: url, body: body)
+        return try JSONDecoder().decode(StoreUploadResponse.self, from: responseData).path
+    }
+
+    func storeData(path: String) async throws -> Data {
+        try await data(for: baseURL.appendingPathComponent("store/\(path)"))
+    }
+
+    func send(text: String, attachmentPaths: [String] = []) -> AsyncThrowingStream<ChatEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    let bytes = try await bytes(for: streamEndpoint, text: text)
+                    let bytes = try await bytes(for: streamEndpoint, text: text, attachmentPaths: attachmentPaths)
 
                     var buffer = Data()
                     let separator = Data("\n\n".utf8)
@@ -111,18 +139,36 @@ final class ChatClient {
     }
 
     private func data(for url: URL) async throws -> Data {
-        let response = try await dataResponse(for: url)
+        let response = try await dataResponse(for: url, body: nil)
         if response.status == 401 {
             try await authStore.refresh()
-            let refreshed = try await dataResponse(for: url)
+            let refreshed = try await dataResponse(for: url, body: nil)
             return try checkedData(refreshed, fallback: "Request failed")
         }
 
         return try checkedData(response, fallback: "Request failed")
     }
 
-    private func dataResponse(for url: URL) async throws -> (data: Data, status: Int) {
-        let request = authStore.authorizedRequest(url: url)
+    private func postData<Body: Encodable>(for url: URL, body: Body) async throws -> Data {
+        let encoded = try JSONEncoder().encode(body)
+        let response = try await dataResponse(for: url, body: encoded)
+        if response.status == 401 {
+            try await authStore.refresh()
+            let refreshed = try await dataResponse(for: url, body: encoded)
+            return try checkedData(refreshed, fallback: "Request failed")
+        }
+
+        return try checkedData(response, fallback: "Request failed")
+    }
+
+    private func dataResponse(for url: URL, body: Data?) async throws -> (data: Data, status: Int) {
+        var request = authStore.authorizedRequest(url: url)
+        if let body {
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = body
+        }
+
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ChatClientError.server("No HTTP response from \(url.absoluteString)")
@@ -140,22 +186,32 @@ final class ChatClient {
         return response.data
     }
 
-    private func bytes(for url: URL, text: String) async throws -> URLSession.AsyncBytes {
-        let response = try await bytesResponse(for: url, text: text)
+    private func bytes(for url: URL, text: String, attachmentPaths: [String]) async throws -> URLSession.AsyncBytes {
+        let response = try await bytesResponse(for: url, text: text, attachmentPaths: attachmentPaths)
         if response.status == 401 {
             try await authStore.refresh()
-            let refreshed = try await bytesResponse(for: url, text: text)
+            let refreshed = try await bytesResponse(for: url, text: text, attachmentPaths: attachmentPaths)
             return try checkedBytes(refreshed, fallback: "Stream failed")
         }
 
         return try checkedBytes(response, fallback: "Stream failed")
     }
 
-    private func bytesResponse(for url: URL, text: String) async throws -> (bytes: URLSession.AsyncBytes, status: Int) {
+    private func bytesResponse(
+        for url: URL,
+        text: String,
+        attachmentPaths: [String]
+    ) async throws -> (bytes: URLSession.AsyncBytes, status: Int) {
         var request = authStore.authorizedRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(ChatRequest(conversationId: conversationID, text: text))
+        request.httpBody = try JSONEncoder().encode(
+            ChatRequest(
+                conversationId: conversationID,
+                text: text,
+                attachments: attachmentPaths.map { ChatRequestAttachment(path: $0) }
+            )
+        )
 
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -271,6 +327,21 @@ private struct ChatRequest: Encodable {
     let conversationId: String
     let sender = ChatSender(id: "mobile-user", name: "Mobile User")
     let text: String
+    let attachments: [ChatRequestAttachment]
+}
+
+private struct ChatRequestAttachment: Encodable {
+    let path: String
+}
+
+private struct StoreUploadRequest: Encodable {
+    let sessionId: String
+    let mimeType: String
+    let data: String
+}
+
+private struct StoreUploadResponse: Decodable {
+    let path: String
 }
 
 private struct ChatSender: Encodable {

@@ -110,7 +110,7 @@ struct AgentInput: View {
     }
 
     private var canSend: Bool {
-        !isSending && !trimmedDraft.isEmpty
+        !isSending && (!trimmedDraft.isEmpty || !pendingImages.isEmpty)
     }
 
     var body: some View {

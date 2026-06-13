@@ -38,7 +38,7 @@ struct ChatSheetView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(messages) { message in
-                            ChatBubble(message: message)
+                            ChatBubble(message: message, authStore: authStore)
                                 .id(message.id)
                         }
 
@@ -141,7 +141,7 @@ struct ChatSheetView: View {
         do {
             let history = try await ChatClient(authStore: authStore, conversationID: id).history()
             let loadedMessages = history.messages.map { message in
-                ChatMessage(role: message.role.chatRole, text: message.text)
+                ChatMessage(role: message.role.chatRole, text: message.text, imagePaths: message.imagePaths)
             }
 
             await MainActor.run {
@@ -203,14 +203,15 @@ struct ChatSheetView: View {
 
     private func sendDraft() {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isSending else { return }
+        let images = pendingImages
+        guard !isSending, !text.isEmpty || !images.isEmpty else { return }
 
         draft = ""
         pendingImages = []
-        send(text)
+        send(text, images: images.map(\.image))
     }
 
-    private func send(_ text: String) {
+    private func send(_ text: String, images: [UIImage] = []) {
         guard !isSending else { return }
 
         let id = conversationID
@@ -218,13 +219,22 @@ struct ChatSheetView: View {
         isSending = true
 
         let assistantId = UUID()
-        messages.append(ChatMessage(role: .user, text: text))
+        let userId = UUID()
+        messages.append(ChatMessage(id: userId, role: .user, text: text))
         messages.append(ChatMessage(id: assistantId, role: .assistant, text: ""))
         saveSummary(for: id, messages: messages)
 
         Task {
+            let client = ChatClient(authStore: authStore, conversationID: id)
+
             do {
-                for try await event in ChatClient(authStore: authStore, conversationID: id).send(text: text) {
+                let paths = try await uploadImages(images, with: client)
+                await MainActor.run {
+                    guard conversationID == id else { return }
+                    setUserImagePaths(userId, paths: paths)
+                }
+
+                for try await event in client.send(text: text, attachmentPaths: paths) {
                     await MainActor.run {
                         guard conversationID == id else { return }
                         apply(event, to: assistantId)
@@ -244,6 +254,38 @@ struct ChatSheetView: View {
                 startTaskPolling()
             }
         }
+    }
+
+    private func uploadImages(_ images: [UIImage], with client: ChatClient) async throws -> [String] {
+        var paths: [String] = []
+
+        for image in images {
+            guard let data = uploadJPEGData(for: image) else { continue }
+            let path = try await client.uploadImage(data: data, mimeType: "image/jpeg")
+            await StoreImageCache.shared.set(image, for: path)
+            paths.append(path)
+        }
+
+        return paths
+    }
+
+    private func setUserImagePaths(_ id: UUID, paths: [String]) {
+        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+        messages[index].imagePaths = paths
+    }
+
+    private func uploadJPEGData(for image: UIImage, maxDimension: CGFloat = 2048) -> Data? {
+        let largestSide = max(image.size.width, image.size.height)
+        guard largestSide > maxDimension else {
+            return image.jpegData(compressionQuality: 0.8)
+        }
+
+        let scale = maxDimension / largestSide
+        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let resized = UIGraphicsImageRenderer(size: size).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        return resized.jpegData(compressionQuality: 0.8)
     }
 
     private func startTaskPolling() {
