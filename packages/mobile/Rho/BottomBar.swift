@@ -49,9 +49,9 @@ struct BottomBar: View {
                 PageActionBottomBar(openChat: openChat)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 14)
-        .padding(.bottom, 20 + 5 / UIScreen.main.scale)
+        .padding(.horizontal, GlassControlMetrics.bottomBarHorizontalPadding)
+        .padding(.top, GlassControlMetrics.bottomBarTopPadding)
+        .padding(.bottom, GlassControlMetrics.bottomBarBottomPadding)
     }
 }
 
@@ -83,14 +83,12 @@ private struct RootBottomBar: View {
                 }
             }
 
-            Button(action: openChat) {
-                Image(systemName: "bubble.left")
-                    .font(.system(size: 26, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .frame(width: 60, height: 60)
-                    .glassSurface(cornerRadius: 30)
-            }
-            .buttonStyle(.plain)
+            GlassIconButton(
+                systemName: "bubble.left",
+                accessibilityLabel: "Open chat",
+                role: .bottomBar,
+                action: openChat
+            )
         }
     }
 

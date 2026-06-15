@@ -15,6 +15,7 @@ struct ChatSheetView: View {
     @State private var messages: [ChatMessage] = []
     @State private var isSending = false
     @State private var isHistoryPresented = false
+    @State private var isMediaTrayPresented = false
     @State private var errorText: String?
     @State private var workingTasks: [TaskSummary] = []
     @State private var taskPoller: Task<Void, Never>?
@@ -65,6 +66,7 @@ struct ChatSheetView: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onTapGesture {
+                    isMediaTrayPresented = false
                     dismissKeyboard()
                 }
                 .onChange(of: scrollKey) { _, _ in
@@ -78,6 +80,7 @@ struct ChatSheetView: View {
         .overlay {
             ComposerOverlay(
                 draft: $draft,
+                isMediaTrayPresented: $isMediaTrayPresented,
                 pendingImages: pendingImages,
                 isSending: isSending,
                 onSend: { sendDraft() },
@@ -158,6 +161,7 @@ struct ChatSheetView: View {
     }
 
     private func handleMediaAction(_ action: ComposerMediaAction) {
+        isMediaTrayPresented = false
         dismissKeyboard()
         switch action {
         case .camera:
@@ -419,60 +423,44 @@ private struct ChatHeader: View {
     let startNewChat: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Button(action: close) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .frame(width: 34, height: 34)
-                    .chatControlSurface(cornerRadius: 8)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Close chat")
+        HStack(spacing: 14) {
+            GlassIconButton(
+                systemName: "xmark",
+                accessibilityLabel: "Close chat",
+                role: .chat,
+                showsShadow: false,
+                action: close
+            )
 
             Text(title)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 24, weight: .semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 6) {
-                Button(action: showHistory) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .frame(width: 34, height: 34)
-                        .chatControlSurface(cornerRadius: 8)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Show chat history")
+            HStack(spacing: 10) {
+                GlassIconButton(
+                    systemName: "clock.arrow.circlepath",
+                    accessibilityLabel: "Show chat history",
+                    role: .chat,
+                    showsShadow: false,
+                    action: showHistory
+                )
 
-                Button(action: startNewChat) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(isNewChatDisabled ? .secondary : .primary)
-                        .frame(width: 34, height: 34)
-                        .chatControlSurface(cornerRadius: 8)
-                }
-                .buttonStyle(.plain)
-                .disabled(isNewChatDisabled)
-                .accessibilityLabel("Clear conversation")
+                GlassIconButton(
+                    systemName: "plus",
+                    accessibilityLabel: "Start new chat",
+                    role: .chat,
+                    foregroundColor: isNewChatDisabled ? .secondary : .primary,
+                    isDisabled: isNewChatDisabled,
+                    showsShadow: false,
+                    action: startNewChat
+                )
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 16)
-        .padding(.bottom, 10)
-    }
-}
-
-private extension View {
-    func chatControlSurface(cornerRadius: CGFloat) -> some View {
-        background(.white, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
-            }
-            .shadow(color: .black.opacity(0.035), radius: 10, y: 4)
+        .padding(.horizontal, 24)
+        .padding(.top, 20)
+        .padding(.bottom, 12)
     }
 }
 

@@ -14,6 +14,72 @@ enum GlassReplacementMenuPlacement {
     }
 }
 
+enum GlassControlMetrics {
+    static let bottomControlSize: CGFloat = 60
+    static let bottomControlIconSize: CGFloat = 26
+    static let chatControlSize: CGFloat = 42
+    static let chatControlIconSize: CGFloat = 20
+    static let composerInlineControlWidth: CGFloat = 34
+    static let composerInlineControlHeight: CGFloat = chatControlSize
+    static let composerInlineIconSize: CGFloat = 18
+    static let composerKeyboardSpacing: CGFloat = 8
+    static let bottomBarHorizontalPadding: CGFloat = 20
+    static let bottomBarTopPadding: CGFloat = 14
+
+    static var bottomBarBottomPadding: CGFloat {
+        20 + 5 / UIScreen.main.scale
+    }
+}
+
+enum GlassIconButtonRole {
+    case bottomBar
+    case chat
+
+    var size: CGFloat {
+        switch self {
+        case .bottomBar:
+            return GlassControlMetrics.bottomControlSize
+        case .chat:
+            return GlassControlMetrics.chatControlSize
+        }
+    }
+
+    var iconSize: CGFloat {
+        switch self {
+        case .bottomBar:
+            return GlassControlMetrics.bottomControlIconSize
+        case .chat:
+            return GlassControlMetrics.chatControlIconSize
+        }
+    }
+}
+
+struct GlassIconButton: View {
+    let systemName: String
+    let accessibilityLabel: String
+    var role: GlassIconButtonRole = .bottomBar
+    var iconWeight: Font.Weight = .medium
+    var foregroundColor: Color = .primary
+    var isDisabled = false
+    var showsShadow = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: role.iconSize, weight: iconWeight))
+                .foregroundStyle(isDisabled ? Color.secondary : foregroundColor)
+                .frame(width: role.size, height: role.size)
+                .glassSurface(cornerRadius: role.size / 2, showsShadow: showsShadow, isInteractive: true)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityIdentifier(systemName)
+    }
+}
+
 struct GlassReplacementMenu<Source: View, Replacement: View>: View {
     let isPresented: Bool
     var alignment: Alignment
@@ -104,20 +170,33 @@ extension View {
     }
 
     @ViewBuilder
-    func glassSurface(cornerRadius: CGFloat) -> some View {
+    func glassSurface(cornerRadius: CGFloat, showsShadow: Bool = true, isInteractive: Bool = false) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
 
         if #available(iOS 26.0, *) {
-            glassEffect(.regular, in: shape)
-                .controlBorder(cornerRadius: cornerRadius)
-                .shadow(color: .black.opacity(0.08), radius: 28, y: 12)
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+            let glass = isInteractive ? Glass.regular.interactive() : Glass.regular
+
+            if showsShadow {
+                glassEffect(glass, in: shape)
+                    .controlBorder(cornerRadius: cornerRadius)
+                    .shadow(color: .black.opacity(0.08), radius: 28, y: 12)
+                    .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+            } else {
+                glassEffect(glass, in: shape)
+                    .controlBorder(cornerRadius: cornerRadius)
+            }
         } else {
-            background(.regularMaterial, in: shape)
-                .background(.white.opacity(0.72), in: shape)
-                .controlBorder(cornerRadius: cornerRadius)
-                .shadow(color: .black.opacity(0.08), radius: 28, y: 12)
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+            if showsShadow {
+                background(.regularMaterial, in: shape)
+                    .background(.white.opacity(0.72), in: shape)
+                    .controlBorder(cornerRadius: cornerRadius)
+                    .shadow(color: .black.opacity(0.08), radius: 28, y: 12)
+                    .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
+            } else {
+                background(.regularMaterial, in: shape)
+                    .background(.white.opacity(0.72), in: shape)
+                    .controlBorder(cornerRadius: cornerRadius)
+            }
         }
     }
 }

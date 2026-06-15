@@ -18,6 +18,7 @@ struct PendingImage: Identifiable, Equatable {
 /// Holds no keyboard session, so sheet pull-down keeps working.
 struct ComposerOverlay: UIViewRepresentable {
     @Binding var draft: String
+    @Binding var isMediaTrayPresented: Bool
     let pendingImages: [PendingImage]
     let isSending: Bool
     let onSend: () -> Void
@@ -27,7 +28,7 @@ struct ComposerOverlay: UIViewRepresentable {
 
     func makeUIView(context: Context) -> ComposerOverlayView {
         let hosting = UIHostingController(rootView: rootView)
-        hosting.view.backgroundColor = .white
+        hosting.view.backgroundColor = .clear
         hosting.safeAreaRegions = []
         hosting.sizingOptions = [.intrinsicContentSize]
         context.coordinator.hosting = hosting
@@ -48,6 +49,7 @@ struct ComposerOverlay: UIViewRepresentable {
     private var rootView: AgentInput {
         AgentInput(
             draft: $draft,
+            isMediaTrayPresented: $isMediaTrayPresented,
             pendingImages: pendingImages,
             isSending: isSending,
             onSend: onSend,
@@ -68,8 +70,12 @@ final class ComposerOverlayView: UIView {
     func install(barView: UIView) {
         self.barView = barView
 
+        backgroundColor = .clear
+        isOpaque = false
+
         let filler = UIView()
-        filler.backgroundColor = .white
+        filler.backgroundColor = .clear
+        filler.isOpaque = false
         filler.translatesAutoresizingMaskIntoConstraints = false
         addSubview(filler)
 
@@ -79,7 +85,10 @@ final class ComposerOverlayView: UIView {
         NSLayoutConstraint.activate([
             barView.leadingAnchor.constraint(equalTo: leadingAnchor),
             barView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            barView.bottomAnchor.constraint(equalTo: keyboardLayoutGuide.topAnchor),
+            barView.bottomAnchor.constraint(
+                equalTo: keyboardLayoutGuide.topAnchor,
+                constant: -GlassControlMetrics.composerKeyboardSpacing
+            ),
             filler.leadingAnchor.constraint(equalTo: leadingAnchor),
             filler.trailingAnchor.constraint(equalTo: trailingAnchor),
             filler.topAnchor.constraint(equalTo: barView.bottomAnchor),
@@ -95,6 +104,7 @@ final class ComposerOverlayView: UIView {
 
 struct AgentInput: View {
     @Binding var draft: String
+    @Binding var isMediaTrayPresented: Bool
     let pendingImages: [PendingImage]
     let isSending: Bool
     let onSend: () -> Void
@@ -102,8 +112,10 @@ struct AgentInput: View {
     let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
 
-    @State private var isMediaTrayPresented = false
     @State private var recorder = VoiceRecorder()
+
+    private let mediaMenuWidth: CGFloat = 320
+    private let mediaMenuHeight: CGFloat = 320
 
     private var trimmedDraft: String {
         draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -140,130 +152,148 @@ struct AgentInput: View {
                 .padding(.bottom, 10)
             }
 
-            ZStack {
-                composerBar
-                    .opacity(recorder.state == .idle ? 1 : 0)
-                    .allowsHitTesting(recorder.state == .idle)
+            ZStack(alignment: .bottomLeading) {
+                Color.clear
+                    .frame(height: mediaOverlayHeight)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        setMediaMenuPresented(false)
+                    }
+                    .allowsHitTesting(isMediaTrayPresented)
 
-                if recorder.state != .idle {
-                    recordingBar
+                if isMediaTrayPresented {
+                    MediaOptionsMenu { action in
+                        setMediaMenuPresented(false)
+                        onMediaAction(action)
+                    }
+                    .frame(width: mediaMenuWidth, height: mediaMenuHeight)
+                    .padding(.bottom, GlassControlMetrics.chatControlSize + 10)
+                }
+
+                ZStack {
+                    composerBar
+                        .opacity(recorder.state == .idle ? 1 : 0)
+                        .allowsHitTesting(recorder.state == .idle)
+
+                    if recorder.state != .idle {
+                        recordingBar
+                    }
                 }
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 22)
+        .padding(.top, 8)
+    }
+
+    private var mediaOverlayHeight: CGFloat {
+        guard isMediaTrayPresented else {
+            return GlassControlMetrics.chatControlSize
+        }
+        return mediaMenuHeight + GlassControlMetrics.chatControlSize + 10
     }
 
     private var composerBar: some View {
         HStack(spacing: 10) {
-            Button {
-                isMediaTrayPresented.toggle()
-            } label: {
-                Image(systemName: isMediaTrayPresented ? "keyboard" : "plus")
-                    .font(.system(size: 22, weight: .regular))
-                    .foregroundStyle(.black)
-                    .frame(width: 32, height: 32)
-                    .contentTransition(.identity)
-                    .transaction { transaction in
-                        transaction.animation = nil
-                    }
+            GlassIconButton(
+                systemName: isMediaTrayPresented ? "xmark" : "plus",
+                accessibilityLabel: isMediaTrayPresented ? "Hide media options" : "Show media options",
+                role: .chat,
+                iconWeight: .regular,
+                showsShadow: false
+            ) {
+                setMediaMenuPresented(!isMediaTrayPresented)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isMediaTrayPresented ? "Hide media options" : "Show media options")
 
             HStack(spacing: 8) {
                 ChatTextField(
                     text: $draft,
-                    isMediaTrayPresented: $isMediaTrayPresented,
                     onSend: {
                         if canSend {
                             onSend()
                         }
-                    },
-                    onMediaAction: onMediaAction
+                    }
                 )
+                .frame(maxWidth: .infinity)
 
-                Image(systemName: "sticker")
-                    .font(.system(size: 21, weight: .regular))
-                    .foregroundStyle(.black)
+                composerInlineButton(
+                    systemName: canSend ? "arrow.up.circle.fill" : "mic",
+                    accessibilityLabel: canSend ? "Send message" : "Record voice message",
+                    action: {
+                        if canSend {
+                            onSend()
+                        } else {
+                            recorder.start()
+                        }
+                    }
+                )
+                .disabled(isSending)
+                .opacity(isSending ? 0.5 : 1)
             }
-            .padding(.horizontal, 14)
-            .frame(height: 38)
-            .background(.white, in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(Color.black.opacity(0.18), lineWidth: 1)
-            }
+            .padding(.leading, 18)
+            .padding(.trailing, 8)
+            .frame(height: GlassControlMetrics.chatControlSize)
+            .glassSurface(cornerRadius: GlassControlMetrics.chatControlSize / 2, showsShadow: false)
+        }
+    }
 
-            Button {
-                onMediaAction(.camera)
-            } label: {
-                Image(systemName: "camera")
-                    .font(.system(size: 23, weight: .regular))
-                    .foregroundStyle(.black)
-                    .frame(width: 32, height: 32)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Camera")
+    private func composerInlineButton(
+        systemName: String,
+        accessibilityLabel: String,
+        foregroundColor: Color = .primary,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: GlassControlMetrics.composerInlineIconSize, weight: .regular))
+                .foregroundStyle(foregroundColor)
+                .frame(
+                    width: GlassControlMetrics.composerInlineControlWidth,
+                    height: GlassControlMetrics.composerInlineControlHeight
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+    }
 
-            Button {
-                if canSend {
-                    onSend()
-                } else {
-                    recorder.start()
-                }
-            } label: {
-                Image(systemName: canSend ? "arrow.up.circle.fill" : "mic")
-                    .font(.system(size: canSend ? 29 : 24, weight: .regular))
-                    .foregroundStyle(.black)
-                    .frame(width: 32, height: 32)
-            }
-            .disabled(isSending)
-            .buttonStyle(.plain)
-            .accessibilityLabel(canSend ? "Send message" : "Record voice message")
+    private func setMediaMenuPresented(_ isPresented: Bool) {
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            isMediaTrayPresented = isPresented
         }
     }
 
     private var recordingBar: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 12) {
-                Text(timeString(recorder.elapsed))
-                    .font(.system(size: 22).monospacedDigit())
-                    .foregroundStyle(.black)
+        HStack(spacing: 10) {
+            GlassIconButton(
+                systemName: "trash",
+                accessibilityLabel: "Discard recording",
+                role: .chat,
+                iconWeight: .regular,
+                showsShadow: false
+            ) {
+                recorder.cancel()
+            }
 
-                Spacer(minLength: 12)
+            HStack(spacing: 8) {
+                Text(timeString(recorder.elapsed))
+                    .font(.system(size: 17).monospacedDigit())
+                    .foregroundStyle(.black)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
 
                 WaveformView(levels: recorder.levels)
-                    .frame(height: 22)
-            }
-            .padding(.top, 6)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 20)
+                    .clipped()
 
-            HStack {
-                Button {
-                    recorder.cancel()
-                } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 22, weight: .regular))
-                        .foregroundStyle(.black)
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Discard recording")
-
-                Spacer()
-
-                Button {
+                composerInlineButton(
+                    systemName: recorder.state == .paused ? "record.circle" : "pause.circle",
+                    accessibilityLabel: recorder.state == .paused ? "Resume recording" : "Pause recording",
+                    foregroundColor: .red
+                ) {
                     recorder.togglePause()
-                } label: {
-                    Image(systemName: recorder.state == .paused ? "record.circle" : "pause.circle")
-                        .font(.system(size: 34, weight: .regular))
-                        .foregroundStyle(.red)
-                        .frame(width: 44, height: 44)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(recorder.state == .paused ? "Resume recording" : "Pause recording")
-
-                Spacer()
 
                 Button {
                     if let audio = recorder.finish() {
@@ -273,16 +303,24 @@ struct AgentInput: View {
                     ZStack {
                         Circle()
                             .fill(Color.green)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 30, height: 30)
 
                         Image(systemName: "paperplane.fill")
-                            .font(.system(size: 19, weight: .medium))
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(.white)
                     }
+                    .frame(
+                        width: GlassControlMetrics.composerInlineControlWidth,
+                        height: GlassControlMetrics.composerInlineControlHeight
+                    )
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Send voice message")
             }
+            .padding(.leading, 18)
+            .padding(.trailing, 8)
+            .frame(height: GlassControlMetrics.chatControlSize)
+            .glassSurface(cornerRadius: GlassControlMetrics.chatControlSize / 2, showsShadow: false)
         }
     }
 
@@ -295,14 +333,14 @@ struct AgentInput: View {
 private struct WaveformView: View {
     let levels: [Float]
 
-    private let barCount = 48
+    private let barCount = 28
 
     var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<barCount, id: \.self) { index in
                 Capsule()
                     .fill(Color.black.opacity(0.45))
-                    .frame(width: 2.5, height: barHeight(at: index))
+                    .frame(width: 2.4, height: barHeight(at: index))
             }
         }
         .animation(.linear(duration: 0.05), value: levels)
@@ -315,13 +353,9 @@ private struct WaveformView: View {
     }
 }
 
-/// WhatsApp-style composer field: the media tray replaces the keyboard in place
-/// by swapping the text field's `inputView`, so the composer bar never moves.
 private struct ChatTextField: UIViewRepresentable {
     @Binding var text: String
-    @Binding var isMediaTrayPresented: Bool
     let onSend: () -> Void
-    let onMediaAction: (ComposerMediaAction) -> Void
 
     func makeUIView(context: Context) -> UITextField {
         let field = UITextField()
@@ -342,18 +376,6 @@ private struct ChatTextField: UIViewRepresentable {
         if field.text != text {
             field.text = text
         }
-
-        let hasTray = field.inputView != nil
-        if isMediaTrayPresented != hasTray {
-            field.inputView = isMediaTrayPresented ? context.coordinator.trayView() : nil
-            DispatchQueue.main.async {
-                if field.isFirstResponder {
-                    field.reloadInputViews()
-                } else {
-                    field.becomeFirstResponder()
-                }
-            }
-        }
     }
 
     func makeCoordinator() -> Coordinator {
@@ -362,47 +384,9 @@ private struct ChatTextField: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: ChatTextField
-        private var trayContainer: UIInputView?
-        private var trayController: UIHostingController<MediaOptionsGrid>?
 
         init(parent: ChatTextField) {
             self.parent = parent
-        }
-
-        func trayView() -> UIView {
-            if let trayContainer {
-                return trayContainer
-            }
-
-            let grid = MediaOptionsGrid { [weak self] action in
-                self?.parent.onMediaAction(action)
-            }
-            let controller = UIHostingController(rootView: grid)
-            controller.view.backgroundColor = .clear
-            controller.safeAreaRegions = []
-            trayController = controller
-
-            let container = UIInputView(
-                frame: CGRect(x: 0, y: 0, width: 0, height: 336),
-                inputViewStyle: .default
-            )
-            container.allowsSelfSizing = true
-            container.backgroundColor = .white
-            container.translatesAutoresizingMaskIntoConstraints = false
-            container.heightAnchor.constraint(equalToConstant: 336).isActive = true
-
-            let trayView = controller.view!
-            trayView.translatesAutoresizingMaskIntoConstraints = false
-            container.addSubview(trayView)
-            NSLayoutConstraint.activate([
-                trayView.topAnchor.constraint(equalTo: container.topAnchor),
-                trayView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-                trayView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                trayView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            ])
-
-            trayContainer = container
-            return container
         }
 
         @objc func textChanged(_ field: UITextField) {
@@ -413,64 +397,62 @@ private struct ChatTextField: UIViewRepresentable {
             parent.onSend()
             return false
         }
-
-        func textFieldDidEndEditing(_ textField: UITextField) {
-            if parent.isMediaTrayPresented {
-                textField.inputView = nil
-                DispatchQueue.main.async {
-                    self.parent.isMediaTrayPresented = false
-                }
-            }
-        }
     }
 }
 
-private struct MediaOptionsGrid: View {
+private struct MediaOptionsMenu: View {
     let onSelect: (ComposerMediaAction) -> Void
 
     private let options = [
-        MediaOption(title: "Photos", icon: "photo.on.rectangle.angled", color: .blue, action: .photos),
-        MediaOption(title: "Camera", icon: "camera.fill", color: .black.opacity(0.82), action: .camera),
-        MediaOption(title: "Location", icon: "mappin", color: .green, action: .location),
+        MediaOption(title: "Photos", icon: "photo.on.rectangle", color: .blue, action: .photos),
+        MediaOption(title: "Camera", icon: "camera", color: .black.opacity(0.82), action: .camera),
+        MediaOption(title: "Location", icon: "location", color: .green, action: .location),
         MediaOption(title: "Contact", icon: "person.crop.circle", color: .black.opacity(0.56), action: nil),
-        MediaOption(title: "Document", icon: "doc.fill", color: .cyan, action: nil),
+        MediaOption(title: "Document", icon: "doc", color: .cyan, action: nil),
         MediaOption(title: "AI images", icon: "sparkles", color: .blue, action: nil),
     ]
 
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 18), count: 3)
-
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 32) {
-            ForEach(options) { option in
-                Button {
-                    if let action = option.action {
-                        onSelect(action)
-                    }
-                } label: {
-                    VStack(spacing: 9) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.black.opacity(0.035))
-                                .frame(width: 72, height: 72)
-
-                            Image(systemName: option.icon)
-                                .font(.system(size: 29, weight: .semibold))
-                                .foregroundStyle(option.color)
-                        }
-
-                        Text(option.title)
-                            .font(.system(size: 13))
-                            .foregroundStyle(.black)
-                            .lineLimit(1)
-                    }
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 0) {
+                ForEach(options) { option in
+                    optionRow(option)
                 }
-                .buttonStyle(.plain)
             }
+            .padding(.vertical, 10)
         }
-        .padding(.horizontal, 22)
-        .padding(.top, 28)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .glassSurface(cornerRadius: 34, showsShadow: true)
+    }
+
+    private func optionRow(_ option: MediaOption) -> some View {
+        Button {
+            if let action = option.action {
+                onSelect(action)
+            }
+        } label: {
+            HStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(option.color.opacity(0.14))
+                        .frame(width: 44, height: 44)
+
+                    Image(systemName: option.icon)
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(option.color)
+                }
+
+                Text(option.title)
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundStyle(.black)
+
+                Spacer(minLength: 0)
+            }
+            .frame(height: 56)
+            .padding(.horizontal, 24)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
