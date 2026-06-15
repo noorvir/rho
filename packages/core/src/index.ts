@@ -1,5 +1,15 @@
 export type { AppClient, AppExtension, AppRoute } from "./apps/index.ts";
 export { createRhoCore, type RhoCore, type RhoCoreOptions } from "./core.ts";
+export type {
+	CronContext,
+	CronInput,
+	CronKind,
+	CronListScope,
+	CronRegistration,
+	CronSchedule,
+	CronStatus,
+	CronSummary,
+} from "./crons.ts";
 export {
 	getTableData,
 	getTables,

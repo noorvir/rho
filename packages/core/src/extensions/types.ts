@@ -1,6 +1,7 @@
 import { type AnyRouter, os } from "@orpc/server";
 import type { RhoAgentExtensionSource } from "@rho/ai";
 import type { Channel } from "@rho/channels";
+import type { CronInput, CronRegistration } from "../crons.ts";
 import type { RhoDb } from "../index.ts";
 
 export type { RhoAgentExtensionSource } from "@rho/ai";
@@ -65,6 +66,12 @@ export interface RhoAppApiBuilderContext {
 export interface RhoExtensionContext extends RhoAppApiBuilderContext {
 	/** Shared runtime database client over the canonical Rho schema. */
 	db: RhoDb;
+	/** User/runtime defaults available to installed extension code. */
+	user: {
+		timezone: string;
+	};
+	/** Registers a durable cron owned by this extension. */
+	cron(input: CronInput): void;
 }
 
 export interface RhoExtensionDefinition {
@@ -87,6 +94,7 @@ export interface LoadedExtension {
 	apps: AppExtension[];
 	channels: Channel[];
 	agentExtensions: AgentExtension[];
+	crons: CronRegistration[];
 }
 
 export interface DiscoveredExtension {

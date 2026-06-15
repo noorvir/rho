@@ -1,0 +1,12 @@
+node_modules
+.git
+.rho-dev
+.rho
+cron-research
+.agent
+assets
+packages/mobile
+.DS_Store
+**/*.tsbuildinfo
+**/dist
+DerivedData

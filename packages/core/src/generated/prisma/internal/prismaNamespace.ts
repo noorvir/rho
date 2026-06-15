@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   rho_sys_Task: 'rho_sys_Task',
+  rho_sys_Cron: 'rho_sys_Cron',
   rho_sys_Owner: 'rho_sys_Owner',
   rho_sys_Session: 'rho_sys_Session',
   rho_sys_ApiToken: 'rho_sys_ApiToken',
@@ -405,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "rho_sys_Task" | "rho_sys_Owner" | "rho_sys_Session" | "rho_sys_ApiToken" | "contact" | "org"
+    modelProps: "rho_sys_Task" | "rho_sys_Cron" | "rho_sys_Owner" | "rho_sys_Session" | "rho_sys_ApiToken" | "contact" | "org"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -480,6 +481,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.rho_sys_TaskCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.Rho_sys_TaskCountAggregateOutputType> | number
+        }
+      }
+    }
+    rho_sys_Cron: {
+      payload: Prisma.$rho_sys_CronPayload<ExtArgs>
+      fields: Prisma.rho_sys_CronFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.rho_sys_CronFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.rho_sys_CronFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>
+        }
+        findFirst: {
+          args: Prisma.rho_sys_CronFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.rho_sys_CronFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>
+        }
+        findMany: {
+          args: Prisma.rho_sys_CronFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>[]
+        }
+        create: {
+          args: Prisma.rho_sys_CronCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>
+        }
+        createMany: {
+          args: Prisma.rho_sys_CronCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.rho_sys_CronCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>[]
+        }
+        delete: {
+          args: Prisma.rho_sys_CronDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>
+        }
+        update: {
+          args: Prisma.rho_sys_CronUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>
+        }
+        deleteMany: {
+          args: Prisma.rho_sys_CronDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.rho_sys_CronUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.rho_sys_CronUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>[]
+        }
+        upsert: {
+          args: Prisma.rho_sys_CronUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_CronPayload>
+        }
+        aggregate: {
+          args: Prisma.Rho_sys_CronAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRho_sys_Cron>
+        }
+        groupBy: {
+          args: Prisma.rho_sys_CronGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_CronGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.rho_sys_CronCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_CronCountAggregateOutputType> | number
         }
       }
     }
@@ -912,6 +987,32 @@ export const Rho_sys_TaskScalarFieldEnum = {
 export type Rho_sys_TaskScalarFieldEnum = (typeof Rho_sys_TaskScalarFieldEnum)[keyof typeof Rho_sys_TaskScalarFieldEnum]
 
 
+export const Rho_sys_CronScalarFieldEnum = {
+  id: 'id',
+  kind: 'kind',
+  title: 'title',
+  scheduleKind: 'scheduleKind',
+  schedule: 'schedule',
+  timezone: 'timezone',
+  enabled: 'enabled',
+  status: 'status',
+  nextRunAt: 'nextRunAt',
+  lastRunAt: 'lastRunAt',
+  lastError: 'lastError',
+  activeRunId: 'activeRunId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  instructions: 'instructions',
+  conversationKey: 'conversationKey',
+  channelId: 'channelId',
+  targetType: 'targetType',
+  targetId: 'targetId',
+  extensionId: 'extensionId'
+} as const
+
+export type Rho_sys_CronScalarFieldEnum = (typeof Rho_sys_CronScalarFieldEnum)[keyof typeof Rho_sys_CronScalarFieldEnum]
+
+
 export const Rho_sys_OwnerScalarFieldEnum = {
   id: 'id',
   passwordHash: 'passwordHash',
@@ -1030,9 +1131,16 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
 
 
 /**
- * Reference to a field of type 'Relationship'
+ * Reference to a field of type 'rho_sys_CronKind'
  */
-export type EnumRelationshipFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Relationship'>
+export type Enumrho_sys_CronKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'rho_sys_CronKind'>
+    
+
+
+/**
+ * Reference to a field of type 'rho_sys_CronScheduleKind'
+ */
+export type Enumrho_sys_CronScheduleKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'rho_sys_CronScheduleKind'>
     
 
 
@@ -1040,6 +1148,20 @@ export type EnumRelationshipFieldRefInput<$PrismaModel> = FieldRefInputType<$Pri
  * Reference to a field of type 'Boolean'
  */
 export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
+ * Reference to a field of type 'rho_sys_CronStatus'
+ */
+export type Enumrho_sys_CronStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'rho_sys_CronStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'Relationship'
+ */
+export type EnumRelationshipFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Relationship'>
     
 
 
@@ -1160,6 +1282,7 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   rho_sys_Task?: Prisma.rho_sys_TaskOmit
+  rho_sys_Cron?: Prisma.rho_sys_CronOmit
   rho_sys_Owner?: Prisma.rho_sys_OwnerOmit
   rho_sys_Session?: Prisma.rho_sys_SessionOmit
   rho_sys_ApiToken?: Prisma.rho_sys_ApiTokenOmit

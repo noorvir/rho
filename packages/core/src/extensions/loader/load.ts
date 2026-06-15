@@ -50,6 +50,7 @@ export async function loadExtensionModule(
 			apps: apps.map((app) => normalizeAppExtension(app, baseDir)),
 			channels,
 			agentExtensions: agentExtensions.map((agent) => normalizeAgentExtension(agent, baseDir)),
+			crons: [],
 		},
 	};
 }

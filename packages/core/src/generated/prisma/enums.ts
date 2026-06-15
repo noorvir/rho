@@ -19,6 +19,32 @@ export const rho_sys_TaskStatus = {
 export type rho_sys_TaskStatus = (typeof rho_sys_TaskStatus)[keyof typeof rho_sys_TaskStatus]
 
 
+export const rho_sys_CronKind = {
+  extension: 'extension',
+  agent: 'agent'
+} as const
+
+export type rho_sys_CronKind = (typeof rho_sys_CronKind)[keyof typeof rho_sys_CronKind]
+
+
+export const rho_sys_CronScheduleKind = {
+  at: 'at',
+  cron: 'cron'
+} as const
+
+export type rho_sys_CronScheduleKind = (typeof rho_sys_CronScheduleKind)[keyof typeof rho_sys_CronScheduleKind]
+
+
+export const rho_sys_CronStatus = {
+  not_run: 'not_run',
+  running: 'running',
+  succeeded: 'succeeded',
+  failed: 'failed'
+} as const
+
+export type rho_sys_CronStatus = (typeof rho_sys_CronStatus)[keyof typeof rho_sys_CronStatus]
+
+
 export const Relationship = {
   BookClub: 'BookClub',
   Family: 'Family',

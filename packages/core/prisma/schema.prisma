@@ -22,6 +22,23 @@ enum rho_sys_TaskStatus {
   failed
 }
 
+enum rho_sys_CronKind {
+  extension
+  agent
+}
+
+enum rho_sys_CronScheduleKind {
+  at
+  cron
+}
+
+enum rho_sys_CronStatus {
+  not_run
+  running
+  succeeded
+  failed
+}
+
 model rho_sys_Task {
   id              String             @id
   conversationKey String             @map("conversation_key")
@@ -42,6 +59,34 @@ model rho_sys_Task {
   updatedAt       DateTime           @updatedAt @map("updated_at")
 
   @@map("rho_sys_tasks")
+}
+
+model rho_sys_Cron {
+  id           String                   @id
+  kind         rho_sys_CronKind
+  title        String
+  scheduleKind rho_sys_CronScheduleKind @map("schedule_kind")
+  schedule     String
+  timezone     String
+  enabled      Boolean                  @default(true)
+  status       rho_sys_CronStatus       @default(not_run)
+  nextRunAt    DateTime                 @map("next_run_at")
+  lastRunAt    DateTime?                @map("last_run_at")
+  lastError    String?                  @map("last_error")
+  activeRunId  String?                  @map("active_run_id")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  updatedAt    DateTime                 @updatedAt @map("updated_at")
+
+  instructions    String?
+  conversationKey String?                  @map("conversation_key")
+  channelId       String?                  @map("channel_id")
+  targetType      String?                  @map("target_type")
+  targetId        String?                  @map("target_id")
+  extensionId     String?                  @map("extension_id")
+
+  @@index([nextRunAt])
+  @@index([extensionId])
+  @@map("rho_sys_crons")
 }
 
 model rho_sys_Owner {

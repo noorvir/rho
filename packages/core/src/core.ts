@@ -2,21 +2,24 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
 	agentEventTextDelta,
-	rhoAppsExtension,
 	backgroundTaskExtension,
 	type ConversationHistory,
 	type ConversationInput,
 	type ConversationKey,
 	createFileStateManager,
 	loadConversation,
-	type RhoAgentExtensionSource,
-	type RhoContent,
-	respondInConversation,
+	rhoAppsExtension,
+	rhoCronCreateExtension,
+	rhoCronsExtension,
+	rhoCronUpdateExtension,
 	rhoContextExtension,
 	rhoMigrateExtension,
 	rhoQueryExtension,
 	rhoReloadExtension,
 	rhoValidateSchemaExtension,
+	type RhoAgentExtensionSource,
+	type RhoContent,
+	respondInConversation,
 	type StateManager,
 } from "@rho/ai";
 import {
@@ -28,6 +31,13 @@ import {
 } from "@rho/channels";
 import { type AppExtension, AppRegistry } from "./apps/index.ts";
 import { ChannelRegistry } from "./channel-registry.ts";
+import {
+	type CronRegistration,
+	CronScheduler,
+	type CronListScope,
+	type CronSummary,
+	getDefaultTimezone,
+} from "./crons.ts";
 import { queryRuntimeDatabase } from "./db.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
@@ -64,6 +74,8 @@ export interface RhoCoreOptions {
 	extensionsDir?: string;
 	/** Absolute extension entrypoints or directories to load. */
 	extensionPaths?: string[];
+	/** Default IANA timezone for cron schedules when the user did not specify one. */
+	defaultTimezone?: string;
 	extensionLoader?: ExtensionLoader;
 	state?: StateManager;
 }
@@ -77,6 +89,7 @@ export interface RhoCore {
 	handleMessage(message: ChannelMessage): Promise<ChannelOutput>;
 	loadConversation(key: ConversationKey): Promise<ConversationHistory>;
 	listTasks(key: ConversationKey): Promise<Task[]>;
+	listCrons(scope: CronListScope): Promise<CronSummary[]>;
 	listApps(): Promise<AppExtension[]>;
 	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
@@ -95,6 +108,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 	const stateDir = opts.stateDir ?? join(opts.agentDir, "rho-state");
 	const extensionsDir = opts.extensionsDir ?? join(cwd, ".rho", "extensions");
 	const extensionPaths = opts.extensionPaths ?? [];
+	const defaultTimezone = opts.defaultTimezone ?? getDefaultTimezone();
 
 	const state =
 		opts.state ??
@@ -120,9 +134,11 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 			extensionsDir,
 			extensionPaths,
 			db: prisma,
+			defaultTimezone,
 		});
 
 	let agentExtensions: AgentExtension[] = [];
+	let cronScheduler: CronScheduler;
 
 	const runtimeToolSources: RhoAgentExtensionSource[] = [];
 	if (opts.docsDir) {
@@ -141,6 +157,10 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		factory: rhoAppsExtension(async () =>
 			appRegistry.current().map((app) => ({ name: app.name, slug: app.slug, routes: app.routes })),
 		),
+	});
+	runtimeToolSources.push({
+		type: "factory",
+		factory: rhoCronsExtension((scope) => cronScheduler.listCrons(scope)),
 	});
 	if (opts.dbDir) {
 		const dbDir = opts.dbDir;
@@ -177,6 +197,8 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		taskModel: opts.taskModel,
 	});
 
+	cronScheduler = new CronScheduler({ prisma, tasks });
+
 	const runtime = new ChannelRuntime({
 		channels: channelRegistry.current(),
 		handle: async (message) =>
@@ -204,6 +226,29 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 							return { taskId: task.id };
 						}),
 					},
+					{
+						type: "factory",
+						factory: rhoCronCreateExtension(async (request) => {
+							const cron = await cronScheduler.createAgentCron({
+								conversationKey: conversationKey(message),
+								channelId: message.channelId,
+								targetType: message.target.type,
+								targetId: message.target.id,
+								title: request.title,
+								schedule: request.schedule,
+								enabled: request.enabled,
+								instructions: request.instructions,
+							});
+							return { id: cron.id };
+						}, defaultTimezone),
+					},
+					{
+						type: "factory",
+						factory: rhoCronUpdateExtension(async (request) => {
+							const cron = await cronScheduler.updateCron(request);
+							return { id: cron.id };
+						}, defaultTimezone),
+					},
 				],
 			}),
 	});
@@ -221,9 +266,12 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		agentExtensions = next;
 	};
 
+	const replaceCrons = (next: CronRegistration[]) => cronScheduler.replaceCrons(next);
+
 	const handleMessage = async (message: ChannelMessage) => runtime.handle(message);
 
 	const listApps = async () => appRegistry.current();
+	const listCrons = async (scope: CronListScope) => cronScheduler.listCrons(scope);
 
 	const core: RhoCore = {
 		runtime,
@@ -234,6 +282,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		handleMessage,
 		loadConversation: async (key) => loadConversation(state, key),
 		listTasks: async (key) => tasks.listForConversation(key),
+		listCrons,
 		listApps,
 		replaceApps,
 		replaceChannels,
@@ -245,11 +294,13 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 				replaceApps,
 				replaceChannels,
 				replaceAgentExtensions,
+				replaceCrons,
 				activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 			});
 		},
 		activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 		close: async () => {
+			await cronScheduler.stop();
 			await tasks.stop();
 			await runtime.stop();
 			await prisma.$disconnect();
@@ -258,13 +309,14 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 
 	await core.reload();
 	await tasks.start();
+	await cronScheduler.start();
 	return core;
 }
 
 function reloadSummary(result: ReloadResult): string {
 	const issues = result.diagnostics.map((diagnostic) => `${diagnostic.severity}: ${diagnostic.message}`);
 	const status = result.ok ? "Reload succeeded." : "Reload failed; previous extensions stay active.";
-	const summary = `${status} Apps: ${result.apps}. Channels: ${result.channels.join(", ") || "none"}.`;
+	const summary = `${status} Apps: ${result.apps}. Crons: ${result.crons}. Channels: ${result.channels.join(", ") || "none"}.`;
 	return issues.length > 0 ? `${summary}\nDiagnostics:\n${issues.join("\n")}` : summary;
 }
 

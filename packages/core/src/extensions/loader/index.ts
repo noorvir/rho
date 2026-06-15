@@ -1,10 +1,10 @@
+import type { CronRegistration } from "../../crons.ts";
 import type { RhoPrisma } from "../../prisma.ts";
 import type {
 	ExtensionDiagnostic,
 	ExtensionLoader,
 	LoadExtensionsResult,
 	LoadedExtension,
-	RhoExtensionContext,
 } from "../types.ts";
 import { appApiProcedure } from "../types.ts";
 import { discoverExtensions, type ExtensionDiscoveryPaths } from "./discover.ts";
@@ -20,18 +20,22 @@ export interface FileSystemExtensionLoaderOptions {
 	extensionPaths?: string[];
 	/** Shared runtime database client handed to extension definitions. */
 	db: RhoPrisma;
+	/** Default user timezone handed to extension definitions. */
+	defaultTimezone: string;
 }
 
 export class FileSystemExtensionLoader implements ExtensionLoader {
 	private readonly paths: ExtensionDiscoveryPaths;
-	private readonly context: RhoExtensionContext;
+	private readonly db: RhoPrisma;
+	private readonly defaultTimezone: string;
 
 	constructor(options: FileSystemExtensionLoaderOptions) {
 		this.paths = {
 			extensionsDir: options.extensionsDir,
 			extensionPaths: options.extensionPaths ?? [],
 		};
-		this.context = { api: appApiProcedure, db: options.db };
+		this.db = options.db;
+		this.defaultTimezone = options.defaultTimezone;
 	}
 
 	async load(): Promise<LoadExtensionsResult> {
@@ -41,9 +45,17 @@ export class FileSystemExtensionLoader implements ExtensionLoader {
 		const diagnostics: ExtensionDiagnostic[] = [...discovered.diagnostics];
 
 		for (const extension of discovered.extensions) {
-			const result = await loadExtensionModule(extension, this.context);
+			const crons: CronRegistration[] = [];
+			const result = await loadExtensionModule(extension, {
+				api: appApiProcedure,
+				db: this.db,
+				user: { timezone: this.defaultTimezone },
+				cron: (input) => {
+					crons.push({ ...input, extensionId: extension.source.resolvedPath });
+				},
+			});
 			if ("extension" in result) {
-				extensions.push(result.extension);
+				extensions.push({ ...result.extension, crons });
 				continue;
 			}
 			diagnostics.push(...result.diagnostics);

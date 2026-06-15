@@ -47,6 +47,11 @@ export { Prisma }
  */
 export type rho_sys_Task = Prisma.rho_sys_TaskModel
 /**
+ * Model rho_sys_Cron
+ * 
+ */
+export type rho_sys_Cron = Prisma.rho_sys_CronModel
+/**
  * Model rho_sys_Owner
  * 
  */

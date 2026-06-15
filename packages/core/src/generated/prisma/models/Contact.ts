@@ -565,10 +565,6 @@ export type EnumRelationshipFieldUpdateOperationsInput = {
   set?: $Enums.Relationship
 }
 
-export type BoolFieldUpdateOperationsInput = {
-  set?: boolean
-}
-
 export type ContactCreateNestedManyWithoutOrgsInput = {
   create?: Prisma.XOR<Prisma.ContactCreateWithoutOrgsInput, Prisma.ContactUncheckedCreateWithoutOrgsInput> | Prisma.ContactCreateWithoutOrgsInput[] | Prisma.ContactUncheckedCreateWithoutOrgsInput[]
   connectOrCreate?: Prisma.ContactCreateOrConnectWithoutOrgsInput | Prisma.ContactCreateOrConnectWithoutOrgsInput[]

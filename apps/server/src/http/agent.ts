@@ -68,6 +68,16 @@ export function agentRouter() {
 			return { tasks };
 		}),
 
+		crons: p.agent.crons.handler(async ({ context }) => {
+			await requireAuth(context);
+			const crons = await tc(context.core.listCrons("all"));
+			if (crons.error) {
+				throw badRequest(crons.error, "Failed to load crons");
+			}
+
+			return { crons: crons.data };
+		}),
+
 		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {
 			await requireAuth(context);
 			const messageInput = tc(() => validateHttpMessage(input));

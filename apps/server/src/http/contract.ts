@@ -59,6 +59,29 @@ const taskSchema = z.object({
 	updatedAt: z.date(),
 });
 
+const cronScheduleSchema = z.discriminatedUnion("kind", [
+	z.object({ kind: z.literal("at"), at: z.string(), timezone: z.string() }),
+	z.object({ kind: z.literal("cron"), expression: z.string(), timezone: z.string() }),
+]);
+
+const cronSchema = z.object({
+	id: z.string(),
+	kind: z.enum(["agent", "extension"]),
+	title: z.string(),
+	schedule: cronScheduleSchema,
+	timezone: z.string(),
+	enabled: z.boolean(),
+	status: z.enum(["not_run", "running", "succeeded", "failed"]),
+	nextRunAt: z.date(),
+	lastRunAt: z.date().nullable(),
+	lastError: z.string().nullable(),
+	activeRunId: z.string().nullable(),
+	instructions: z.string().nullable(),
+	extensionId: z.string().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+
 const chatEventSchema = z.discriminatedUnion("type", [
 	z.object({ type: z.literal("started") }),
 	z.object({ type: z.literal("delta"), text: z.string() }),
@@ -162,6 +185,7 @@ export const httpContract = {
 			.route({ method: "GET", path: "/agent/conversations/{id}/tasks" })
 			.input(z.object({ id: z.string().min(1) }))
 			.output(z.object({ tasks: z.array(taskSchema) })),
+		crons: oc.route({ method: "GET", path: "/agent/crons" }).output(z.object({ crons: z.array(cronSchema) })),
 	},
 	store: {
 		upload: oc

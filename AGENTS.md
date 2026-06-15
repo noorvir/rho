@@ -29,6 +29,7 @@
 
 ## Mobile (packages/mobile)
 
+- Bottom-bar app menus are overlays: opening a menu must not resize, inset, or shrink the active app WebView/content. App lists inside the menu must be height-bounded and scrollable so many apps remain reachable.
 - For keyboard-coupled UI, use the UIKit primitives that own the keyboard, not SwiftUI layout plus manual sync. A composer bar that must track the keyboard is positioned with `keyboardLayoutGuide`; swapping the keyboard body for a custom panel (media tray) uses the text field's `inputView` + `reloadInputViews()`. Do not position keyboard-tracking views with `safeAreaInset`/offsets driven by keyboard notifications — inside sheets, SwiftUI applies keyboard safe-area changes without the keyboard's animation and the view teleports.
 - Never hold a permanent first-responder/input session (hidden-anchor `inputAccessoryView` pattern) to keep a bar docked. iOS treats it as an always-open keyboard, which blocks sheet pull-down dismissal and adds phantom bottom insets.
 - Reparenting a view that contains the current first responder resigns it. Don't move a composer between containers during focus changes.

@@ -6,6 +6,70 @@ export interface BackgroundTaskRequest {
 	instructions: string;
 }
 
+export type RhoCronSchedule = RhoAtCronSchedule | RhoExpressionCronSchedule;
+
+export interface RhoAtCronSchedule {
+	kind: "at";
+	at: string;
+	timezone: string;
+}
+
+export interface RhoExpressionCronSchedule {
+	kind: "cron";
+	expression: string;
+	timezone: string;
+}
+
+export type RhoCronScope = "all" | "agent" | "extension";
+export type RhoCronKind = "agent" | "extension";
+export type RhoCronStatus = "not_run" | "running" | "succeeded" | "failed";
+
+export interface RhoCronSummary {
+	id: string;
+	kind: RhoCronKind;
+	title: string;
+	schedule: RhoCronSchedule;
+	timezone: string;
+	enabled: boolean;
+	status: RhoCronStatus;
+	nextRunAt: Date;
+	lastRunAt: Date | null;
+	lastError: string | null;
+	activeRunId: string | null;
+	instructions: string | null;
+	extensionId: string | null;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
+export interface RhoCronCreateRequest {
+	title: string;
+	schedule: RhoCronSchedule;
+	enabled: boolean;
+	instructions: string;
+}
+
+export interface RhoCronUpdateRequest {
+	id: string;
+	title?: string;
+	schedule?: RhoCronSchedule;
+	enabled?: boolean;
+	instructions?: string;
+}
+
+const cronScheduleParams = Type.Union([
+	Type.Object({
+		kind: Type.Literal("at"),
+		at: Type.String({ description: "ISO date/time when the cron should fire once." }),
+		timezone: Type.String({ description: "Concrete IANA timezone, e.g. America/Los_Angeles." }),
+	}),
+	Type.Object({
+		kind: Type.Literal("cron"),
+		expression: Type.String({ description: "Cron expression for recurring schedules, e.g. '0 9 * * *'." }),
+		timezone: Type.String({ description: "Concrete IANA timezone, e.g. America/Los_Angeles." }),
+	}),
+]);
+
 const backgroundTaskParams = Type.Object({
 	title: Type.String({ description: "Short user-facing name for the task, e.g. 'Build the todo list app'" }),
 	instructions: Type.String({
@@ -50,6 +114,117 @@ export function backgroundTaskExtension(
 			},
 		});
 	};
+}
+
+export function rhoCronsExtension(listCrons: (scope: RhoCronScope) => Promise<RhoCronSummary[]>): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_crons",
+			label: "Rho crons",
+			description:
+				"List scheduled Rho crons. Use this before changing a reminder or scheduled task. Scope 'agent' lists user-created reminder/work crons; scope 'extension' lists extension-registered crons; scope 'all' lists both.",
+			promptSnippet: "List scheduled Rho crons and reminders",
+			parameters: Type.Object({
+				scope: Type.Union([Type.Literal("all"), Type.Literal("agent"), Type.Literal("extension")]),
+			}),
+			async execute(_toolCallId, params) {
+				const crons = await listCrons(params.scope);
+				const text = formatCrons(crons);
+				return { content: [{ type: "text", text }], details: { crons } };
+			},
+		});
+	};
+}
+
+export function rhoCronCreateExtension(
+	createCron: (request: RhoCronCreateRequest) => Promise<{ id: string }>,
+	defaultTimezone: string,
+): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_cron_create",
+			label: "Create Rho cron",
+			description:
+				`Create an agent cron/reminder. Use this for requests like "remind me later", "in 30 seconds", or recurring scheduled agent work. The cron id is generated and returned. If the user does not specify a timezone, use ${defaultTimezone}. For relative one-shot reminders, compute an ISO date and use kind 'at'.`,
+			promptSnippet: "Create a scheduled reminder or agent cron",
+			promptGuidelines: [
+				"For explicit reminders or scheduled follow-ups, create an agent cron with rho_cron_create instead of using background_task, sleeps, or polling.",
+			],
+			parameters: Type.Object({
+				title: Type.String({ description: "Short user-facing title for the cron." }),
+				schedule: cronScheduleParams,
+				enabled: Type.Boolean({ description: "Whether the cron should be active immediately." }),
+				instructions: Type.String({ description: "What the agent should do when this cron fires." }),
+			}),
+			async execute(_toolCallId, params) {
+				const result = await createCron({
+					title: params.title,
+					schedule: params.schedule,
+					enabled: params.enabled,
+					instructions: params.instructions,
+				});
+				return {
+					content: [{ type: "text", text: `Cron ${result.id} created.` }],
+					details: result,
+				};
+			},
+		});
+	};
+}
+
+export function rhoCronUpdateExtension(
+	updateCron: (request: RhoCronUpdateRequest) => Promise<{ id: string }>,
+	defaultTimezone: string,
+): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_cron_update",
+			label: "Update Rho cron",
+			description:
+				`Partially update an existing cron. List crons first; do not guess ids. Provide only fields the user wants changed. Agent crons can update title, schedule, enabled, and instructions. Extension crons can only update enabled because their definitions are owned by extension code. If setting a schedule and the user does not specify a timezone, use ${defaultTimezone}.`,
+			promptSnippet: "Partially update an existing scheduled cron",
+			parameters: Type.Object({
+				id: Type.String({ description: "Existing cron id returned by rho_crons or rho_cron_create." }),
+				title: Type.Optional(Type.String({ description: "New title." })),
+				schedule: Type.Optional(cronScheduleParams),
+				enabled: Type.Optional(Type.Boolean({ description: "Whether the cron should be active." })),
+				instructions: Type.Optional(Type.String({ description: "New instructions." })),
+			}),
+			async execute(_toolCallId, params) {
+				const result = await updateCron({
+					id: params.id,
+					title: params.title,
+					schedule: params.schedule,
+					enabled: params.enabled,
+					instructions: params.instructions,
+				});
+				return { content: [{ type: "text", text: `Cron ${result.id} updated.` }], details: result };
+			},
+		});
+	};
+}
+
+function formatCrons(crons: RhoCronSummary[]): string {
+	if (crons.length === 0) {
+		return "No crons are scheduled.";
+	}
+
+	return crons
+		.map((cron) => {
+			const enabled = cron.enabled ? "enabled" : "disabled";
+			const owner = cron.kind === "extension" ? `extension:${cron.extensionId ?? "unknown"}` : "agent";
+			const next = cron.nextRunAt.toISOString();
+			const error = cron.lastError ? `, error: ${cron.lastError}` : "";
+			return `- ${cron.id}: ${cron.title} (${owner}, ${enabled}, ${cron.status}, ${formatSchedule(cron.schedule)}, next ${next}${error})`;
+		})
+		.join("\n");
+}
+
+function formatSchedule(schedule: RhoCronSchedule): string {
+	if (schedule.kind === "at") {
+		return `at ${schedule.at} ${schedule.timezone}`;
+	}
+	return `cron ${schedule.expression} ${schedule.timezone}`;
 }
 
 /**

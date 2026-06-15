@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   rho_sys_Task: 'rho_sys_Task',
+  rho_sys_Cron: 'rho_sys_Cron',
   rho_sys_Owner: 'rho_sys_Owner',
   rho_sys_Session: 'rho_sys_Session',
   rho_sys_ApiToken: 'rho_sys_ApiToken',
@@ -93,6 +94,32 @@ export const Rho_sys_TaskScalarFieldEnum = {
 } as const
 
 export type Rho_sys_TaskScalarFieldEnum = (typeof Rho_sys_TaskScalarFieldEnum)[keyof typeof Rho_sys_TaskScalarFieldEnum]
+
+
+export const Rho_sys_CronScalarFieldEnum = {
+  id: 'id',
+  kind: 'kind',
+  title: 'title',
+  scheduleKind: 'scheduleKind',
+  schedule: 'schedule',
+  timezone: 'timezone',
+  enabled: 'enabled',
+  status: 'status',
+  nextRunAt: 'nextRunAt',
+  lastRunAt: 'lastRunAt',
+  lastError: 'lastError',
+  activeRunId: 'activeRunId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  instructions: 'instructions',
+  conversationKey: 'conversationKey',
+  channelId: 'channelId',
+  targetType: 'targetType',
+  targetId: 'targetId',
+  extensionId: 'extensionId'
+} as const
+
+export type Rho_sys_CronScalarFieldEnum = (typeof Rho_sys_CronScalarFieldEnum)[keyof typeof Rho_sys_CronScalarFieldEnum]
 
 
 export const Rho_sys_OwnerScalarFieldEnum = {

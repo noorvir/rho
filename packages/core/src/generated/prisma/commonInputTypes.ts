@@ -175,16 +175,75 @@ export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedDateTimeFilter<$PrismaModel>
 }
 
-export type EnumRelationshipFilter<$PrismaModel = never> = {
-  equals?: $Enums.Relationship | Prisma.EnumRelationshipFieldRefInput<$PrismaModel>
-  in?: $Enums.Relationship[]
-  notIn?: $Enums.Relationship[]
-  not?: Prisma.NestedEnumRelationshipFilter<$PrismaModel> | $Enums.Relationship
+export type Enumrho_sys_CronKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronKind | Prisma.Enumrho_sys_CronKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronKind[]
+  notIn?: $Enums.rho_sys_CronKind[]
+  not?: Prisma.NestedEnumrho_sys_CronKindFilter<$PrismaModel> | $Enums.rho_sys_CronKind
+}
+
+export type Enumrho_sys_CronScheduleKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronScheduleKind | Prisma.Enumrho_sys_CronScheduleKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronScheduleKind[]
+  notIn?: $Enums.rho_sys_CronScheduleKind[]
+  not?: Prisma.NestedEnumrho_sys_CronScheduleKindFilter<$PrismaModel> | $Enums.rho_sys_CronScheduleKind
 }
 
 export type BoolFilter<$PrismaModel = never> = {
   equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
   not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
+}
+
+export type Enumrho_sys_CronStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronStatus | Prisma.Enumrho_sys_CronStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronStatus[]
+  notIn?: $Enums.rho_sys_CronStatus[]
+  not?: Prisma.NestedEnumrho_sys_CronStatusFilter<$PrismaModel> | $Enums.rho_sys_CronStatus
+}
+
+export type Enumrho_sys_CronKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronKind | Prisma.Enumrho_sys_CronKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronKind[]
+  notIn?: $Enums.rho_sys_CronKind[]
+  not?: Prisma.NestedEnumrho_sys_CronKindWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_CronKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_CronKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_CronKindFilter<$PrismaModel>
+}
+
+export type Enumrho_sys_CronScheduleKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronScheduleKind | Prisma.Enumrho_sys_CronScheduleKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronScheduleKind[]
+  notIn?: $Enums.rho_sys_CronScheduleKind[]
+  not?: Prisma.NestedEnumrho_sys_CronScheduleKindWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_CronScheduleKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_CronScheduleKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_CronScheduleKindFilter<$PrismaModel>
+}
+
+export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolFilter<$PrismaModel>
+}
+
+export type Enumrho_sys_CronStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronStatus | Prisma.Enumrho_sys_CronStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronStatus[]
+  notIn?: $Enums.rho_sys_CronStatus[]
+  not?: Prisma.NestedEnumrho_sys_CronStatusWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_CronStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_CronStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_CronStatusFilter<$PrismaModel>
+}
+
+export type EnumRelationshipFilter<$PrismaModel = never> = {
+  equals?: $Enums.Relationship | Prisma.EnumRelationshipFieldRefInput<$PrismaModel>
+  in?: $Enums.Relationship[]
+  notIn?: $Enums.Relationship[]
+  not?: Prisma.NestedEnumRelationshipFilter<$PrismaModel> | $Enums.Relationship
 }
 
 export type EnumRelationshipWithAggregatesFilter<$PrismaModel = never> = {
@@ -195,14 +254,6 @@ export type EnumRelationshipWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumRelationshipFilter<$PrismaModel>
   _max?: Prisma.NestedEnumRelationshipFilter<$PrismaModel>
-}
-
-export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedBoolFilter<$PrismaModel>
-  _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
 export type NestedStringFilter<$PrismaModel = never> = {
@@ -383,16 +434,75 @@ export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedDateTimeFilter<$PrismaModel>
 }
 
-export type NestedEnumRelationshipFilter<$PrismaModel = never> = {
-  equals?: $Enums.Relationship | Prisma.EnumRelationshipFieldRefInput<$PrismaModel>
-  in?: $Enums.Relationship[]
-  notIn?: $Enums.Relationship[]
-  not?: Prisma.NestedEnumRelationshipFilter<$PrismaModel> | $Enums.Relationship
+export type NestedEnumrho_sys_CronKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronKind | Prisma.Enumrho_sys_CronKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronKind[]
+  notIn?: $Enums.rho_sys_CronKind[]
+  not?: Prisma.NestedEnumrho_sys_CronKindFilter<$PrismaModel> | $Enums.rho_sys_CronKind
+}
+
+export type NestedEnumrho_sys_CronScheduleKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronScheduleKind | Prisma.Enumrho_sys_CronScheduleKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronScheduleKind[]
+  notIn?: $Enums.rho_sys_CronScheduleKind[]
+  not?: Prisma.NestedEnumrho_sys_CronScheduleKindFilter<$PrismaModel> | $Enums.rho_sys_CronScheduleKind
 }
 
 export type NestedBoolFilter<$PrismaModel = never> = {
   equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
   not?: Prisma.NestedBoolFilter<$PrismaModel> | boolean
+}
+
+export type NestedEnumrho_sys_CronStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronStatus | Prisma.Enumrho_sys_CronStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronStatus[]
+  notIn?: $Enums.rho_sys_CronStatus[]
+  not?: Prisma.NestedEnumrho_sys_CronStatusFilter<$PrismaModel> | $Enums.rho_sys_CronStatus
+}
+
+export type NestedEnumrho_sys_CronKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronKind | Prisma.Enumrho_sys_CronKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronKind[]
+  notIn?: $Enums.rho_sys_CronKind[]
+  not?: Prisma.NestedEnumrho_sys_CronKindWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_CronKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_CronKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_CronKindFilter<$PrismaModel>
+}
+
+export type NestedEnumrho_sys_CronScheduleKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronScheduleKind | Prisma.Enumrho_sys_CronScheduleKindFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronScheduleKind[]
+  notIn?: $Enums.rho_sys_CronScheduleKind[]
+  not?: Prisma.NestedEnumrho_sys_CronScheduleKindWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_CronScheduleKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_CronScheduleKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_CronScheduleKindFilter<$PrismaModel>
+}
+
+export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedBoolFilter<$PrismaModel>
+  _max?: Prisma.NestedBoolFilter<$PrismaModel>
+}
+
+export type NestedEnumrho_sys_CronStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_CronStatus | Prisma.Enumrho_sys_CronStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_CronStatus[]
+  notIn?: $Enums.rho_sys_CronStatus[]
+  not?: Prisma.NestedEnumrho_sys_CronStatusWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_CronStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_CronStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_CronStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumRelationshipFilter<$PrismaModel = never> = {
+  equals?: $Enums.Relationship | Prisma.EnumRelationshipFieldRefInput<$PrismaModel>
+  in?: $Enums.Relationship[]
+  notIn?: $Enums.Relationship[]
+  not?: Prisma.NestedEnumRelationshipFilter<$PrismaModel> | $Enums.Relationship
 }
 
 export type NestedEnumRelationshipWithAggregatesFilter<$PrismaModel = never> = {
@@ -403,14 +513,6 @@ export type NestedEnumRelationshipWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumRelationshipFilter<$PrismaModel>
   _max?: Prisma.NestedEnumRelationshipFilter<$PrismaModel>
-}
-
-export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-  equals?: boolean | Prisma.BooleanFieldRefInput<$PrismaModel>
-  not?: Prisma.NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-  _count?: Prisma.NestedIntFilter<$PrismaModel>
-  _min?: Prisma.NestedBoolFilter<$PrismaModel>
-  _max?: Prisma.NestedBoolFilter<$PrismaModel>
 }
 
 
