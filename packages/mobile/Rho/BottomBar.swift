@@ -20,6 +20,18 @@ struct BottomBar: View {
     let state: BottomBarState
     var itemStyle: BottomBarItemStyle = .iconsOnly
 
+    @Binding private var isAppsMenuPresented: Bool
+
+    init(
+        state: BottomBarState,
+        itemStyle: BottomBarItemStyle = .iconsOnly,
+        isAppsMenuPresented: Binding<Bool> = .constant(false)
+    ) {
+        self.state = state
+        self.itemStyle = itemStyle
+        self._isAppsMenuPresented = isAppsMenuPresented
+    }
+
     var body: some View {
         Group {
             switch state {
@@ -30,7 +42,8 @@ struct BottomBar: View {
                     selectScreen: selectScreen,
                     openChat: openChat,
                     refreshApps: refreshApps,
-                    itemStyle: itemStyle
+                    itemStyle: itemStyle,
+                    isAppsMenuPresented: $isAppsMenuPresented
                 )
             case .pageActions(let openChat):
                 PageActionBottomBar(openChat: openChat)
@@ -50,7 +63,7 @@ private struct RootBottomBar: View {
     let refreshApps: () -> Void
     let itemStyle: BottomBarItemStyle
 
-    @State private var isAppsMenuPresented = false
+    @Binding var isAppsMenuPresented: Bool
 
     private var isAppsSelected: Bool {
         if case .app = screen { return true }
@@ -58,61 +71,15 @@ private struct RootBottomBar: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            HStack(spacing: 2) {
-                Button(action: {
-                    isAppsMenuPresented = false
-                    selectScreen(.home)
-                }) {
-                    RootBarItem(systemName: "house", title: "Home", isSelected: isHomeSelected, style: itemStyle)
-                }
-                .buttonStyle(.plain)
-
-                Button(action: {
-                    if !isAppsMenuPresented {
-                        refreshApps()
-                    }
-                    isAppsMenuPresented.toggle()
-                }) {
-                    RootBarItem(systemName: "rectangle.grid.2x2", title: "Apps", isSelected: isAppsSelected, style: itemStyle, hasHighlight: true)
-                }
-                .buttonStyle(.plain)
-
-                Button(action: {
-                    isAppsMenuPresented = false
-                    selectScreen(.search)
-                }) {
-                    RootBarItem(systemName: "magnifyingglass", title: "Search", isSelected: isSearchSelected, style: itemStyle)
-                }
-                .buttonStyle(.plain)
-
-                Button(action: {
-                    isAppsMenuPresented = false
-                    selectScreen(.settings)
-                }) {
-                    RootBarItem(systemName: "gearshape", title: "Settings", isSelected: isSettingsSelected, style: itemStyle)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(6)
-            .glassSurface(cornerRadius: 30)
-            .overlay {
-                if isAppsMenuPresented {
-                    Color.black.opacity(0.001)
-                        .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
-                        .contentShape(Rectangle())
-                        .onTapGesture {
-                            isAppsMenuPresented = false
-                        }
-                }
-            }
-            .overlay(alignment: .bottomLeading) {
-                if isAppsMenuPresented {
-                    AppsMenuView(apps: apps) { app in
-                        selectScreen(.app(app))
+        HStack(alignment: .bottom, spacing: 10) {
+            GlassReplacementMenu(isPresented: isAppsMenuPresented, placement: .bottom, alignment: .bottomLeading) {
+                rootNavigationPill
+            } replacement: {
+                AppsMenuView(apps: apps, width: rootNavigationPillWidth) { app in
+                    selectScreen(.app(app))
+                    withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
                         isAppsMenuPresented = false
                     }
-                    .offset(y: -72)
                 }
             }
 
@@ -125,6 +92,60 @@ private struct RootBottomBar: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    private var rootNavigationPill: some View {
+        HStack(spacing: 2) {
+            Button(action: { selectRootScreen(.home) }) {
+                RootBarItem(systemName: "house", title: "Home", isSelected: isHomeSelected, style: itemStyle)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: toggleAppsMenu) {
+                RootBarItem(systemName: "rectangle.grid.2x2", title: "Apps", isSelected: isAppsSelected, style: itemStyle, hasHighlight: true)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: { selectRootScreen(.search) }) {
+                RootBarItem(systemName: "magnifyingglass", title: "Search", isSelected: isSearchSelected, style: itemStyle)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: { selectRootScreen(.settings) }) {
+                RootBarItem(systemName: "gearshape", title: "Settings", isSelected: isSettingsSelected, style: itemStyle)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(6)
+    }
+
+    private var rootNavigationPillWidth: CGFloat {
+        let itemWidth: CGFloat
+        switch itemStyle {
+        case .iconsOnly:
+            itemWidth = 68
+        case .iconsAndLabels:
+            itemWidth = 72
+        }
+
+        return itemWidth * 4 + 2 * 3 + 6 * 2
+    }
+
+    private func toggleAppsMenu() {
+        if !isAppsMenuPresented {
+            refreshApps()
+        }
+
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+            isAppsMenuPresented.toggle()
+        }
+    }
+
+    private func selectRootScreen(_ rootScreen: RootScreen) {
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+            isAppsMenuPresented = false
+        }
+        selectScreen(rootScreen)
     }
 
     private var isHomeSelected: Bool {
@@ -145,6 +166,7 @@ private struct RootBottomBar: View {
 
 private struct AppsMenuView: View {
     let apps: [InstalledApp]
+    let width: CGFloat
     let selectApp: (InstalledApp) -> Void
 
     private var appListHeight: CGFloat {
@@ -186,8 +208,7 @@ private struct AppsMenuView: View {
             .frame(height: appListHeight)
         }
         .padding(6)
-        .frame(width: 266)
-        .glassSurface(cornerRadius: 20)
+        .frame(width: width)
     }
 }
 
@@ -311,43 +332,6 @@ private struct IconButton: View {
             .font(.system(size: size * 0.4, weight: .medium))
             .frame(width: size, height: size)
             .controlSurface(cornerRadius: 10)
-    }
-}
-
-private extension View {
-    func controlSurface(cornerRadius: CGFloat) -> some View {
-        background(.white, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .controlBorder(cornerRadius: cornerRadius)
-            .controlShadow()
-    }
-
-    func controlBorder(cornerRadius: CGFloat) -> some View {
-        overlay {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
-        }
-    }
-
-    func controlShadow() -> some View {
-        shadow(color: .black.opacity(0.035), radius: 10, y: 4)
-    }
-
-    @ViewBuilder
-    func glassSurface(cornerRadius: CGFloat) -> some View {
-        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-
-        if #available(iOS 26.0, *) {
-            glassEffect(.regular, in: shape)
-                .controlBorder(cornerRadius: cornerRadius)
-                .shadow(color: .black.opacity(0.08), radius: 28, y: 12)
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
-        } else {
-            background(.regularMaterial, in: shape)
-                .background(.white.opacity(0.72), in: shape)
-                .controlBorder(cornerRadius: cornerRadius)
-                .shadow(color: .black.opacity(0.08), radius: 28, y: 12)
-                .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
-        }
     }
 }
 

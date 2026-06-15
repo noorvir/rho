@@ -20,6 +20,7 @@
 		A00000000000000000000004 /* VoiceRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000028 /* VoiceRecorder.swift */; };
 		A00000000000000000000005 /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000015 /* AppShellView.swift */; };
 		A00000000000000000000006 /* BottomBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000016 /* BottomBar.swift */; };
+		A0000000000000000000002A /* GlassReplacementMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000002B /* GlassReplacementMenu.swift */; };
 		A00000000000000000000007 /* MobileBuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000019 /* MobileBuildInfo.swift */; };
 		A00000000000000000000008 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000001B /* Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -41,6 +42,7 @@
 		A00000000000000000000028 /* VoiceRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceRecorder.swift; sourceTree = "<group>"; };
 		A00000000000000000000015 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
 		A00000000000000000000016 /* BottomBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBar.swift; sourceTree = "<group>"; };
+		A0000000000000000000002B /* GlassReplacementMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassReplacementMenu.swift; sourceTree = "<group>"; };
 		A00000000000000000000019 /* MobileBuildInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileBuildInfo.swift; sourceTree = "<group>"; };
 		A0000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A0000000000000000000001B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 				A00000000000000000000034 /* Chat */,
 				A00000000000000000000015 /* AppShellView.swift */,
 				A00000000000000000000016 /* BottomBar.swift */,
+				A0000000000000000000002B /* GlassReplacementMenu.swift */,
 				A00000000000000000000019 /* MobileBuildInfo.swift */,
 				A0000000000000000000001A /* Info.plist */,
 				A0000000000000000000001B /* Assets.xcassets */,
@@ -196,6 +199,7 @@
 				A00000000000000000000004 /* VoiceRecorder.swift in Sources */,
 				A00000000000000000000005 /* AppShellView.swift in Sources */,
 				A00000000000000000000006 /* BottomBar.swift in Sources */,
+				A0000000000000000000002A /* GlassReplacementMenu.swift in Sources */,
 				A00000000000000000000007 /* MobileBuildInfo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
