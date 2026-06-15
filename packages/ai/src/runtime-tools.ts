@@ -79,6 +79,30 @@ export function rhoQueryExtension(query: (sql: string) => Promise<string>): Exte
 }
 
 /**
+ * Agent extension that registers the rho_validate_schema tool, wired to the
+ * same preflight checks as rho_migrate but without applying to the live
+ * database. Returns a human-readable result summary to the model.
+ */
+export function rhoValidateSchemaExtension(validate: (name: string) => Promise<string>): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_validate_schema",
+			label: "Validate Rho schema",
+			description:
+				"Validate a runtime database schema change after editing the runtime schema.prisma, without applying it to the live database: checks the migration on a snapshot copy and rejects changes that would touch rho_sys_* system tables. Use this for preflight only; call rho_migrate when ready to apply.",
+			promptSnippet: "Validate the Rho database schema on a copy without applying it live",
+			parameters: Type.Object({
+				name: Type.String({ description: "Short snake_case migration name, e.g. add_books" }),
+			}),
+			async execute(_toolCallId, params) {
+				const summary = await validate(params.name);
+				return { content: [{ type: "text", text: summary }], details: undefined };
+			},
+		});
+	};
+}
+
+/**
  * Agent extension that registers the rho_migrate tool, wired to the runtime's
  * safe schema-migration flow (validate on a copy, apply live, regenerate,
  * reload). Returns a human-readable result summary to the model.

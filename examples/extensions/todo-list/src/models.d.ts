@@ -8,7 +8,7 @@ interface Todo {
 	updatedAt: Date;
 }
 
-declare module "@rho/core" {
+declare module "@rho/apps-sdk" {
 	interface RhoRuntimeModels {
 		todo: RhoModelDelegate<Todo>;
 	}

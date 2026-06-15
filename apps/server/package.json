@@ -21,7 +21,7 @@
 	],
 	"scripts": {
 		"dev": "bun --watch src/dev.ts",
-		"build": "tsgo -b ../../packages/apps-sdk tsconfig.json && bun run web:build",
+		"build": "tsgo -b ../../packages/apps-sdk tsconfig.json && bun scripts/copy-docs.ts && bun run web:build",
 		"web:build": "tsgo -p web/tsconfig.json --pretty false && vite build --config web/vite.config.ts",
 		"typecheck": "tsgo -b ../../packages/apps-sdk tsconfig.json --pretty false && tsgo -p web/tsconfig.json --pretty false",
 		"clean": "rm -rf dist web/dist .tsbuildinfo *.tsbuildinfo web/.tsbuildinfo web/*.tsbuildinfo"

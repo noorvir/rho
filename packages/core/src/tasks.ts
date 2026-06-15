@@ -293,7 +293,7 @@ Task: ${task.title}
 Instructions:
 ${task.instructions}
 
-Work until the task is fully complete and verified. Then end with one final message that is sent to the user word for word: one to three friendly sentences in plain language telling them what they can now do. No file paths, no technical terms, no work summary, no verification report — just the outcome.`;
+Work until the task is fully complete and verified. Do not end with a plan, intention, or description of what you will do next; if work remains, continue working or report a blocker. When complete, end with one final message that is sent to the user word for word: one to three friendly sentences in plain language telling them what they can now do. No file paths, no technical terms, no work summary, no verification report — just the outcome.`;
 }
 
 function resumePrompt(): string {

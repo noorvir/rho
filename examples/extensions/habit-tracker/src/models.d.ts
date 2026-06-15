@@ -16,7 +16,7 @@ interface Habit {
 	completions: HabitCompletion[];
 }
 
-declare module "@rho/core" {
+declare module "@rho/apps-sdk" {
 	interface RhoRuntimeModels {
 		habit: RhoModelDelegate<Habit>;
 		habitCompletion: RhoModelDelegate<HabitCompletion>;

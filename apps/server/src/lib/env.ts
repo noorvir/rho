@@ -14,9 +14,7 @@ const RHO_PORT = Number(loadEnvWithNullishCheck("RHO_PORT", false, process.env.P
 const RHO_AGENT_DIR = resolve(loadEnvWithNullishCheck("RHO_AGENT_DIR", false, join(RHO_HOME, "agent")));
 const RHO_STATE_DIR = resolve(loadEnvWithNullishCheck("RHO_STATE_DIR", false, join(RHO_HOME, "state")));
 const RHO_STORE_DIR = resolve(loadEnvWithNullishCheck("RHO_STORE_DIR", false, join(RHO_HOME, "store")));
-const RHO_DOCS_DIR = resolve(
-	loadEnvWithNullishCheck("RHO_DOCS_DIR", false, fileURLToPath(new URL("../../../../docs/", import.meta.url))),
-);
+const RHO_DOCS_DIR = resolve(loadEnvWithNullishCheck("RHO_DOCS_DIR", false, defaultDocsDir()));
 
 export const env = {
 	RHO_HOME,
@@ -61,6 +59,15 @@ function taskThinkingLevel(): "minimal" | "low" | "medium" | "high" | undefined 
 		return value;
 	}
 	return undefined;
+}
+
+function defaultDocsDir(): string {
+	const packagedDocsDir = fileURLToPath(new URL("../docs/", import.meta.url));
+	if (existsSync(packagedDocsDir)) {
+		return packagedDocsDir;
+	}
+
+	return fileURLToPath(new URL("../../../../docs/", import.meta.url));
 }
 
 function splitPaths(value: string): string[] {

@@ -1,3 +1,11 @@
+---
+title: Rho Documentation
+description: Index of Rho documentation for apps, extensions, database, channels, server, SDK, and runtime usage.
+tags:
+  - index
+  - docs
+---
+
 # Rho Documentation
 
 Rho is an agent-managed runtime for personal apps and extensions.

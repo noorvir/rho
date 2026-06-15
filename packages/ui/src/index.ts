@@ -1,6 +1,7 @@
 export { Badge, type BadgeProps } from "./badge.tsx";
 export { Button, type ButtonProps, type ButtonSize, type ButtonVariant } from "./button.tsx";
 export { Checkbox, Field, type FieldProps, Select, TextArea, TextInput } from "./form.tsx";
+export { Fullscreen, type FullscreenProps } from "./fullscreen.tsx";
 export { Link, type LinkProps } from "./link.tsx";
 export { List, type ListProps, Row, type RowProps } from "./list.tsx";
 export { Screen, type ScreenProps } from "./screen.tsx";

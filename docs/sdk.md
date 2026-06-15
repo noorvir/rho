@@ -1,3 +1,13 @@
+---
+title: SDK
+description: Public APIs from @rho/apps-sdk for app extension definitions, React context, and typed app APIs.
+tags:
+  - sdk
+  - apps
+  - api
+  - react
+---
+
 # SDK
 
 Rho app extensions use `@rho/apps-sdk`.
@@ -85,6 +95,8 @@ export function createRouter({ api }: RhoAppApiBuilderContext) {
 }
 ```
 
+Name public app API procedures after the user-facing resource or action, such as `list`, `detail`, `create`, `update`, `remove`, or `markWatered`. Avoid a procedure literally named `get`; use `detail`, `item`, or the resource name instead.
+
 Handler context includes:
 
 ```ts
@@ -163,7 +175,7 @@ import { RhoAppProvider } from "@rho/apps-sdk/react";
 
 ## Exported types
 
-`@rho/apps-sdk` exports the public app and extension types from core:
+`@rho/apps-sdk` exports the public app and extension types:
 
 ```ts
 import type {
@@ -173,13 +185,16 @@ import type {
   RhoAppApiBuilderContext,
   RhoAppApiContext,
   RhoAppContext,
+  RhoDb,
   RhoExtensionContext,
   RhoExtensionDefinition,
   RhoHostPlatform,
+  RhoModelDelegate,
+  RhoRuntimeModels,
 } from "@rho/apps-sdk";
 ```
 
-Use these types when writing extension entrypoints, app API files, custom clients, tests, or custom hosts.
+Use these types when writing extension entrypoints, app API files, custom clients, tests, or custom hosts. App extensions should not import from `@rho/core`; declare extension-added database models by augmenting `@rho/apps-sdk` from `src/models.d.ts`.
 
 ## Related utilities
 

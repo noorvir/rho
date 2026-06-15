@@ -1,3 +1,13 @@
+---
+title: Database
+description: Shared SQLite database ownership, Prisma schema rules, migrations, and runtime data safety.
+tags:
+  - database
+  - schema
+  - prisma
+  - migrations
+---
+
 # Database
 
 Rho uses one shared SQLite database for the user's runtime.
@@ -87,9 +97,14 @@ kills them mid-run.
 
 Edit the runtime `schema.prisma`, then call the `rho_migrate` tool with a
 short migration name. It performs the whole safe procedure in one step:
-snapshots the live database, validates the migration on the copy, applies it
-to the live database, regenerates the client, and reloads the runtime. New
-models are usable immediately; no rebuild or restart is needed.
+snapshots the live database, validates the migration on the copy, rejects
+`rho_sys_*` system-table changes, applies it to the live database,
+regenerates the client, and reloads the runtime. New models are usable
+immediately; no rebuild or restart is needed.
+
+Use `rho_validate_schema` when you want the same preflight checks before
+applying. It validates against a snapshot and does not apply anything to the
+live database. `rho_migrate` always runs validation again before it applies.
 
 If `rho_migrate` is unavailable, do the same manually: snapshot with
 `VACUUM INTO`, run `prisma migrate dev --name <change>` against the copy

@@ -15,6 +15,7 @@ import {
 	rhoMigrateExtension,
 	rhoQueryExtension,
 	rhoReloadExtension,
+	rhoValidateSchemaExtension,
 	type StateManager,
 } from "@rho/ai";
 import {
@@ -29,7 +30,7 @@ import { ChannelRegistry } from "./channel-registry.ts";
 import { queryRuntimeDatabase } from "./db.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
-import { migrateRuntimeSchema } from "./migrate.ts";
+import { migrateRuntimeSchema, validateRuntimeSchema } from "./migrate.ts";
 import { createReloadableRhoPrisma } from "./prisma.ts";
 import { type ReloadResult, reload } from "./reload.ts";
 import { KeyedMutex, TaskRunner } from "./tasks.ts";
@@ -132,6 +133,12 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 	});
 	if (opts.dbDir) {
 		const dbDir = opts.dbDir;
+		runtimeToolSources.push({
+			type: "factory",
+			factory: rhoValidateSchemaExtension((name) =>
+				validateRuntimeSchema({ dbDir, databaseUrl: opts.databaseUrl }, name),
+			),
+		});
 		runtimeToolSources.push({
 			type: "factory",
 			factory: rhoMigrateExtension(async (name) => {

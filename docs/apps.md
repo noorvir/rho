@@ -1,3 +1,14 @@
+---
+title: Apps
+description: How Rho apps render inside the shell, use routes, call APIs, and compose mobile-first UI.
+tags:
+  - apps
+  - react
+  - ui
+  - routing
+  - mobile
+---
+
 # Apps
 
 Rho apps are React surfaces provided by app extensions.
@@ -16,9 +27,13 @@ Everything below runs in the extensions workspace (`$RHO_HOME/extensions`):
    in `src/routes/` with `@rho/ui` primitives. The scaffold contains working
    examples of every file.
 3. New models: append them to `$RHO_HOME/db/schema.prisma`, mirror them in
-   the app's `src/models.d.ts`, then call the `rho_migrate` tool once — it
-   validates the migration on a copy, applies it live, regenerates the
-   client, and reloads the runtime.
+   the app's `src/models.d.ts` by augmenting `@rho/apps-sdk` with
+   `RhoRuntimeModels`, then call the `rho_migrate` tool once — it validates
+   the migration on a copy, rejects `rho_sys_*` system-table changes, applies
+   it live, regenerates the client, and reloads the runtime. Use
+   `rho_validate_schema` first only when you want a preflight without applying
+   to the live database. App extensions should not import or depend on
+   `@rho/core`.
 4. For code-only changes, call `rho_reload`.
 5. Verify with one or two API calls; the app serves at `/apps/<slug>`.
 
@@ -117,7 +132,7 @@ export default rhoApp(TodoListApp);
 ```
 
 Navigate between app routes with `rho.navigate("/items")` — no page reload.
-Keep the route list in `createAppExtension` and the route switch in `app.tsx` in sync.
+Keep the route list in `createAppExtension` and the route switch in `app.tsx` in sync. If the app renders `/new`, `/edit`, `/item/:id`, `/plant/:id`, or any other detail route, register those routes too; do not leave routes hidden in `app.tsx` only. Routes without a `label` are valid; use unlabeled routes for detail/edit screens that should not appear as top-level shell navigation.
 
 ## App context
 
@@ -249,7 +264,9 @@ export function useApi() {
 }
 ```
 
-Then call the API from route components:
+Then call the API from route components. Avoid a public app API procedure literally named `get`; use `detail`, `item`, or the resource name instead so the app API path is unambiguous.
+
+
 
 ```tsx
 import { useQuery } from "@tanstack/react-query";
@@ -295,13 +312,44 @@ Do not put secrets, access tokens, large payloads, or private draft content in q
 
 ## Building the UI
 
+Choose the screen architecture before writing JSX. For record-based personal
+apps, the default shape is:
+
+- list route: shows records and one primary `+` action
+- add/edit flow: a separate route or mobile-friendly sheet when the form has
+  more than one trivial field
+- detail route: opens from a row and owns per-record actions, history,
+  metadata, and destructive controls
+
+Keep the Todo app in perspective: it is the minimal one-field example. Do not
+copy its inline add form or row-level delete button into richer apps such as
+plant trackers, shopping lists, notes, watchlists, journals, or apps with
+history/detail data.
+
+Mobile-first app rules:
+
+- Use exactly one `Screen` per route and let it render the route header. Do
+  not add a second custom header inside the screen.
+- Avoid generic filler copy such as marketing descriptions. Use a
+  `description` only when it gives the user concrete state or instruction
+  they need on that screen.
+- Put one primary action in the header, usually `+` for adding a record.
+- Do not put multi-field create/edit forms above the main list. Use a route or
+  sheet so the list stays scannable on a phone.
+- Rows should primarily navigate or perform one obvious safe action. Put edit,
+  delete, detailed metadata, and history on the detail screen.
+- Destructive actions belong at the bottom of a detail/edit screen and require
+  confirmation.
+
 Build app screens from the `@rho/ui` primitives. They handle structure,
 navigation, and platform correctness (tap targets, input sizes that don't
 trigger mobile zoom, client-side routing), so app code mostly composes them
 and fills in content:
 
 - `Screen` — one per route: page title, optional header actions, and a `back`
-  link for detail screens (`back={{ href: "/", label: "Back" }}`).
+  link for detail screens (`back={{ href: "/", label: "Back" }}`). Use
+  `stickyBack` on mobile-heavy detail screens so the back affordance stays
+  reachable while content scrolls under the mobile shell.
 - `Section` — a titled group inside a screen. Headings and spacing only, never a box.
 - `List` + `Row` — grouped rows; the only bordered surface. `Row` takes
   `leading`/`title`/`subtitle`/`trailing`, plus `href` (navigation) or `onPress` (action).
@@ -319,7 +367,8 @@ Design rules:
 - Every data fetch renders all three lifecycle states: `LoadingState` while
   pending, `ErrorState` on failure, `EmptyState` when there is nothing yet.
 - Navigate between app routes with `Link` or `Row href` — never raw `<a>`
-  tags, which cause full page reloads. Detail screens use `Screen back`.
+  tags, which cause full page reloads. Detail screens use `Screen back`, and
+  use `stickyBack` when long content could scroll the back control away.
 - The shell owns global navigation. Do not build breadcrumbs, app-level nav
   bars, or tab bars inside an app.
 - Use Tailwind classes for spacing, color accents, and custom content layout

@@ -9,7 +9,7 @@ import type { RhoModelDelegate } from "@rho/apps-sdk";
 // 	createdAt: Date;
 // }
 
-declare module "@rho/core" {
+declare module "@rho/apps-sdk" {
 	interface RhoRuntimeModels {
 		// item: RhoModelDelegate<Item>;
 	}

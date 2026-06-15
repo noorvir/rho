@@ -1,3 +1,12 @@
+---
+title: Extensions
+description: Extension package shape, installed and standalone modes, runtime loading, and trust model.
+tags:
+  - extensions
+  - apps
+  - runtime
+---
+
 # Extensions
 
 Rho extensions are source-code packages that add apps, channels, or agent capabilities to Rho.

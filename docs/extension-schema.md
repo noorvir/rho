@@ -1,3 +1,13 @@
+---
+title: Extension Structure
+description: Package files, entrypoints, API files, app routes, and manual creation steps for Rho extensions.
+tags:
+  - extensions
+  - package
+  - structure
+  - apps
+---
+
 # Extension Structure
 
 An app extension is a TypeScript package with a Rho entrypoint, a React app entrypoint, optional API handlers, and package metadata.
@@ -126,6 +136,31 @@ export function createRouter({ api }: RhoAppApiBuilderContext) {
 ```
 
 The router returned from `createRouter` is passed to `createAppExtension` in `src/extension.ts`.
+
+## `src/models.d.ts`
+
+When an app adds Prisma models to the runtime schema, mirror those models in
+`src/models.d.ts` so `rho.db.<model>` is typed. Augment `@rho/apps-sdk`; app
+extensions should not import from or depend on `@rho/core`.
+
+```ts
+import type { RhoModelDelegate } from "@rho/apps-sdk";
+
+interface Item {
+  id: number;
+  name: string;
+  createdAt: Date;
+}
+
+declare module "@rho/apps-sdk" {
+  interface RhoRuntimeModels {
+    item: RhoModelDelegate<Item>;
+  }
+}
+```
+
+The runtime `schema.prisma` remains the source of truth. Keep this declaration
+in sync with the fields the app reads and writes.
 
 ## `src/app.tsx`
 

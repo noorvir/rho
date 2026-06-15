@@ -35,6 +35,7 @@ export {
 	rhoMigrateExtension,
 	rhoQueryExtension,
 	rhoReloadExtension,
+	rhoValidateSchemaExtension,
 } from "./runtime-tools.ts";
 export {
 	createRhoAgentSession,

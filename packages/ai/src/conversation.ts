@@ -112,7 +112,7 @@ async function runConversation(
 		sessionManager,
 		agentExtensions: input.agentExtensions,
 		role: "channel",
-		excludeTools: ["rho_migrate", "rho_reload"],
+		excludeTools: ["rho_migrate", "rho_validate_schema", "rho_reload"],
 	});
 	const abort = () => {
 		void session.abort();

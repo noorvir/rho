@@ -1,3 +1,12 @@
+---
+title: Channels
+description: How user conversations flow through web, mobile, terminal, and extension-provided channels.
+tags:
+  - channels
+  - chat
+  - conversations
+---
+
 # Channels
 
 Channels are the surfaces where the user talks to Rho: the web app chat, the

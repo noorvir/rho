@@ -3,7 +3,8 @@ import type {
 	AppClient,
 	AppExtension,
 	AppRoute,
-	RhoExtensionContext,
+	RhoDb as CoreRhoDb,
+	RhoExtensionContext as CoreRhoExtensionContext,
 	RhoExtensionDefinition,
 	RhoHostPlatform,
 } from "@rho/core";
@@ -16,14 +17,27 @@ export type {
 	RhoAgentExtensionSource,
 	RhoAppApiBuilderContext,
 	RhoAppApiContext,
-	RhoDb,
-	RhoExtensionContext,
 	RhoExtensionDefinition,
 	RhoHostPlatform,
-	RhoRuntimeModels,
 } from "@rho/core";
 
 export type { RhoAppInstance, RhoAppMount } from "./react.ts";
+
+/**
+ * Extension-owned models added to the runtime schema. App extensions augment
+ * this interface from `@rho/apps-sdk` so `rho.db.<model>` is typed without
+ * importing Rho's internal core package.
+ */
+// biome-ignore lint/suspicious/noEmptyInterface: merged by app extensions
+export interface RhoRuntimeModels {}
+
+/** The shared runtime database client, plus models declared by this extension. */
+export type RhoDb = CoreRhoDb & RhoRuntimeModels;
+
+export type RhoExtensionContext = Omit<CoreRhoExtensionContext, "db"> & {
+	/** Shared runtime database client over the canonical Rho schema. */
+	db: RhoDb;
+};
 
 /**
  * Loosely-typed Prisma delegate for a model an extension added to the

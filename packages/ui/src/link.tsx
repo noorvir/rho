@@ -6,6 +6,7 @@ export interface LinkProps {
 	href: string;
 	children?: ReactNode;
 	className?: string;
+	"aria-label"?: string;
 }
 
 /**
@@ -13,7 +14,7 @@ export interface LinkProps {
  * open normally) but navigates client-side through the rho host, so the app
  * never full-page-reloads when moving between its own routes.
  */
-export function Link({ href, children, className }: LinkProps) {
+export function Link({ href, children, className, "aria-label": ariaLabel }: LinkProps) {
 	const rho = useRhoApp();
 	const target = href === "/" ? rho.app.basePath : `${rho.app.basePath}${href}`;
 
@@ -27,7 +28,7 @@ export function Link({ href, children, className }: LinkProps) {
 	}
 
 	return (
-		<a className={className} href={target} onClick={onClick}>
+		<a aria-label={ariaLabel} className={className} href={target} onClick={onClick}>
 			{children}
 		</a>
 	);

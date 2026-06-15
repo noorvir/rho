@@ -1,3 +1,12 @@
+---
+title: Extension Install
+description: How Rho tries, installs, updates, removes, and explains extension installation choices.
+tags:
+  - extensions
+  - install
+  - packages
+---
+
 # Extension Install
 
 Extension installation is managed by the Rho agent.

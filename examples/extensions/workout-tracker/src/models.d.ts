@@ -10,7 +10,7 @@ interface PlannedExercise {
 	updatedAt: Date;
 }
 
-declare module "@rho/core" {
+declare module "@rho/apps-sdk" {
 	interface RhoRuntimeModels {
 		plannedExercise: RhoModelDelegate<PlannedExercise>;
 	}

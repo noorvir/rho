@@ -14,7 +14,7 @@ export function createRhoPrisma(databaseUrl: string): RhoPrisma {
 // Client delegates for the rho-owned `_rho_*` tables that core itself
 // depends on. Extensions and agents may evolve the rest of the schema, but a
 // client that lost any of these is refused.
-const systemModels = ["rho_sys_Task", "rho_sys_Owner", "rho_sys_Session", "rho_sys_ApiToken"];
+export const RHO_SYSTEM_MODELS = ["rho_sys_Task", "rho_sys_Owner", "rho_sys_Session", "rho_sys_ApiToken"] as const;
 
 /**
  * Throws when the client is missing any rho system model. Used as a tripwire
@@ -22,7 +22,7 @@ const systemModels = ["rho_sys_Task", "rho_sys_Owner", "rho_sys_Session", "rho_s
  * system tables can never reach the running server.
  */
 export function assertSystemModels(client: RhoPrisma): void {
-	const missing = systemModels.filter((model) => {
+	const missing = RHO_SYSTEM_MODELS.filter((model) => {
 		const delegate: unknown = Reflect.get(client, model);
 		return delegate === undefined || delegate === null;
 	});

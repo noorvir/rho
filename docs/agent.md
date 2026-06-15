@@ -1,3 +1,12 @@
+---
+title: Rho Agent
+description: How the Rho agent manages runtime changes, agent packages, providers, and agent state.
+tags:
+  - agent
+  - runtime
+  - packages
+---
+
 # Rho Agent
 
 The Rho agent manages Rho runtime changes for the user: building and editing

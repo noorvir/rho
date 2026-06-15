@@ -1,3 +1,13 @@
+---
+title: Server
+description: The always-on Rho server process, runtime configuration, extension reloads, and state paths.
+tags:
+  - server
+  - runtime
+  - configuration
+  - reload
+---
+
 # Server
 
 The Rho server is one always-on process. It serves the web app, the HTTP API,
