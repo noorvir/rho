@@ -2,16 +2,20 @@ import SwiftUI
 
 struct AppShellView<Content: View>: View {
     let bottomBar: BottomBarState
+    var bottomBarItemStyle: BottomBarItemStyle = .iconsOnly
     @ViewBuilder let content: Content
 
     var body: some View {
-        ZStack {
-            Color.white.ignoresSafeArea()
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            BottomBar(state: bottomBar)
+        GeometryReader { geometry in
+            ZStack(alignment: .bottom) {
+                content
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                BottomBar(state: bottomBar, itemStyle: bottomBarItemStyle)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, -geometry.safeAreaInsets.bottom)
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
         }
     }
 }
