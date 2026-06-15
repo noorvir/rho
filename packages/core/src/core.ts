@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
 	agentEventTextDelta,
+	rhoAppsExtension,
 	backgroundTaskExtension,
 	type ConversationHistory,
 	type ConversationInput,
@@ -53,6 +54,10 @@ export interface RhoCoreOptions {
 	taskThinkingLevel?: "minimal" | "low" | "medium" | "high";
 	/** Overrides the settings-default model for background task sessions. */
 	taskModel?: { provider: string; modelId: string };
+	/** Reasoning effort for channel chat turns; defaults to minimal for fast replies. */
+	channelThinkingLevel?: "minimal" | "low" | "medium" | "high";
+	/** Overrides the settings-default model for channel chat turns; keeps chat snappy. */
+	channelModel?: { provider: string; modelId: string };
 	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
 	docsDir?: string;
 	/** Absolute extensions workspace directory. Defaults to `<cwd>/.rho/extensions`. */
@@ -131,6 +136,12 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		type: "factory",
 		factory: rhoQueryExtension((sql) => queryRuntimeDatabase(opts.databaseUrl, sql)),
 	});
+	runtimeToolSources.push({
+		type: "factory",
+		factory: rhoAppsExtension(async () =>
+			appRegistry.current().map((app) => ({ name: app.name, slug: app.slug, routes: app.routes })),
+		),
+	});
 	if (opts.dbDir) {
 		const dbDir = opts.dbDir;
 		runtimeToolSources.push({
@@ -175,6 +186,8 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 				state,
 				message,
 				conversations,
+				model: opts.channelModel,
+				thinkingLevel: opts.channelThinkingLevel,
 				agentExtensions: [
 					...sessionExtensions(),
 					{
@@ -266,6 +279,8 @@ interface AgentResponseInput {
 	message: ChannelMessage;
 	conversations: KeyedMutex;
 	agentExtensions: RhoAgentExtensionSource[];
+	model?: { provider: string; modelId: string };
+	thinkingLevel?: "minimal" | "low" | "medium" | "high";
 }
 
 async function* agentResponse(input: AgentResponseInput): AsyncIterable<ChannelMessage> {
@@ -283,6 +298,8 @@ async function* agentResponse(input: AgentResponseInput): AsyncIterable<ChannelM
 			cwd: input.cwd,
 			agentDir: input.agentDir,
 			agentExtensions: input.agentExtensions,
+			model: input.model,
+			thinkingLevel: input.thinkingLevel,
 			message: {
 				role: "user",
 				content,

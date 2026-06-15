@@ -124,9 +124,9 @@ function AppRuntime({
 
 	if (embedded) {
 		return (
-			<div className="p-3">
+			<div className="fixed inset-0 overflow-hidden bg-background">
 				<AppStyles app={app} />
-				<MountedApp context={context} mount={appModule.data} />
+				<MountedApp className="h-full w-full" context={context} mount={appModule.data} />
 			</div>
 		);
 	}
@@ -160,7 +160,7 @@ function AppStyles({ app }: { app: AppExtensionSummary }) {
  * mounts once per bundle; later context changes (route navigation) flow
  * through the instance's update channel without remounting.
  */
-function MountedApp({ mount, context }: { mount: RhoAppMount; context: RhoAppContext }) {
+function MountedApp({ mount, context, className }: { mount: RhoAppMount; context: RhoAppContext; className?: string }) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const instanceRef = useRef<RhoAppInstance>(null);
 	const contextRef = useRef(context);
@@ -183,7 +183,7 @@ function MountedApp({ mount, context }: { mount: RhoAppMount; context: RhoAppCon
 		instanceRef.current?.update(context);
 	}, [context]);
 
-	return <div ref={containerRef} />;
+	return <div className={className} ref={containerRef} />;
 }
 
 async function loadApp(moduleUrl: string | undefined): Promise<RhoAppMount> {

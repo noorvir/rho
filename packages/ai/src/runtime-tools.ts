@@ -29,11 +29,11 @@ export function backgroundTaskExtension(
 			description:
 				"Delegate implementation work to a background agent with full tools. This is the only way to build or change anything from a conversation — apps, extensions, files, schema, installs — and the right way to run any work over about a minute. Never refuse buildable requests because this conversation lacks write tools; delegate them here instead. " +
 				"The task runs after this reply ends and its outcome is delivered to the user automatically. " +
-				"After calling this, finish your reply with a short acknowledgement and a rough time expectation.",
+				"Write a short acknowledgement and rough time expectation before this tool call whenever the model/provider supports text before tools; after calling this, do not add more user-facing text.",
 			promptSnippet:
 				"Delegate building/changing anything (and other long work) to a background task; the user is notified when it finishes",
 			promptGuidelines: [
-				"To build or change anything, or for work over about a minute, call background_task, then reply with one or two plain-language sentences: what you'll do and roughly how long it takes. No technical steps or jargon. Do not attempt the work in the conversation and do not refuse because this conversation lacks write tools.",
+				"To build or change anything, or for work over about a minute, first reply with one or two plain-language acknowledgement sentences, then call background_task in the same turn. No technical steps or jargon. Do not attempt the work in the conversation and do not refuse because this conversation lacks write tools.",
 			],
 			parameters: backgroundTaskParams,
 			async execute(_toolCallId, params) {
@@ -73,6 +73,46 @@ export function rhoQueryExtension(query: (sql: string) => Promise<string>): Exte
 			async execute(_toolCallId, params) {
 				const rows = await query(params.sql);
 				return { content: [{ type: "text", text: rows }], details: undefined };
+			},
+		});
+	};
+}
+
+export interface RhoAppSummary {
+	name: string;
+	slug: string;
+	routes: Array<{ path: string; label?: string }>;
+}
+
+/**
+ * Agent extension that registers the rho_apps tool: an instant listing of the
+ * apps currently installed in the runtime. Channel turns have no filesystem
+ * tools, so this is how they answer "what apps do I have" without spelunking.
+ */
+export function rhoAppsExtension(listApps: () => Promise<RhoAppSummary[]>): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_apps",
+			label: "Rho apps",
+			description:
+				"List the apps currently installed in this Rho runtime, with each app's name and screens. Use this to answer questions about what apps the user has; never inspect files to find this out.",
+			promptSnippet: "List the apps installed in this Rho runtime",
+			parameters: Type.Object({}),
+			async execute() {
+				const apps = await listApps();
+				if (apps.length === 0) {
+					return { content: [{ type: "text", text: "No apps are installed yet." }], details: undefined };
+				}
+				const text = apps
+					.map((app) => {
+						const screens = app.routes
+							.map((route) => route.label)
+							.filter((label): label is string => Boolean(label))
+							.join(", ");
+						return screens ? `- ${app.name} (screens: ${screens})` : `- ${app.name}`;
+					})
+					.join("\n");
+				return { content: [{ type: "text", text }], details: undefined };
 			},
 		});
 	};

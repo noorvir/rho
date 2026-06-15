@@ -32,6 +32,8 @@ export {
 export {
 	type BackgroundTaskRequest,
 	backgroundTaskExtension,
+	type RhoAppSummary,
+	rhoAppsExtension,
 	rhoMigrateExtension,
 	rhoQueryExtension,
 	rhoReloadExtension,

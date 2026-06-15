@@ -2,7 +2,11 @@ import type { AgentEvent, AgentMessage } from "@earendil-works/pi-agent-core";
 import type { ImageContent } from "@earendil-works/pi-ai";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { createAgentEventStream } from "./event-stream.ts";
-import { createRhoAgentSession, type RhoAgentExtensionSource } from "./session.ts";
+import {
+	createRhoAgentSession,
+	type RhoAgentExtensionSource,
+	type RhoAgentModelRef,
+} from "./session.ts";
 import type { ConversationKey, StateManager } from "./state/types.ts";
 import type { AgentEventStream } from "./types.ts";
 
@@ -14,6 +18,10 @@ export interface ConversationInput {
 	message: AgentMessage;
 	signal: AbortSignal;
 	agentExtensions?: RhoAgentExtensionSource[];
+	/** Overrides the settings-default model for channel turns; keeps chat snappy. */
+	model?: RhoAgentModelRef;
+	/** Reasoning effort for channel turns. Defaults to low for fast replies. */
+	thinkingLevel?: "minimal" | "low" | "medium" | "high";
 }
 
 export interface ConversationHistoryMessage {
@@ -113,7 +121,11 @@ async function runConversation(
 		agentExtensions: input.agentExtensions,
 		role: "channel",
 		excludeTools: ["rho_migrate", "rho_validate_schema", "rho_reload"],
+		model: input.model,
 	});
+	// Channel chat optimizes for a fast first reply; heavier reasoning belongs to
+	// the background task that does the actual work.
+	session.setThinkingLevel(input.thinkingLevel ?? "low");
 	const abort = () => {
 		void session.abort();
 	};

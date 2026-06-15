@@ -73,7 +73,7 @@ export function Fullscreen({
 			<div className={cn("min-h-0 flex-1 overflow-hidden", contentClassName)}>{children}</div>
 
 			{footer && (
-				<footer className="shrink-0 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3 text-center text-xs text-white/65">
+				<footer className="shrink-0 px-4 pb-[calc(env(safe-area-inset-bottom)+8rem)] pt-3 text-center text-xs text-white/65">
 					{footer}
 				</footer>
 			)}

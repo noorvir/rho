@@ -44,7 +44,11 @@ struct ContentView: View {
                         .presentationCornerRadius(18)
                 }
                 .task(id: authStore.isAuthenticated) {
-                    apps = (try? await AppsClient(authStore: authStore).installedApps()) ?? []
+                    do {
+                        apps = try await AppsClient(authStore: authStore).installedApps()
+                    } catch {
+                        authStore.clearSession()
+                    }
                 }
             } else {
                 LoginView(authStore: authStore)
@@ -56,8 +60,10 @@ struct ContentView: View {
 
     private func refreshApps() {
         Task {
-            if let refreshed = try? await AppsClient(authStore: authStore).installedApps() {
-                apps = refreshed
+            do {
+                apps = try await AppsClient(authStore: authStore).installedApps()
+            } catch {
+                authStore.clearSession()
             }
         }
     }
@@ -322,45 +328,50 @@ private struct SettingsRow: View {
 private struct AppWebView: View {
     let app: InstalledApp
     @ObservedObject var authStore: AuthStore
+    @StateObject private var backSwipe = WebViewBackSwipeBridge()
     @State private var cookie: HTTPCookie?
     @State private var isReady = false
-    @State private var reloadToken = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            Text(app.name)
-                .font(.system(size: 17, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .overlay(alignment: .trailing) {
-                    Button(action: { reloadToken += 1 }) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.trailing, 16)
-                    .accessibilityLabel("Reload app")
-                }
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-
+        ZStack {
             Group {
                 if isReady {
-                    WebView(url: app.url, cookie: cookie, reloadToken: reloadToken)
+                    WebView(url: app.url, cookie: cookie, reloadToken: 0, backSwipe: backSwipe)
                 } else {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(.container, edges: [.top, .bottom])
+
+            HStack(spacing: 0) {
+                Color.clear
+                    .frame(width: 28)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 12)
+                            .onChanged { value in
+                                let horizontal = max(0, value.translation.width)
+                                let vertical = abs(value.translation.height)
+                                if horizontal > vertical {
+                                    backSwipe.update(offset: horizontal)
+                                }
+                            }
+                            .onEnded { value in
+                                let horizontal = value.translation.width
+                                let vertical = abs(value.translation.height)
+                                if horizontal > 80 && vertical < 80 {
+                                    backSwipe.finish()
+                                } else {
+                                    backSwipe.cancel()
+                                }
+                            }
+                    )
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 20)
+            .ignoresSafeArea()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .task(id: app.id) {
             cookie = try? await AppsClient(authStore: authStore).webSessionCookie()
             isReady = true
@@ -368,10 +379,38 @@ private struct AppWebView: View {
     }
 }
 
+@MainActor
+private final class WebViewBackSwipeBridge: ObservableObject {
+    weak var webView: WKWebView?
+
+    func update(offset: CGFloat) {
+        send(phase: "change", offset: offset)
+    }
+
+    func finish() {
+        send(phase: "finish", offset: nil)
+    }
+
+    func cancel() {
+        send(phase: "cancel", offset: nil)
+    }
+
+    private func send(phase: String, offset: CGFloat?) {
+        let offsetValue = offset.map(String.init) ?? "null"
+        let script = """
+        window.dispatchEvent(new CustomEvent('rho:back-swipe', {
+          detail: { phase: '\(phase)', offset: \(offsetValue) }
+        }));
+        """
+        webView?.evaluateJavaScript(script)
+    }
+}
+
 private struct WebView: UIViewRepresentable {
     let url: URL
     let cookie: HTTPCookie?
     let reloadToken: Int
+    let backSwipe: WebViewBackSwipeBridge
 
     /// Makes embedded pages behave like native app surfaces: pins the layout
     /// to the device width, suppresses the focus auto-zoom (iOS zooms any
@@ -385,7 +424,7 @@ private struct WebView: UIViewRepresentable {
         meta.name = 'viewport';
         document.head.appendChild(meta);
       }
-      meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+      meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover';
 
       const style = document.createElement('style');
       style.textContent = `
@@ -412,6 +451,15 @@ private struct WebView: UIViewRepresentable {
         webView.allowsLinkPreview = false
         webView.scrollView.keyboardDismissMode = .interactive
         webView.scrollView.bouncesZoom = false
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.scrollView.backgroundColor = .clear
+        // Let the page own the full height and report true safe-area insets via
+        // env(safe-area-inset-*); otherwise WebKit adds its own top inset and
+        // fixed overlays (back button) sit too low.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        backSwipe.webView = webView
+
         hideInputAccessoryBar(in: webView)
         return webView
     }
@@ -558,7 +606,7 @@ final class AuthStore: ObservableObject {
 
     func logout() async {
         let token = refreshToken
-        clear()
+        clearSession()
 
         guard let token else {
             return
@@ -631,7 +679,7 @@ final class AuthStore: ObservableObject {
         KeychainStore.write(session.refreshToken, key: "refreshToken")
     }
 
-    private func clear() {
+    func clearSession() {
         accessToken = nil
         refreshToken = nil
         isAuthenticated = false

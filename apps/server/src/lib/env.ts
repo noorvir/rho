@@ -38,23 +38,35 @@ export const env = {
 	RHO_DB_DIR: existsSync(join(homeDbDir, "schema.prisma")) ? homeDbDir : undefined,
 	RHO_TASK_THINKING_LEVEL: taskThinkingLevel(),
 	RHO_TASK_MODEL: taskModel(),
+	/** Channel chat model override; defaults to the agent settings model when unset. */
+	RHO_CHANNEL_MODEL: providerModel("RHO_CHANNEL_MODEL"),
+	/** Channel chat reasoning effort; the channel itself defaults to minimal when unset. */
+	RHO_CHANNEL_THINKING_LEVEL: thinkingLevel("RHO_CHANNEL_THINKING_LEVEL"),
 };
 
-/** Parses `provider/modelId`, for example `openai-codex/gpt-5.5`. */
 function taskModel(): { provider: string; modelId: string } | undefined {
-	const value = loadEnvWithNullishCheck("RHO_TASK_MODEL", false);
+	return providerModel("RHO_TASK_MODEL");
+}
+
+/** Parses `provider/modelId`, for example `openai-codex/gpt-5.5`. */
+function providerModel(name: string): { provider: string; modelId: string } | undefined {
+	const value = loadEnvWithNullishCheck(name, false);
 	if (!value) {
 		return undefined;
 	}
 	const separator = value.indexOf("/");
 	if (separator <= 0 || separator === value.length - 1) {
-		throw new Error(`RHO_TASK_MODEL must be "provider/modelId", got: ${value}`);
+		throw new Error(`${name} must be "provider/modelId", got: ${value}`);
 	}
 	return { provider: value.slice(0, separator), modelId: value.slice(separator + 1) };
 }
 
 function taskThinkingLevel(): "minimal" | "low" | "medium" | "high" | undefined {
-	const value = loadEnvWithNullishCheck("RHO_TASK_THINKING_LEVEL", false);
+	return thinkingLevel("RHO_TASK_THINKING_LEVEL");
+}
+
+function thinkingLevel(name: string): "minimal" | "low" | "medium" | "high" | undefined {
+	const value = loadEnvWithNullishCheck(name, false);
 	if (value === "minimal" || value === "low" || value === "medium" || value === "high") {
 		return value;
 	}

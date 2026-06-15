@@ -32,6 +32,16 @@ The server listens on `RHO_PORT` (default 7331).
 | `RHO_STATE_DIR` | Conversation and task state directory. Default `<agent dir>/rho-state`. |
 | `RHO_EXTENSION_PATHS` | Colon-separated extra extension paths to load. |
 | `RHO_OWNER_TOKEN` | Owner token for first-time auth setup. |
+| `RHO_CHANNEL_MODEL` | Model for chat replies as `provider/modelId`. Defaults to the agent settings model. |
+| `RHO_CHANNEL_THINKING_LEVEL` | Reasoning effort for chat replies. Defaults to `minimal` for fast first tokens. |
+| `RHO_TASK_MODEL` | Model for background build tasks as `provider/modelId`. Defaults to the agent settings model. |
+| `RHO_TASK_THINKING_LEVEL` | Reasoning effort for background build tasks. Defaults to `medium`. |
+
+Chat replies are tuned for a fast first token: the channel agent acknowledges
+in text before kicking off any background build, and runs at minimal reasoning
+by default. Heavy work happens in the background task, which uses its own
+model and reasoning level. Point `RHO_CHANNEL_MODEL` at a fast model if your
+settings default is a slow reasoning model.
 
 ## Applying extension changes
 
