@@ -1,4 +1,5 @@
 import CoreLocation
+import PencilKit
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -33,6 +34,7 @@ struct ChatSheetView: View {
                 title: currentTitle,
                 isNewChatDisabled: isSending,
                 close: { dismiss() },
+                captureUnderlay: captureUnderlay,
                 showHistory: { isHistoryPresented = true },
                 startNewChat: startNewConversation
             )
@@ -93,6 +95,7 @@ struct ChatSheetView: View {
                 isSending: isSending,
                 onSend: { sendDraft() },
                 onRemoveImage: { id in pendingImages.removeAll { $0.id == id } },
+                onImageTap: { id in openMarkup(id) },
                 onAudioRecorded: { audio in sendVoiceMessage(audio) },
                 onMediaAction: handleMediaAction,
                 onHeightChange: { height in
@@ -111,6 +114,7 @@ struct ChatSheetView: View {
             }
             .ignoresSafeArea()
         }
+
         .photosPicker(
             isPresented: $isPhotosPresented,
             selection: $photoSelection,
@@ -173,6 +177,54 @@ struct ChatSheetView: View {
                 errorText = error.localizedDescription
             }
         }
+    }
+
+    private func captureUnderlay() {
+        guard let image = ContentSnapshotService.shared.latest else {
+            errorText = "Couldn't capture the screen underneath."
+            return
+        }
+        pendingImages.append(PendingImage(image: image))
+    }
+
+    private func openMarkup(_ id: UUID) {
+        guard let pending = pendingImages.first(where: { $0.id == id }) else { return }
+        dismissKeyboard()
+        // Present as a real full-screen UIKit modal from the top view controller.
+        // A SwiftUI fullScreenCover nested inside this sheet renders a blank
+        // first frame; an in-sheet overlay can't reach the status bar.
+        guard let top = topPresentedViewController() else { return }
+        let box = MarkupHostBox()
+        let view = ScreenshotMarkupView(
+            image: pending.image,
+            onCancel: { box.controller?.dismiss(animated: true) },
+            onDone: { annotated in
+                if let index = pendingImages.firstIndex(where: { $0.id == id }) {
+                    pendingImages[index].image = annotated
+                }
+                box.controller?.dismiss(animated: true)
+            }
+        )
+        let host = LightStatusHostingController(rootView: view)
+        host.modalPresentationStyle = .fullScreen
+        host.modalTransitionStyle = .crossDissolve
+        host.modalPresentationCapturesStatusBarAppearance = true
+        host.view.backgroundColor = .black
+        box.controller = host
+        top.present(host, animated: true)
+    }
+
+    private func topPresentedViewController() -> UIViewController? {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+        guard var top = (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController else {
+            return nil
+        }
+        while let presented = top.presentedViewController {
+            top = presented
+        }
+        return top
     }
 
     private func handleMediaAction(_ action: ComposerMediaAction) {
@@ -438,6 +490,7 @@ private struct ChatHeader: View {
     let title: String
     let isNewChatDisabled: Bool
     let close: () -> Void
+    let captureUnderlay: () -> Void
     let showHistory: () -> Void
     let startNewChat: () -> Void
 
@@ -458,6 +511,14 @@ private struct ChatHeader: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 10) {
+                GlassIconButton(
+                    systemName: "camera.viewfinder",
+                    accessibilityLabel: "Attach a screenshot of the screen underneath",
+                    role: .chat,
+                    showsShadow: false,
+                    action: captureUnderlay
+                )
+
                 GlassIconButton(
                     systemName: "clock.arrow.circlepath",
                     accessibilityLabel: "Show chat history",
@@ -481,6 +542,159 @@ private struct ChatHeader: View {
         .padding(.top, 20)
         .padding(.bottom, 12)
     }
+}
+
+/// Holds the presented markup controller so its SwiftUI buttons can dismiss it.
+private final class MarkupHostBox {
+    weak var controller: UIViewController?
+}
+
+/// Hosting controller that keeps the status bar legible over the dark markup.
+private final class LightStatusHostingController<Content: View>: UIHostingController<Content> {
+    override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
+}
+
+/// Full-screen screenshot markup, opened when the user taps a pending image.
+/// Uses a fixed bottom toolbar (no floating tool picker) so the image stays
+/// fully visible and there is no stuck input-view overlay.
+private struct ScreenshotMarkupView: View {
+    let image: UIImage
+    let onCancel: () -> Void
+    let onDone: (UIImage) -> Void
+
+    @State private var canvas = PKCanvasView()
+    @State private var selectedColor: Color = .red
+    @State private var isEraser = false
+
+    private let palette: [Color] = [.red, .orange, .yellow, .green, .blue, .white, .black]
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    circleButton(systemName: "xmark", background: Color.white.opacity(0.18), action: onCancel)
+                    Spacer()
+                    circleButton(systemName: "checkmark", background: .blue) { onDone(flattened()) }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+
+                GeometryReader { geo in
+                    let fitted = fittedSize(image.size, into: geo.size)
+                    ZStack {
+                        Image(uiImage: image)
+                            .resizable()
+                            .frame(width: fitted.width, height: fitted.height)
+                        MarkupCanvas(canvas: canvas)
+                            .frame(width: fitted.width, height: fitted.height)
+                    }
+                    .frame(width: fitted.width, height: fitted.height)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .frame(width: geo.size.width, height: geo.size.height)
+                }
+
+                toolbar
+            }
+        }
+        .onAppear { applyTool() }
+    }
+
+    private var toolbar: some View {
+        HStack(spacing: 14) {
+            ForEach(Array(palette.enumerated()), id: \.offset) { _, color in
+                Button {
+                    selectedColor = color
+                    isEraser = false
+                    applyTool()
+                } label: {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 26, height: 26)
+                        .overlay(Circle().stroke(.white.opacity(0.35), lineWidth: 1))
+                        .overlay(
+                            Circle().stroke(.white, lineWidth: selectedColor == color && !isEraser ? 2.5 : 0)
+                                .padding(-3)
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer(minLength: 0)
+
+            Button {
+                isEraser.toggle()
+                applyTool()
+            } label: {
+                Image(systemName: "eraser")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(isEraser ? .blue : .white)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                canvas.undoManager?.undo()
+            } label: {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(Color.black)
+    }
+
+    private func circleButton(systemName: String, background: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(background, in: Circle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func applyTool() {
+        canvas.tool = isEraser
+            ? PKEraserTool(.bitmap)
+            : PKInkingTool(.pen, color: UIColor(selectedColor), width: 6)
+    }
+
+    private func flattened() -> UIImage {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+            let drawing = canvas.drawing.image(from: canvas.bounds, scale: image.scale)
+            drawing.draw(in: CGRect(origin: .zero, size: image.size))
+        }
+    }
+}
+
+private func fittedSize(_ size: CGSize, into bounds: CGSize) -> CGSize {
+    guard size.width > 0, size.height > 0 else { return bounds }
+    let scale = min(bounds.width / size.width, bounds.height / size.height)
+    return CGSize(width: size.width * scale, height: size.height * scale)
+}
+
+/// PencilKit canvas without a floating tool picker; the tool is set by the
+/// surrounding markup view's toolbar.
+private struct MarkupCanvas: UIViewRepresentable {
+    let canvas: PKCanvasView
+
+    func makeUIView(context: Context) -> PKCanvasView {
+        canvas.backgroundColor = .clear
+        canvas.isOpaque = false
+        canvas.drawingPolicy = .anyInput
+        return canvas
+    }
+
+    func updateUIView(_ uiView: PKCanvasView, context: Context) {}
 }
 
 #Preview {

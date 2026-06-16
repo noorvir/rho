@@ -9,7 +9,7 @@ enum ComposerMediaAction {
 
 struct PendingImage: Identifiable, Equatable {
     let id = UUID()
-    let image: UIImage
+    var image: UIImage
 }
 
 /// Positions the composer bar with UIKit's keyboardLayoutGuide: docked above
@@ -23,6 +23,7 @@ struct ComposerOverlay: UIViewRepresentable {
     let isSending: Bool
     let onSend: () -> Void
     let onRemoveImage: (UUID) -> Void
+    let onImageTap: (UUID) -> Void
     let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
     let onHeightChange: (CGFloat) -> Void
@@ -59,6 +60,7 @@ struct ComposerOverlay: UIViewRepresentable {
             isSending: isSending,
             onSend: onSend,
             onRemoveImage: onRemoveImage,
+            onImageTap: onImageTap,
             onAudioRecorded: onAudioRecorded,
             onMediaAction: onMediaAction,
             onHeightChange: onHeightChange
@@ -140,6 +142,7 @@ struct AgentInput: View {
     let isSending: Bool
     let onSend: () -> Void
     let onRemoveImage: (UUID) -> Void
+    let onImageTap: (UUID) -> Void
     let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
     let onHeightChange: (CGFloat) -> Void
@@ -208,6 +211,8 @@ struct AgentInput: View {
                                 .scaledToFill()
                                 .frame(width: 64, height: 64)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .onTapGesture { onImageTap(pending.id) }
                                 .overlay(alignment: .topTrailing) {
                                     Button {
                                         onRemoveImage(pending.id)

@@ -18,6 +18,43 @@ struct InstalledApp: Identifiable, Equatable {
     let url: URL
 }
 
+/// Captures the app content currently on screen. Call `refresh()` just before
+/// presenting the chat overlay so the image reflects the screen underneath and
+/// excludes the chat sheet (which is not yet presented).
+@MainActor
+final class ContentSnapshotService {
+    static let shared = ContentSnapshotService()
+
+    private(set) var latest: UIImage?
+
+    @discardableResult
+    func refresh() -> UIImage? {
+        latest = render()
+        return latest
+    }
+
+    private func render() -> UIImage? {
+        guard let window = Self.keyWindow(), window.bounds.width > 0, window.bounds.height > 0 else {
+            return nil
+        }
+        let format = UIGraphicsImageRendererFormat.default()
+        format.opaque = true
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds, format: format)
+        return renderer.image { context in
+            if !window.drawHierarchy(in: window.bounds, afterScreenUpdates: false) {
+                window.layer.render(in: context.cgContext)
+            }
+        }
+    }
+
+    private static func keyWindow() -> UIWindow? {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+        return windows.first { $0.isKeyWindow } ?? windows.first
+    }
+}
+
 struct ContentView: View {
     @StateObject private var authStore = AuthStore()
     @State private var screen: RootScreen = .home
@@ -32,7 +69,10 @@ struct ContentView: View {
                         screen: screen,
                         apps: apps,
                         selectScreen: { screen = $0 },
-                        openChat: { isChatPresented = true },
+                        openChat: {
+                            ContentSnapshotService.shared.refresh()
+                            isChatPresented = true
+                        },
                         refreshApps: { refreshApps() }
                     )
                 ) {
