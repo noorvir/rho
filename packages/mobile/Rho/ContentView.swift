@@ -239,7 +239,7 @@ private struct RootScreenView: View {
     var body: some View {
         switch screen {
         case .home:
-            PlaceholderScreen(title: "Home", subtitle: "Your rho workspace")
+            HomeScreen()
         case .app(let app):
             AppWebView(app: app, authStore: authStore)
         case .search:
@@ -270,6 +270,271 @@ private struct PlaceholderScreen: View {
         .padding(.horizontal, 24)
         .padding(.top, 20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+private struct HomeScreen: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 22) {
+                header
+                notificationsSection
+                remindersSection
+                quickActions
+                // widgetsSection
+            }
+            .padding(.horizontal, 22)
+            .padding(.top, 6)
+            .padding(.bottom, 120)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white)
+    }
+
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Home")
+                .font(.system(size: 34, weight: .bold))
+                .foregroundStyle(.primary)
+
+            Spacer(minLength: 12)
+
+            Text("Tue, 16 Jun")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var notificationsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HomeSectionTitle(title: "Notifications")
+            NotificationCard()
+        }
+    }
+
+    private var remindersSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HomeSectionTitle(title: "Reminders")
+
+            VStack(spacing: 6) {
+                ReminderCard(icon: "leaf", title: "Water fiddle leaf fig", time: "Today, 5:00 PM", tint: Color.green)
+                ReminderCard(icon: "cart", title: "Review grocery list", time: "Today, 6:30 PM", tint: RhoTheme.primaryColor)
+                ReminderCard(icon: "creditcard", title: "Pay invoice", time: "Tomorrow, 9:00 AM", tint: Color.orange)
+
+                Button {
+                } label: {
+                    Text("View all 6")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(RhoTheme.primaryColor)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var quickActions: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HomeSectionTitle(title: "Quick actions")
+
+            HStack(spacing: 10) {
+                QuickActionCard(icon: "plus", title: "New todo")
+                QuickActionCard(icon: "leaf", title: "Log plant")
+                QuickActionCard(icon: "creditcard", title: "Expense")
+            }
+        }
+    }
+
+    private var widgetsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HomeSectionTitle(title: "Pinned widgets")
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                HomeWidgetCard(
+                    title: "Todo List",
+                    subtitle: "Today",
+                    value: "3",
+                    detail: "open items",
+                    icon: "checkmark.circle",
+                    tint: RhoTheme.primaryColor
+                )
+
+                HomeWidgetCard(
+                    title: "Plants",
+                    subtitle: "Care",
+                    value: "2",
+                    detail: "need water",
+                    icon: "leaf",
+                    tint: .green
+                )
+
+                HomeWidgetCard(
+                    title: "Expenses",
+                    subtitle: "This week",
+                    value: "$128",
+                    detail: "tracked",
+                    icon: "chart.pie",
+                    tint: .purple
+                )
+
+                HomeWidgetCard(
+                    title: "Bookmarks",
+                    subtitle: "Saved",
+                    value: "7",
+                    detail: "new links",
+                    icon: "bookmark",
+                    tint: .orange
+                )
+            }
+        }
+    }
+}
+
+private struct HomeSectionTitle: View {
+    let title: String
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
+            .tracking(0.4)
+    }
+}
+
+private struct NotificationCard: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "envelope.badge")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(RhoTheme.primaryColor)
+                .frame(width: 36, height: 36)
+                .background(RhoTheme.primaryColor.opacity(0.12), in: Circle())
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("Email triage")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    Text("New")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(RhoTheme.primaryColor)
+                }
+
+                Text("Important email from Sam")
+                    .font(.system(size: 17, weight: .semibold))
+
+                Text("Looks like it needs a reply today. Rho marked it as high priority.")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(15)
+        .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .controlBorder(cornerRadius: 20)
+        .controlShadow()
+    }
+}
+
+private struct ReminderCard: View {
+    let icon: String
+    let title: String
+    let time: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(tint.opacity(0.12), in: Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 16, weight: .semibold))
+                Text(time)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .controlBorder(cornerRadius: 18)
+        .controlShadow()
+    }
+}
+
+private struct QuickActionCard: View {
+    let icon: String
+    let title: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(RhoTheme.primaryColor)
+                .frame(width: 38, height: 38)
+                .background(RhoTheme.primaryColor.opacity(0.1), in: Circle())
+
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .controlBorder(cornerRadius: 18)
+        .controlShadow()
+    }
+}
+
+private struct HomeWidgetCard: View {
+    let title: String
+    let subtitle: String
+    let value: String
+    let detail: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(tint)
+                Spacer(minLength: 0)
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+
+            Text(value)
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(.primary)
+            Text(detail)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+        }
+        .frame(height: 150)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(.white, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .controlBorder(cornerRadius: 22)
+        .controlShadow()
     }
 }
 

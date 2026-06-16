@@ -39,6 +39,7 @@ export type Rho_sys_CronMinAggregateOutputType = {
   activeRunId: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  purpose: $Enums.rho_sys_CronPurpose | null
   instructions: string | null
   conversationKey: string | null
   channelId: string | null
@@ -62,6 +63,7 @@ export type Rho_sys_CronMaxAggregateOutputType = {
   activeRunId: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  purpose: $Enums.rho_sys_CronPurpose | null
   instructions: string | null
   conversationKey: string | null
   channelId: string | null
@@ -85,6 +87,7 @@ export type Rho_sys_CronCountAggregateOutputType = {
   activeRunId: number
   createdAt: number
   updatedAt: number
+  purpose: number
   instructions: number
   conversationKey: number
   channelId: number
@@ -110,6 +113,7 @@ export type Rho_sys_CronMinAggregateInputType = {
   activeRunId?: true
   createdAt?: true
   updatedAt?: true
+  purpose?: true
   instructions?: true
   conversationKey?: true
   channelId?: true
@@ -133,6 +137,7 @@ export type Rho_sys_CronMaxAggregateInputType = {
   activeRunId?: true
   createdAt?: true
   updatedAt?: true
+  purpose?: true
   instructions?: true
   conversationKey?: true
   channelId?: true
@@ -156,6 +161,7 @@ export type Rho_sys_CronCountAggregateInputType = {
   activeRunId?: true
   createdAt?: true
   updatedAt?: true
+  purpose?: true
   instructions?: true
   conversationKey?: true
   channelId?: true
@@ -252,6 +258,7 @@ export type Rho_sys_CronGroupByOutputType = {
   activeRunId: string | null
   createdAt: Date
   updatedAt: Date
+  purpose: $Enums.rho_sys_CronPurpose
   instructions: string | null
   conversationKey: string | null
   channelId: string | null
@@ -296,6 +303,7 @@ export type rho_sys_CronWhereInput = {
   activeRunId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   createdAt?: Prisma.DateTimeFilter<"rho_sys_Cron"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"rho_sys_Cron"> | Date | string
+  purpose?: Prisma.Enumrho_sys_CronPurposeFilter<"rho_sys_Cron"> | $Enums.rho_sys_CronPurpose
   instructions?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   conversationKey?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   channelId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
@@ -319,6 +327,7 @@ export type rho_sys_CronOrderByWithRelationInput = {
   activeRunId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   instructions?: Prisma.SortOrderInput | Prisma.SortOrder
   conversationKey?: Prisma.SortOrderInput | Prisma.SortOrder
   channelId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -345,6 +354,7 @@ export type rho_sys_CronWhereUniqueInput = Prisma.AtLeast<{
   activeRunId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   createdAt?: Prisma.DateTimeFilter<"rho_sys_Cron"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"rho_sys_Cron"> | Date | string
+  purpose?: Prisma.Enumrho_sys_CronPurposeFilter<"rho_sys_Cron"> | $Enums.rho_sys_CronPurpose
   instructions?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   conversationKey?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   channelId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
@@ -368,6 +378,7 @@ export type rho_sys_CronOrderByWithAggregationInput = {
   activeRunId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   instructions?: Prisma.SortOrderInput | Prisma.SortOrder
   conversationKey?: Prisma.SortOrderInput | Prisma.SortOrder
   channelId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -397,6 +408,7 @@ export type rho_sys_CronScalarWhereWithAggregatesInput = {
   activeRunId?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"rho_sys_Cron"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"rho_sys_Cron"> | Date | string
+  purpose?: Prisma.Enumrho_sys_CronPurposeWithAggregatesFilter<"rho_sys_Cron"> | $Enums.rho_sys_CronPurpose
   instructions?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
   conversationKey?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
   channelId?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
@@ -420,6 +432,7 @@ export type rho_sys_CronCreateInput = {
   activeRunId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  purpose?: $Enums.rho_sys_CronPurpose
   instructions?: string | null
   conversationKey?: string | null
   channelId?: string | null
@@ -443,6 +456,7 @@ export type rho_sys_CronUncheckedCreateInput = {
   activeRunId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  purpose?: $Enums.rho_sys_CronPurpose
   instructions?: string | null
   conversationKey?: string | null
   channelId?: string | null
@@ -466,6 +480,7 @@ export type rho_sys_CronUpdateInput = {
   activeRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purpose?: Prisma.Enumrho_sys_CronPurposeFieldUpdateOperationsInput | $Enums.rho_sys_CronPurpose
   instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conversationKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -489,6 +504,7 @@ export type rho_sys_CronUncheckedUpdateInput = {
   activeRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purpose?: Prisma.Enumrho_sys_CronPurposeFieldUpdateOperationsInput | $Enums.rho_sys_CronPurpose
   instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conversationKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -512,6 +528,7 @@ export type rho_sys_CronCreateManyInput = {
   activeRunId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  purpose?: $Enums.rho_sys_CronPurpose
   instructions?: string | null
   conversationKey?: string | null
   channelId?: string | null
@@ -535,6 +552,7 @@ export type rho_sys_CronUpdateManyMutationInput = {
   activeRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purpose?: Prisma.Enumrho_sys_CronPurposeFieldUpdateOperationsInput | $Enums.rho_sys_CronPurpose
   instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conversationKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -558,6 +576,7 @@ export type rho_sys_CronUncheckedUpdateManyInput = {
   activeRunId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purpose?: Prisma.Enumrho_sys_CronPurposeFieldUpdateOperationsInput | $Enums.rho_sys_CronPurpose
   instructions?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   conversationKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   channelId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -581,6 +600,7 @@ export type rho_sys_CronCountOrderByAggregateInput = {
   activeRunId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   instructions?: Prisma.SortOrder
   conversationKey?: Prisma.SortOrder
   channelId?: Prisma.SortOrder
@@ -604,6 +624,7 @@ export type rho_sys_CronMaxOrderByAggregateInput = {
   activeRunId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   instructions?: Prisma.SortOrder
   conversationKey?: Prisma.SortOrder
   channelId?: Prisma.SortOrder
@@ -627,6 +648,7 @@ export type rho_sys_CronMinOrderByAggregateInput = {
   activeRunId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  purpose?: Prisma.SortOrder
   instructions?: Prisma.SortOrder
   conversationKey?: Prisma.SortOrder
   channelId?: Prisma.SortOrder
@@ -651,6 +673,10 @@ export type Enumrho_sys_CronStatusFieldUpdateOperationsInput = {
   set?: $Enums.rho_sys_CronStatus
 }
 
+export type Enumrho_sys_CronPurposeFieldUpdateOperationsInput = {
+  set?: $Enums.rho_sys_CronPurpose
+}
+
 
 
 export type rho_sys_CronSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -668,6 +694,7 @@ export type rho_sys_CronSelect<ExtArgs extends runtime.Types.Extensions.Internal
   activeRunId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  purpose?: boolean
   instructions?: boolean
   conversationKey?: boolean
   channelId?: boolean
@@ -691,6 +718,7 @@ export type rho_sys_CronSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   activeRunId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  purpose?: boolean
   instructions?: boolean
   conversationKey?: boolean
   channelId?: boolean
@@ -714,6 +742,7 @@ export type rho_sys_CronSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   activeRunId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  purpose?: boolean
   instructions?: boolean
   conversationKey?: boolean
   channelId?: boolean
@@ -737,6 +766,7 @@ export type rho_sys_CronSelectScalar = {
   activeRunId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  purpose?: boolean
   instructions?: boolean
   conversationKey?: boolean
   channelId?: boolean
@@ -745,7 +775,7 @@ export type rho_sys_CronSelectScalar = {
   extensionId?: boolean
 }
 
-export type rho_sys_CronOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kind" | "title" | "scheduleKind" | "schedule" | "timezone" | "enabled" | "status" | "nextRunAt" | "lastRunAt" | "lastError" | "activeRunId" | "createdAt" | "updatedAt" | "instructions" | "conversationKey" | "channelId" | "targetType" | "targetId" | "extensionId", ExtArgs["result"]["rho_sys_Cron"]>
+export type rho_sys_CronOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kind" | "title" | "scheduleKind" | "schedule" | "timezone" | "enabled" | "status" | "nextRunAt" | "lastRunAt" | "lastError" | "activeRunId" | "createdAt" | "updatedAt" | "purpose" | "instructions" | "conversationKey" | "channelId" | "targetType" | "targetId" | "extensionId", ExtArgs["result"]["rho_sys_Cron"]>
 
 export type $rho_sys_CronPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "rho_sys_Cron"
@@ -765,6 +795,7 @@ export type $rho_sys_CronPayload<ExtArgs extends runtime.Types.Extensions.Intern
     activeRunId: string | null
     createdAt: Date
     updatedAt: Date
+    purpose: $Enums.rho_sys_CronPurpose
     instructions: string | null
     conversationKey: string | null
     channelId: string | null
@@ -1208,6 +1239,7 @@ export interface rho_sys_CronFieldRefs {
   readonly activeRunId: Prisma.FieldRef<"rho_sys_Cron", 'String'>
   readonly createdAt: Prisma.FieldRef<"rho_sys_Cron", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"rho_sys_Cron", 'DateTime'>
+  readonly purpose: Prisma.FieldRef<"rho_sys_Cron", 'rho_sys_CronPurpose'>
   readonly instructions: Prisma.FieldRef<"rho_sys_Cron", 'String'>
   readonly conversationKey: Prisma.FieldRef<"rho_sys_Cron", 'String'>
   readonly channelId: Prisma.FieldRef<"rho_sys_Cron", 'String'>

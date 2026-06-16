@@ -45,6 +45,14 @@ export const rho_sys_CronStatus = {
 export type rho_sys_CronStatus = (typeof rho_sys_CronStatus)[keyof typeof rho_sys_CronStatus]
 
 
+export const rho_sys_CronPurpose = {
+  REMINDER: 'REMINDER',
+  SCHEDULED_TASK: 'SCHEDULED_TASK'
+} as const
+
+export type rho_sys_CronPurpose = (typeof rho_sys_CronPurpose)[keyof typeof rho_sys_CronPurpose]
+
+
 export const Relationship = {
   BookClub: 'BookClub',
   Family: 'Family',

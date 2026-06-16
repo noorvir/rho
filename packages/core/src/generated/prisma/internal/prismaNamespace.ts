@@ -1002,6 +1002,7 @@ export const Rho_sys_CronScalarFieldEnum = {
   activeRunId: 'activeRunId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  purpose: 'purpose',
   instructions: 'instructions',
   conversationKey: 'conversationKey',
   channelId: 'channelId',
@@ -1155,6 +1156,13 @@ export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel,
  * Reference to a field of type 'rho_sys_CronStatus'
  */
 export type Enumrho_sys_CronStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'rho_sys_CronStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'rho_sys_CronPurpose'
+ */
+export type Enumrho_sys_CronPurposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'rho_sys_CronPurpose'>
     
 
 

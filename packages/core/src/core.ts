@@ -90,6 +90,7 @@ export interface RhoCore {
 	loadConversation(key: ConversationKey): Promise<ConversationHistory>;
 	listTasks(key: ConversationKey): Promise<Task[]>;
 	listCrons(scope: CronListScope): Promise<CronSummary[]>;
+	listReminders(): Promise<CronSummary[]>;
 	listApps(): Promise<AppExtension[]>;
 	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
@@ -237,6 +238,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 								title: request.title,
 								schedule: request.schedule,
 								enabled: request.enabled,
+								purpose: request.purpose,
 								instructions: request.instructions,
 							});
 							return { id: cron.id };
@@ -272,6 +274,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 
 	const listApps = async () => appRegistry.current();
 	const listCrons = async (scope: CronListScope) => cronScheduler.listCrons(scope);
+	const listReminders = async () => cronScheduler.listReminders();
 
 	const core: RhoCore = {
 		runtime,
@@ -283,6 +286,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		loadConversation: async (key) => loadConversation(state, key),
 		listTasks: async (key) => tasks.listForConversation(key),
 		listCrons,
+		listReminders,
 		listApps,
 		replaceApps,
 		replaceChannels,

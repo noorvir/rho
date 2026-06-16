@@ -20,6 +20,7 @@ export interface ExpressionCronSchedule {
 export type CronListScope = "all" | "agent" | "extension";
 export type CronKind = "agent" | "extension";
 export type CronStatus = "not_run" | "running" | "succeeded" | "failed";
+export type CronPurpose = "reminder" | "scheduled_task";
 
 export interface CronSummary {
 	id: string;
@@ -29,6 +30,7 @@ export interface CronSummary {
 	timezone: string;
 	enabled: boolean;
 	status: CronStatus;
+	purpose: CronPurpose;
 	nextRunAt: Date;
 	lastRunAt: Date | null;
 	lastError: string | null;
@@ -54,6 +56,7 @@ export interface CreateAgentCronInput extends AgentCronDeliveryTarget {
 	title: string;
 	schedule: CronSchedule;
 	enabled: boolean;
+	purpose: CronPurpose;
 	instructions: string;
 }
 
@@ -62,6 +65,7 @@ export interface UpdateCronInput {
 	title?: string;
 	schedule?: CronSchedule;
 	enabled?: boolean;
+	purpose?: CronPurpose;
 	instructions?: string;
 }
 
@@ -146,6 +150,7 @@ export class CronScheduler {
 					enabled,
 					status: "not_run",
 					nextRunAt,
+					purpose: "SCHEDULED_TASK",
 					extensionId: registration.extensionId,
 				},
 				update: {
@@ -155,6 +160,7 @@ export class CronScheduler {
 					timezone: registration.schedule.timezone,
 					nextRunAt,
 					extensionId: registration.extensionId,
+					purpose: "SCHEDULED_TASK",
 					instructions: null,
 					conversationKey: null,
 					channelId: null,
@@ -198,6 +204,16 @@ export class CronScheduler {
 		return crons.map(cronSummary);
 	}
 
+	async listReminders(): Promise<CronSummary[]> {
+		await this.syncAgentCronTasks();
+		const crons = await this.prisma.rho_sys_Cron.findMany({
+			where: { kind: "agent", purpose: "REMINDER", enabled: true },
+			orderBy: { nextRunAt: "asc" },
+		});
+
+		return crons.map(cronSummary);
+	}
+
 	async createAgentCron(input: CreateAgentCronInput): Promise<CronSummary> {
 		validateCreateAgentCron(input);
 		const id = `cron_${crypto.randomUUID()}`;
@@ -214,6 +230,7 @@ export class CronScheduler {
 				enabled: input.enabled,
 				status: "not_run",
 				nextRunAt,
+				purpose: prismaCronPurpose(input.purpose),
 				instructions: input.instructions,
 				conversationKey: input.conversationKey,
 				channelId: input.channelId,
@@ -250,6 +267,7 @@ export class CronScheduler {
 				status: input.schedule ? "not_run" : existing.status,
 				lastError: input.schedule ? null : existing.lastError,
 				activeRunId: input.enabled === false ? null : existing.activeRunId,
+				purpose: input.purpose ? prismaCronPurpose(input.purpose) : existing.purpose,
 				instructions: input.instructions ?? existing.instructions,
 			},
 		});
@@ -258,7 +276,12 @@ export class CronScheduler {
 	}
 
 	private async updateRegisteredCron(existing: CronRow, input: UpdateCronInput): Promise<CronSummary> {
-		if (input.title !== undefined || input.schedule !== undefined || input.instructions !== undefined) {
+		if (
+			input.title !== undefined ||
+			input.schedule !== undefined ||
+			input.purpose !== undefined ||
+			input.instructions !== undefined
+		) {
 			throw new Error("Extension cron definitions are owned by extension code; only enabled can be updated");
 		}
 		if (input.enabled === undefined) {
@@ -578,6 +601,20 @@ function scheduleValue(schedule: CronSchedule): string {
 	return nonEmpty(schedule.expression, "schedule.expression");
 }
 
+function prismaCronPurpose(purpose: CronPurpose): "REMINDER" | "SCHEDULED_TASK" {
+	if (purpose === "reminder") {
+		return "REMINDER";
+	}
+	return "SCHEDULED_TASK";
+}
+
+function cronPurpose(purpose: "REMINDER" | "SCHEDULED_TASK"): CronPurpose {
+	if (purpose === "REMINDER") {
+		return "reminder";
+	}
+	return "scheduled_task";
+}
+
 function agentCronFields(cron: CronRow): AgentCronFields | null {
 	if (!cron.instructions || !cron.conversationKey || !cron.channelId || !cron.targetType || !cron.targetId) {
 		return null;
@@ -597,6 +634,7 @@ function cronSummary(cron: CronRow): CronSummary {
 		kind: cron.kind,
 		title: cron.title,
 		schedule: rowSchedule(cron),
+		purpose: cronPurpose(cron.purpose),
 		timezone: cron.timezone,
 		enabled: cron.enabled,
 		status: cron.status,
@@ -613,6 +651,7 @@ function cronSummary(cron: CronRow): CronSummary {
 
 function validateCreateAgentCron(input: CreateAgentCronInput): void {
 	nonEmpty(input.title, "title");
+	validatePurpose(input.purpose);
 	nonEmpty(input.instructions, "instructions");
 	nonEmpty(input.conversationKey, "conversationKey");
 	nonEmpty(input.channelId, "channelId");
@@ -627,12 +666,16 @@ function validateUpdateCron(input: UpdateCronInput): void {
 		input.title === undefined &&
 		input.schedule === undefined &&
 		input.enabled === undefined &&
+		input.purpose === undefined &&
 		input.instructions === undefined
 	) {
 		throw new Error("At least one cron field must be provided to update");
 	}
 	if (input.title !== undefined) {
 		nonEmpty(input.title, "title");
+	}
+	if (input.purpose !== undefined) {
+		validatePurpose(input.purpose);
 	}
 	if (input.instructions !== undefined) {
 		nonEmpty(input.instructions, "instructions");
@@ -647,6 +690,12 @@ function validateRegistration(input: CronRegistration): void {
 	nonEmpty(input.extensionId, "extensionId");
 	nonEmpty(input.title, "title");
 	validateSchedule(input.schedule);
+}
+
+function validatePurpose(purpose: CronPurpose): void {
+	if (purpose !== "reminder" && purpose !== "scheduled_task") {
+		throw new Error(`Invalid cron purpose: ${purpose}`);
+	}
 }
 
 function validateSchedule(schedule: CronSchedule): void {

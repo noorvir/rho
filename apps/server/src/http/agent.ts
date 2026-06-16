@@ -78,6 +78,16 @@ export function agentRouter() {
 			return { crons: crons.data };
 		}),
 
+		reminders: p.agent.reminders.handler(async ({ context }) => {
+			await requireAuth(context);
+			const reminders = await tc(context.core.listReminders());
+			if (reminders.error) {
+				throw badRequest(reminders.error, "Failed to load reminders");
+			}
+
+			return { reminders: reminders.data };
+		}),
+
 		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {
 			await requireAuth(context);
 			const messageInput = tc(() => validateHttpMessage(input));

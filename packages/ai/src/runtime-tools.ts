@@ -23,6 +23,7 @@ export interface RhoExpressionCronSchedule {
 export type RhoCronScope = "all" | "agent" | "extension";
 export type RhoCronKind = "agent" | "extension";
 export type RhoCronStatus = "not_run" | "running" | "succeeded" | "failed";
+export type RhoCronPurpose = "reminder" | "scheduled_task";
 
 export interface RhoCronSummary {
 	id: string;
@@ -32,6 +33,7 @@ export interface RhoCronSummary {
 	timezone: string;
 	enabled: boolean;
 	status: RhoCronStatus;
+	purpose: RhoCronPurpose;
 	nextRunAt: Date;
 	lastRunAt: Date | null;
 	lastError: string | null;
@@ -46,6 +48,7 @@ export interface RhoCronCreateRequest {
 	title: string;
 	schedule: RhoCronSchedule;
 	enabled: boolean;
+	purpose: RhoCronPurpose;
 	instructions: string;
 }
 
@@ -54,6 +57,7 @@ export interface RhoCronUpdateRequest {
 	title?: string;
 	schedule?: RhoCronSchedule;
 	enabled?: boolean;
+	purpose?: RhoCronPurpose;
 	instructions?: string;
 }
 
@@ -145,7 +149,7 @@ export function rhoCronCreateExtension(
 			name: "rho_cron_create",
 			label: "Create Rho cron",
 			description:
-				`Create an agent cron/reminder. Use this for requests like "remind me later", "in 30 seconds", or recurring scheduled agent work. The cron id is generated and returned. If the user does not specify a timezone, use ${defaultTimezone}. For relative one-shot reminders, compute an ISO date and use kind 'at'.`,
+				`Create an agent cron/reminder. Use purpose 'reminder' for alarms and reminders the user should see in a reminders list; use 'scheduled_task' for scheduled agent work that should not appear as a reminder. The cron id is generated and returned. If the user does not specify a timezone, use ${defaultTimezone}. For relative one-shot reminders, compute an ISO date and use kind 'at'.`,
 			promptSnippet: "Create a scheduled reminder or agent cron",
 			promptGuidelines: [
 				"For explicit reminders or scheduled follow-ups, create an agent cron with rho_cron_create instead of using background_task, sleeps, or polling.",
@@ -154,6 +158,7 @@ export function rhoCronCreateExtension(
 				title: Type.String({ description: "Short user-facing title for the cron." }),
 				schedule: cronScheduleParams,
 				enabled: Type.Boolean({ description: "Whether the cron should be active immediately." }),
+				purpose: Type.Union([Type.Literal("reminder"), Type.Literal("scheduled_task")]),
 				instructions: Type.String({ description: "What the agent should do when this cron fires." }),
 			}),
 			async execute(_toolCallId, params) {
@@ -161,6 +166,7 @@ export function rhoCronCreateExtension(
 					title: params.title,
 					schedule: params.schedule,
 					enabled: params.enabled,
+					purpose: params.purpose,
 					instructions: params.instructions,
 				});
 				return {
@@ -181,13 +187,14 @@ export function rhoCronUpdateExtension(
 			name: "rho_cron_update",
 			label: "Update Rho cron",
 			description:
-				`Partially update an existing cron. List crons first; do not guess ids. Provide only fields the user wants changed. Agent crons can update title, schedule, enabled, and instructions. Extension crons can only update enabled because their definitions are owned by extension code. If setting a schedule and the user does not specify a timezone, use ${defaultTimezone}.`,
+				`Partially update an existing cron. List crons first; do not guess ids. Provide only fields the user wants changed. Agent crons can update title, schedule, enabled, purpose, and instructions. Extension crons can only update enabled because their definitions are owned by extension code. If setting a schedule and the user does not specify a timezone, use ${defaultTimezone}.`,
 			promptSnippet: "Partially update an existing scheduled cron",
 			parameters: Type.Object({
 				id: Type.String({ description: "Existing cron id returned by rho_crons or rho_cron_create." }),
 				title: Type.Optional(Type.String({ description: "New title." })),
 				schedule: Type.Optional(cronScheduleParams),
 				enabled: Type.Optional(Type.Boolean({ description: "Whether the cron should be active." })),
+				purpose: Type.Optional(Type.Union([Type.Literal("reminder"), Type.Literal("scheduled_task")])),
 				instructions: Type.Optional(Type.String({ description: "New instructions." })),
 			}),
 			async execute(_toolCallId, params) {
@@ -196,6 +203,7 @@ export function rhoCronUpdateExtension(
 					title: params.title,
 					schedule: params.schedule,
 					enabled: params.enabled,
+					purpose: params.purpose,
 					instructions: params.instructions,
 				});
 				return { content: [{ type: "text", text: `Cron ${result.id} updated.` }], details: result };
@@ -212,7 +220,7 @@ function formatCrons(crons: RhoCronSummary[]): string {
 	return crons
 		.map((cron) => {
 			const enabled = cron.enabled ? "enabled" : "disabled";
-			const owner = cron.kind === "extension" ? `extension:${cron.extensionId ?? "unknown"}` : "agent";
+			const owner = cron.kind === "extension" ? `extension:${cron.extensionId ?? "unknown"}` : `agent:${cron.purpose}`;
 			const next = cron.nextRunAt.toISOString();
 			const error = cron.lastError ? `, error: ${cron.lastError}` : "";
 			return `- ${cron.id}: ${cron.title} (${owner}, ${enabled}, ${cron.status}, ${formatSchedule(cron.schedule)}, next ${next}${error})`;

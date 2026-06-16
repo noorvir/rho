@@ -18,6 +18,7 @@ export type {
 	CronInput,
 	CronKind,
 	CronListScope,
+	CronPurpose,
 	CronRegistration,
 	CronSchedule,
 	CronStatus,

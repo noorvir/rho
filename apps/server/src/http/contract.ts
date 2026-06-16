@@ -72,6 +72,7 @@ const cronSchema = z.object({
 	timezone: z.string(),
 	enabled: z.boolean(),
 	status: z.enum(["not_run", "running", "succeeded", "failed"]),
+	purpose: z.enum(["reminder", "scheduled_task"]),
 	nextRunAt: z.date(),
 	lastRunAt: z.date().nullable(),
 	lastError: z.string().nullable(),
@@ -186,6 +187,9 @@ export const httpContract = {
 			.input(z.object({ id: z.string().min(1) }))
 			.output(z.object({ tasks: z.array(taskSchema) })),
 		crons: oc.route({ method: "GET", path: "/agent/crons" }).output(z.object({ crons: z.array(cronSchema) })),
+		reminders: oc
+			.route({ method: "GET", path: "/agent/reminders" })
+			.output(z.object({ reminders: z.array(cronSchema) })),
 	},
 	store: {
 		upload: oc

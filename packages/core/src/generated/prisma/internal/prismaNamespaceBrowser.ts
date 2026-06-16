@@ -111,6 +111,7 @@ export const Rho_sys_CronScalarFieldEnum = {
   activeRunId: 'activeRunId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  purpose: 'purpose',
   instructions: 'instructions',
   conversationKey: 'conversationKey',
   channelId: 'channelId',

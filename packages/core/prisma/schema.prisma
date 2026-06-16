@@ -39,6 +39,11 @@ enum rho_sys_CronStatus {
   failed
 }
 
+enum rho_sys_CronPurpose {
+  REMINDER       @map("reminder")
+  SCHEDULED_TASK @map("scheduled_task")
+}
+
 model rho_sys_Task {
   id              String             @id
   conversationKey String             @map("conversation_key")
@@ -77,6 +82,7 @@ model rho_sys_Cron {
   createdAt    DateTime                 @default(now()) @map("created_at")
   updatedAt    DateTime                 @updatedAt @map("updated_at")
 
+  purpose         rho_sys_CronPurpose @default(SCHEDULED_TASK)
   instructions    String?
   conversationKey String?                  @map("conversation_key")
   channelId       String?                  @map("channel_id")

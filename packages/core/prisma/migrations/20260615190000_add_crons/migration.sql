@@ -14,6 +14,7 @@ CREATE TABLE "rho_sys_crons" (
     "active_run_id" TEXT,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL,
+    "purpose" TEXT NOT NULL DEFAULT 'scheduled_task',
     "instructions" TEXT,
     "conversation_key" TEXT,
     "channel_id" TEXT,
