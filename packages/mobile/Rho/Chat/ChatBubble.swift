@@ -38,8 +38,9 @@ struct ChatBubble: View {
 
                 if !message.text.isEmpty || message.imagePaths.isEmpty {
                     Text(message.text.isEmpty ? "…" : message.text)
-                        .font(.system(size: 14))
+                        .font(.system(size: GlassControlMetrics.chatTextFontSize))
                         .foregroundStyle(.black.opacity(message.role == .user ? 0.9 : 0.78))
+                        .textSelection(.enabled)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 7)
                         .background(backgroundColor, in: RoundedRectangle(cornerRadius: 8, style: .continuous))

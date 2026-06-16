@@ -290,7 +290,7 @@ private struct RootBarItem: View {
                     .lineLimit(1)
             }
         }
-        .foregroundStyle(isSelected ? Color.blue : Color.primary)
+        .foregroundStyle(isSelected ? RhoTheme.primaryColor : Color.primary)
         .frame(width: itemWidth, height: 54)
         .background {
             if isSelected {
@@ -301,7 +301,7 @@ private struct RootBarItem: View {
         .overlay(alignment: .topTrailing) {
             if hasHighlight {
                 Circle()
-                    .fill(Color.blue)
+                    .fill(RhoTheme.primaryColor)
                     .frame(width: 9, height: 9)
                     .padding(.top, showsLabel ? 5 : 6)
                     .padding(.trailing, showsLabel ? 10 : 12)

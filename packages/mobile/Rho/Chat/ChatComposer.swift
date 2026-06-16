@@ -113,6 +113,7 @@ struct AgentInput: View {
     let onMediaAction: (ComposerMediaAction) -> Void
 
     @State private var recorder = VoiceRecorder()
+    @State private var textInputHeight: CGFloat = 22
 
     private let mediaMenuWidth: CGFloat = 320
     private let mediaMenuHeight: CGFloat = 320
@@ -123,6 +124,10 @@ struct AgentInput: View {
 
     private var canSend: Bool {
         !isSending && (!trimmedDraft.isEmpty || !pendingImages.isEmpty)
+    }
+
+    private var textInputVerticalPadding: CGFloat {
+        max((GlassControlMetrics.chatControlSize - textInputHeight) / 2, 0)
     }
 
     var body: some View {
@@ -193,7 +198,7 @@ struct AgentInput: View {
     }
 
     private var composerBar: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .bottom, spacing: 10) {
             GlassIconButton(
                 systemName: isMediaTrayPresented ? "xmark" : "plus",
                 accessibilityLabel: isMediaTrayPresented ? "Hide media options" : "Show media options",
@@ -204,36 +209,63 @@ struct AgentInput: View {
                 setMediaMenuPresented(!isMediaTrayPresented)
             }
 
-            HStack(spacing: 8) {
-                ChatTextField(
+            HStack(alignment: .bottom, spacing: 8) {
+                ChatTextView(
                     text: $draft,
+                    measuredHeight: $textInputHeight,
                     onSend: {
                         if canSend {
                             onSend()
                         }
                     }
                 )
+                .frame(height: textInputHeight)
                 .frame(maxWidth: .infinity)
+                .padding(.vertical, textInputVerticalPadding)
 
-                composerInlineButton(
-                    systemName: canSend ? "arrow.up.circle.fill" : "mic",
-                    accessibilityLabel: canSend ? "Send message" : "Record voice message",
-                    action: {
-                        if canSend {
-                            onSend()
-                        } else {
-                            recorder.start()
-                        }
+                if canSend {
+                    sendButton
+                        .disabled(isSending)
+                        .opacity(isSending ? 0.5 : 1)
+                } else {
+                    composerInlineButton(
+                        systemName: "mic",
+                        accessibilityLabel: "Record voice message"
+                    ) {
+                        recorder.start()
                     }
-                )
-                .disabled(isSending)
-                .opacity(isSending ? 0.5 : 1)
+                    .disabled(isSending)
+                    .opacity(isSending ? 0.5 : 1)
+                }
             }
             .padding(.leading, 18)
             .padding(.trailing, 8)
-            .frame(height: GlassControlMetrics.chatControlSize)
+            .frame(minHeight: GlassControlMetrics.chatControlSize)
             .glassSurface(cornerRadius: GlassControlMetrics.chatControlSize / 2, showsShadow: false)
         }
+    }
+
+    private var sendButton: some View {
+        Button(action: onSend) {
+            ZStack {
+                Circle()
+                    .fill(RhoTheme.primaryColor)
+                    .frame(
+                        width: GlassControlMetrics.composerSendButtonSize,
+                        height: GlassControlMetrics.composerSendButtonSize
+                    )
+
+                Image(systemName: "arrow.up")
+                    .font(.system(size: GlassControlMetrics.composerSendIconSize, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .frame(
+                width: GlassControlMetrics.composerInlineControlWidth,
+                height: GlassControlMetrics.composerInlineControlHeight
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Send message")
     }
 
     private func composerInlineButton(
@@ -353,49 +385,77 @@ private struct WaveformView: View {
     }
 }
 
-private struct ChatTextField: UIViewRepresentable {
+private struct ChatTextView: UIViewRepresentable {
     @Binding var text: String
+    @Binding var measuredHeight: CGFloat
     let onSend: () -> Void
 
-    func makeUIView(context: Context) -> UITextField {
-        let field = UITextField()
-        field.placeholder = "Ask rho..."
-        field.font = .systemFont(ofSize: 17)
-        field.returnKeyType = .send
-        field.autocorrectionType = .default
-        field.delegate = context.coordinator
-        field.addTarget(context.coordinator, action: #selector(Coordinator.textChanged), for: .editingChanged)
-        field.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        return field
+    private let minHeight: CGFloat = 21
+    private let maxHeight: CGFloat = 330
+
+    func makeUIView(context: Context) -> UITextView {
+        let view = UITextView()
+        view.backgroundColor = .clear
+        view.font = .systemFont(ofSize: GlassControlMetrics.composerInputFontSize)
+        view.textContainerInset = UIEdgeInsets(top: 2, left: 0, bottom: 0, right: 0)
+        view.textContainer.lineFragmentPadding = 0
+        view.returnKeyType = .send
+        view.autocorrectionType = .default
+        view.isScrollEnabled = false
+        view.delegate = context.coordinator
+        view.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return view
     }
 
-    func updateUIView(_ field: UITextField, context: Context) {
+    func updateUIView(_ view: UITextView, context: Context) {
         context.coordinator.parent = self
 
-        if field.text != text {
-            field.text = text
+        if view.text != text {
+            view.text = text
         }
+        updateHeight(for: view)
     }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
     }
 
-    final class Coordinator: NSObject, UITextFieldDelegate {
-        var parent: ChatTextField
+    private func updateHeight(for view: UITextView) {
+        let fittingWidth = max(view.bounds.width, 1)
+        let fittingSize = CGSize(width: fittingWidth, height: .greatestFiniteMagnitude)
+        let height = min(max(view.sizeThatFits(fittingSize).height, minHeight), maxHeight)
 
-        init(parent: ChatTextField) {
+        if abs(measuredHeight - height) > 0.5 {
+            DispatchQueue.main.async {
+                measuredHeight = height
+                view.isScrollEnabled = height >= maxHeight
+            }
+        }
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        var parent: ChatTextView
+
+        init(parent: ChatTextView) {
             self.parent = parent
         }
 
-        @objc func textChanged(_ field: UITextField) {
-            parent.text = field.text ?? ""
+        func textViewDidChange(_ textView: UITextView) {
+            parent.text = textView.text
+            parent.updateHeight(for: textView)
         }
 
-        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-            parent.onSend()
-            return false
+        func textView(
+            _ textView: UITextView,
+            shouldChangeTextIn range: NSRange,
+            replacementText text: String
+        ) -> Bool {
+            if text == "\n" {
+                parent.onSend()
+                return false
+            }
+            return true
         }
     }
 }

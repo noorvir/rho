@@ -14,6 +14,11 @@ enum GlassReplacementMenuPlacement {
     }
 }
 
+enum RhoTheme {
+    static let primaryColor = Color.blue
+    static let controlCornerRadius: CGFloat = 10
+}
+
 enum GlassControlMetrics {
     static let bottomControlSize: CGFloat = 60
     static let bottomControlIconSize: CGFloat = 26
@@ -22,6 +27,10 @@ enum GlassControlMetrics {
     static let composerInlineControlWidth: CGFloat = 34
     static let composerInlineControlHeight: CGFloat = chatControlSize
     static let composerInlineIconSize: CGFloat = 18
+    static let composerSendButtonSize: CGFloat = 34
+    static let composerSendIconSize: CGFloat = 19
+    static let chatTextFontSize: CGFloat = 16
+    static let composerInputFontSize: CGFloat = chatTextFontSize
     static let composerKeyboardSpacing: CGFloat = 8
     static let bottomBarHorizontalPadding: CGFloat = 20
     static let bottomBarTopPadding: CGFloat = 14
