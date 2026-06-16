@@ -24,6 +24,8 @@ struct ChatSheetView: View {
     @State private var isPhotosPresented = false
     @State private var isLocationPresented = false
     @State private var photoSelection: [PhotosPickerItem] = []
+    @State private var composerHeight: CGFloat = 72
+    @State private var composerLayoutVersion = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -58,11 +60,14 @@ struct ChatSheetView: View {
                                 .font(.system(size: 12))
                                 .foregroundStyle(.red)
                         }
+
+                        Color.clear
+                            .frame(height: composerHeight + 12)
+                            .id(bottomAnchorID)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 20)
                     .padding(.top, 20)
-                    .padding(.bottom, 64)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 .onTapGesture {
@@ -72,9 +77,12 @@ struct ChatSheetView: View {
                 .onChange(of: scrollKey) { _, _ in
                     scrollToLatestMessage(with: proxy)
                 }
+                .onChange(of: composerLayoutVersion) { _, _ in
+                    DispatchQueue.main.async {
+                        scrollToLatestMessage(with: proxy)
+                    }
+                }
             }
-
-            Spacer(minLength: 0)
         }
         .background(Color.white.ignoresSafeArea())
         .overlay {
@@ -86,7 +94,11 @@ struct ChatSheetView: View {
                 onSend: { sendDraft() },
                 onRemoveImage: { id in pendingImages.removeAll { $0.id == id } },
                 onAudioRecorded: { audio in sendVoiceMessage(audio) },
-                onMediaAction: handleMediaAction
+                onMediaAction: handleMediaAction,
+                onHeightChange: { height in
+                    composerHeight = height
+                    composerLayoutVersion += 1
+                }
             )
             .ignoresSafeArea()
         }
@@ -398,10 +410,14 @@ struct ChatSheetView: View {
         messages.map { "\($0.id.uuidString):\($0.text.count)" }.joined(separator: "|")
     }
 
+    private var bottomAnchorID: String {
+        "chat-bottom-anchor"
+    }
+
     private func scrollToLatestMessage(with proxy: ScrollViewProxy) {
-        guard let id = messages.last?.id else { return }
+        guard !messages.isEmpty else { return }
         withAnimation(.easeOut(duration: 0.18)) {
-            proxy.scrollTo(id, anchor: .bottom)
+            proxy.scrollTo(bottomAnchorID, anchor: .bottom)
         }
     }
 

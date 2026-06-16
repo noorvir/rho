@@ -25,6 +25,7 @@ struct ComposerOverlay: UIViewRepresentable {
     let onRemoveImage: (UUID) -> Void
     let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
+    let onHeightChange: (CGFloat) -> Void
 
     func makeUIView(context: Context) -> ComposerOverlayView {
         let hosting = UIHostingController(rootView: rootView)
@@ -34,12 +35,15 @@ struct ComposerOverlay: UIViewRepresentable {
         context.coordinator.hosting = hosting
 
         let overlay = ComposerOverlayView()
+        overlay.onHeightChange = onHeightChange
         overlay.install(barView: hosting.view)
         return overlay
     }
 
     func updateUIView(_ overlay: ComposerOverlayView, context: Context) {
         context.coordinator.hosting?.rootView = rootView
+        overlay.onHeightChange = onHeightChange
+        overlay.reportBarHeight()
     }
 
     func makeCoordinator() -> Coordinator {
@@ -65,7 +69,10 @@ struct ComposerOverlay: UIViewRepresentable {
 }
 
 final class ComposerOverlayView: UIView {
+    var onHeightChange: ((CGFloat) -> Void)?
+
     private weak var barView: UIView?
+    private var reportedBarFrame: CGRect = .null
 
     func install(barView: UIView) {
         self.barView = barView
@@ -96,9 +103,31 @@ final class ComposerOverlayView: UIView {
         ])
     }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        reportBarHeight()
+    }
+
+    func reportBarHeight() {
+        guard let barView else { return }
+        guard !reportedBarFrame.isClose(to: barView.frame) else { return }
+
+        reportedBarFrame = barView.frame
+        onHeightChange?(barView.bounds.height)
+    }
+
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         guard let barView else { return false }
         return barView.frame.contains(point)
+    }
+}
+
+private extension CGRect {
+    func isClose(to other: CGRect) -> Bool {
+        abs(minX - other.minX) < 0.5 &&
+            abs(minY - other.minY) < 0.5 &&
+            abs(width - other.width) < 0.5 &&
+            abs(height - other.height) < 0.5
     }
 }
 
