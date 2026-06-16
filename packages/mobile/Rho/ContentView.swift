@@ -274,6 +274,22 @@ private struct PlaceholderScreen: View {
 }
 
 private struct HomeScreen: View {
+    @State private var isShowingReminders = false
+
+    private let reminders = [
+        ReminderItem(icon: "leaf", title: "Water fiddle leaf fig", time: "Today, 5:00 PM", tint: Color.green),
+        ReminderItem(icon: "cart", title: "Review grocery list", time: "Today, 6:30 PM", tint: RhoTheme.primaryColor),
+        ReminderItem(icon: "creditcard", title: "Pay invoice", time: "Tomorrow, 9:00 AM", tint: Color.orange),
+        ReminderItem(icon: "bubble.left.and.bubble.right", title: "Message Sophie", time: "Tomorrow, 12:00 PM", tint: Color.purple),
+        ReminderItem(icon: "pills", title: "Refill vitamins", time: "Friday, 10:00 AM", tint: Color.red),
+        ReminderItem(icon: "tray.full", title: "Clean downloads folder", time: "Sunday, 4:00 PM", tint: Color.gray),
+        ReminderItem(icon: "book", title: "Read saved article", time: "Monday, 8:00 PM", tint: Color.indigo),
+        ReminderItem(icon: "figure.walk", title: "Take a walk", time: "Tuesday, 7:30 AM", tint: Color.mint),
+        ReminderItem(icon: "phone", title: "Call dentist", time: "Wednesday, 11:00 AM", tint: Color.teal),
+        ReminderItem(icon: "birthday.cake", title: "Buy birthday gift", time: "Thursday, 5:30 PM", tint: Color.pink),
+        ReminderItem(icon: "archivebox", title: "Archive old notes", time: "Next Saturday, 2:00 PM", tint: Color.brown),
+    ]
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 22) {
@@ -289,6 +305,9 @@ private struct HomeScreen: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
+        .sheet(isPresented: $isShowingReminders) {
+            ReminderListSheet(reminders: reminders)
+        }
     }
 
     private var header: some View {
@@ -317,20 +336,8 @@ private struct HomeScreen: View {
         VStack(alignment: .leading, spacing: 12) {
             HomeSectionTitle(title: "Reminders")
 
-            VStack(spacing: 6) {
-                ReminderCard(icon: "leaf", title: "Water fiddle leaf fig", time: "Today, 5:00 PM", tint: Color.green)
-                ReminderCard(icon: "cart", title: "Review grocery list", time: "Today, 6:30 PM", tint: RhoTheme.primaryColor)
-                ReminderCard(icon: "creditcard", title: "Pay invoice", time: "Tomorrow, 9:00 AM", tint: Color.orange)
-
-                Button {
-                } label: {
-                    Text("View all 6")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(RhoTheme.primaryColor)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
+            ReminderPreviewStack(reminders: reminders) {
+                isShowingReminders = true
             }
         }
     }
@@ -441,24 +448,69 @@ private struct NotificationCard: View {
     }
 }
 
+private struct ReminderPreviewStack: View {
+    let reminders: [ReminderItem]
+    let onViewAll: () -> Void
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ForEach(reminders.prefix(3)) { reminder in
+                ReminderCard(reminder: reminder)
+            }
+
+            Button {
+                onViewAll()
+            } label: {
+                Text("View all \(reminders.count)")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(RhoTheme.primaryColor)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct ReminderListSheet: View {
+    let reminders: [ReminderItem]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 4) {
+                    ForEach(reminders) { reminder in
+                        ReminderCard(reminder: reminder)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+                .padding(.bottom, 20)
+            }
+            .background(Color.white)
+            .navigationTitle("Reminders")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.fraction(0.68), .large])
+        .presentationDragIndicator(.visible)
+    }
+}
+
 private struct ReminderCard: View {
-    let icon: String
-    let title: String
-    let time: String
-    let tint: Color
+    let reminder: ReminderItem
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
+            Image(systemName: reminder.icon)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(tint)
+                .foregroundStyle(reminder.tint)
                 .frame(width: 32, height: 32)
-                .background(tint.opacity(0.12), in: Circle())
+                .background(reminder.tint.opacity(0.12), in: Circle())
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(reminder.title)
                     .font(.system(size: 16, weight: .semibold))
-                Text(time)
+                Text(reminder.time)
                     .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.secondary)
             }
@@ -470,6 +522,14 @@ private struct ReminderCard: View {
         .controlBorder(cornerRadius: 18)
         .controlShadow()
     }
+}
+
+private struct ReminderItem: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let time: String
+    let tint: Color
 }
 
 private struct QuickActionCard: View {
