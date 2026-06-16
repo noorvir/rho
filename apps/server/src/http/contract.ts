@@ -64,6 +64,29 @@ const cronScheduleSchema = z.discriminatedUnion("kind", [
 	z.object({ kind: z.literal("cron"), expression: z.string(), timezone: z.string() }),
 ]);
 
+const notificationLevelSchema = z.enum(["info", "attention", "urgent"]);
+
+const notificationTargetSchema = z.object({
+	type: z.string(),
+	id: z.string(),
+});
+
+const notificationSchema = z.object({
+	id: z.string(),
+	key: z.string(),
+	extensionId: z.string(),
+	defId: z.string(),
+	title: z.string(),
+	body: z.string(),
+	level: notificationLevelSchema,
+	target: notificationTargetSchema.nullable(),
+	idempotencyKey: z.string(),
+	readAt: z.date().nullable(),
+	dismissedAt: z.date().nullable(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
+});
+
 const cronSchema = z.object({
 	id: z.string(),
 	kind: z.enum(["agent", "extension"]),
@@ -190,6 +213,9 @@ export const httpContract = {
 		reminders: oc
 			.route({ method: "GET", path: "/agent/reminders" })
 			.output(z.object({ reminders: z.array(cronSchema) })),
+		notifications: oc
+			.route({ method: "GET", path: "/agent/notifications" })
+			.output(z.object({ notifications: z.array(notificationSchema) })),
 	},
 	store: {
 		upload: oc

@@ -1,6 +1,7 @@
 import type { Channel } from "@rho/channels";
 import type { AppExtension } from "./apps/index.ts";
 import type { CronRegistration } from "./crons.ts";
+import type { NotificationDefRegistration } from "./notifications.ts";
 import type {
 	AgentExtension,
 	ExtensionDiagnostic,
@@ -14,6 +15,7 @@ export interface ReloadDependencies {
 	replaceChannels(channels: Channel[]): void;
 	replaceAgentExtensions(agentExtensions: AgentExtension[]): void;
 	replaceCrons(crons: CronRegistration[]): Promise<void>;
+	replaceNotificationDefs(defs: NotificationDefRegistration[]): void;
 	activeChannelIds(): string[];
 }
 
@@ -43,11 +45,13 @@ export async function reload(deps: ReloadDependencies): Promise<ReloadResult> {
 	const channels = loaded.extensions.flatMap((extension) => extension.channels);
 	const agentExtensions = loaded.extensions.flatMap((extension) => extension.agentExtensions);
 	const crons = loaded.extensions.flatMap((extension) => extension.crons);
+	const notificationDefs = loaded.extensions.flatMap((extension) => extension.notificationDefs);
 
 	if (!hasErrors) {
 		deps.replaceApps(apps);
 		deps.replaceChannels(channels);
 		deps.replaceAgentExtensions(agentExtensions);
+		deps.replaceNotificationDefs(notificationDefs);
 
 		await deps.replaceCrons(crons);
 	}

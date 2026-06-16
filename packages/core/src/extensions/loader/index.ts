@@ -1,4 +1,9 @@
 import type { CronRegistration } from "../../crons.ts";
+import {
+	type NotificationDefRegistration,
+	type NotificationService,
+	notificationDefKey,
+} from "../../notifications.ts";
 import type { RhoPrisma } from "../../prisma.ts";
 import type {
 	ExtensionDiagnostic,
@@ -22,12 +27,15 @@ export interface FileSystemExtensionLoaderOptions {
 	db: RhoPrisma;
 	/** Default user timezone handed to extension definitions. */
 	defaultTimezone: string;
+	/** Notification registry and emitter handed to extension definitions. */
+	notifications: NotificationService;
 }
 
 export class FileSystemExtensionLoader implements ExtensionLoader {
 	private readonly paths: ExtensionDiscoveryPaths;
 	private readonly db: RhoPrisma;
 	private readonly defaultTimezone: string;
+	private readonly notifications: NotificationService;
 
 	constructor(options: FileSystemExtensionLoaderOptions) {
 		this.paths = {
@@ -36,6 +44,7 @@ export class FileSystemExtensionLoader implements ExtensionLoader {
 		};
 		this.db = options.db;
 		this.defaultTimezone = options.defaultTimezone;
+		this.notifications = options.notifications;
 	}
 
 	async load(): Promise<LoadExtensionsResult> {
@@ -46,16 +55,25 @@ export class FileSystemExtensionLoader implements ExtensionLoader {
 
 		for (const extension of discovered.extensions) {
 			const crons: CronRegistration[] = [];
+			const notificationDefs: NotificationDefRegistration[] = [];
+			const extensionId = extension.source.resolvedPath;
 			const result = await loadExtensionModule(extension, {
 				api: appApiProcedure,
 				db: this.db,
 				user: { timezone: this.defaultTimezone },
 				cron: (input) => {
-					crons.push({ ...input, extensionId: extension.source.resolvedPath });
+					crons.push({ ...input, extensionId });
+				},
+				notificationDef: (input) => {
+					notificationDefs.push({ ...input, extensionId });
+				},
+				notifications: {
+					emit: ({ def, ...rest }) =>
+						this.notifications.emit({ key: notificationDefKey(extensionId, def), ...rest }),
 				},
 			});
 			if ("extension" in result) {
-				extensions.push({ ...result.extension, crons });
+				extensions.push({ ...result.extension, crons, notificationDefs });
 				continue;
 			}
 			diagnostics.push(...result.diagnostics);

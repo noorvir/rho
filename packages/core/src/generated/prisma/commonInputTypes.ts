@@ -256,6 +256,23 @@ export type Enumrho_sys_CronPurposeWithAggregatesFilter<$PrismaModel = never> = 
   _max?: Prisma.NestedEnumrho_sys_CronPurposeFilter<$PrismaModel>
 }
 
+export type Enumrho_sys_NotificationLevelFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_NotificationLevel | Prisma.Enumrho_sys_NotificationLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_NotificationLevel[]
+  notIn?: $Enums.rho_sys_NotificationLevel[]
+  not?: Prisma.NestedEnumrho_sys_NotificationLevelFilter<$PrismaModel> | $Enums.rho_sys_NotificationLevel
+}
+
+export type Enumrho_sys_NotificationLevelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_NotificationLevel | Prisma.Enumrho_sys_NotificationLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_NotificationLevel[]
+  notIn?: $Enums.rho_sys_NotificationLevel[]
+  not?: Prisma.NestedEnumrho_sys_NotificationLevelWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_NotificationLevel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_NotificationLevelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_NotificationLevelFilter<$PrismaModel>
+}
+
 export type EnumRelationshipFilter<$PrismaModel = never> = {
   equals?: $Enums.Relationship | Prisma.EnumRelationshipFieldRefInput<$PrismaModel>
   in?: $Enums.Relationship[]
@@ -530,6 +547,23 @@ export type NestedEnumrho_sys_CronPurposeWithAggregatesFilter<$PrismaModel = nev
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumrho_sys_CronPurposeFilter<$PrismaModel>
   _max?: Prisma.NestedEnumrho_sys_CronPurposeFilter<$PrismaModel>
+}
+
+export type NestedEnumrho_sys_NotificationLevelFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_NotificationLevel | Prisma.Enumrho_sys_NotificationLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_NotificationLevel[]
+  notIn?: $Enums.rho_sys_NotificationLevel[]
+  not?: Prisma.NestedEnumrho_sys_NotificationLevelFilter<$PrismaModel> | $Enums.rho_sys_NotificationLevel
+}
+
+export type NestedEnumrho_sys_NotificationLevelWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.rho_sys_NotificationLevel | Prisma.Enumrho_sys_NotificationLevelFieldRefInput<$PrismaModel>
+  in?: $Enums.rho_sys_NotificationLevel[]
+  notIn?: $Enums.rho_sys_NotificationLevel[]
+  not?: Prisma.NestedEnumrho_sys_NotificationLevelWithAggregatesFilter<$PrismaModel> | $Enums.rho_sys_NotificationLevel
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumrho_sys_NotificationLevelFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumrho_sys_NotificationLevelFilter<$PrismaModel>
 }
 
 export type NestedEnumRelationshipFilter<$PrismaModel = never> = {

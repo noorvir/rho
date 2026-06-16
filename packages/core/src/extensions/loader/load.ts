@@ -51,6 +51,7 @@ export async function loadExtensionModule(
 			channels,
 			agentExtensions: agentExtensions.map((agent) => normalizeAgentExtension(agent, baseDir)),
 			crons: [],
+			notificationDefs: [],
 		},
 	};
 }

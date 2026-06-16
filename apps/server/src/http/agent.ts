@@ -88,6 +88,16 @@ export function agentRouter() {
 			return { reminders: reminders.data };
 		}),
 
+		notifications: p.agent.notifications.handler(async ({ context }) => {
+			await requireAuth(context);
+			const notifications = await tc(context.core.listNotifications());
+			if (notifications.error) {
+				throw badRequest(notifications.error, "Failed to load notifications");
+			}
+
+			return { notifications: notifications.data };
+		}),
+
 		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {
 			await requireAuth(context);
 			const messageInput = tc(() => validateHttpMessage(input));

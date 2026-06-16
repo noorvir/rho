@@ -386,6 +386,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 export const ModelName = {
   rho_sys_Task: 'rho_sys_Task',
   rho_sys_Cron: 'rho_sys_Cron',
+  rho_sys_Notification: 'rho_sys_Notification',
   rho_sys_Owner: 'rho_sys_Owner',
   rho_sys_Session: 'rho_sys_Session',
   rho_sys_ApiToken: 'rho_sys_ApiToken',
@@ -406,7 +407,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "rho_sys_Task" | "rho_sys_Cron" | "rho_sys_Owner" | "rho_sys_Session" | "rho_sys_ApiToken" | "contact" | "org"
+    modelProps: "rho_sys_Task" | "rho_sys_Cron" | "rho_sys_Notification" | "rho_sys_Owner" | "rho_sys_Session" | "rho_sys_ApiToken" | "contact" | "org"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -555,6 +556,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.rho_sys_CronCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.Rho_sys_CronCountAggregateOutputType> | number
+        }
+      }
+    }
+    rho_sys_Notification: {
+      payload: Prisma.$rho_sys_NotificationPayload<ExtArgs>
+      fields: Prisma.rho_sys_NotificationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.rho_sys_NotificationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.rho_sys_NotificationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>
+        }
+        findFirst: {
+          args: Prisma.rho_sys_NotificationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.rho_sys_NotificationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>
+        }
+        findMany: {
+          args: Prisma.rho_sys_NotificationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>[]
+        }
+        create: {
+          args: Prisma.rho_sys_NotificationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>
+        }
+        createMany: {
+          args: Prisma.rho_sys_NotificationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.rho_sys_NotificationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>[]
+        }
+        delete: {
+          args: Prisma.rho_sys_NotificationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>
+        }
+        update: {
+          args: Prisma.rho_sys_NotificationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>
+        }
+        deleteMany: {
+          args: Prisma.rho_sys_NotificationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.rho_sys_NotificationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.rho_sys_NotificationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>[]
+        }
+        upsert: {
+          args: Prisma.rho_sys_NotificationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$rho_sys_NotificationPayload>
+        }
+        aggregate: {
+          args: Prisma.Rho_sys_NotificationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRho_sys_Notification>
+        }
+        groupBy: {
+          args: Prisma.rho_sys_NotificationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_NotificationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.rho_sys_NotificationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.Rho_sys_NotificationCountAggregateOutputType> | number
         }
       }
     }
@@ -1014,6 +1089,26 @@ export const Rho_sys_CronScalarFieldEnum = {
 export type Rho_sys_CronScalarFieldEnum = (typeof Rho_sys_CronScalarFieldEnum)[keyof typeof Rho_sys_CronScalarFieldEnum]
 
 
+export const Rho_sys_NotificationScalarFieldEnum = {
+  id: 'id',
+  defKey: 'defKey',
+  extensionId: 'extensionId',
+  defId: 'defId',
+  title: 'title',
+  body: 'body',
+  level: 'level',
+  targetType: 'targetType',
+  targetId: 'targetId',
+  idempotencyKey: 'idempotencyKey',
+  readAt: 'readAt',
+  dismissedAt: 'dismissedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type Rho_sys_NotificationScalarFieldEnum = (typeof Rho_sys_NotificationScalarFieldEnum)[keyof typeof Rho_sys_NotificationScalarFieldEnum]
+
+
 export const Rho_sys_OwnerScalarFieldEnum = {
   id: 'id',
   passwordHash: 'passwordHash',
@@ -1167,6 +1262,13 @@ export type Enumrho_sys_CronPurposeFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'rho_sys_NotificationLevel'
+ */
+export type Enumrho_sys_NotificationLevelFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'rho_sys_NotificationLevel'>
+    
+
+
+/**
  * Reference to a field of type 'Relationship'
  */
 export type EnumRelationshipFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Relationship'>
@@ -1291,6 +1393,7 @@ export type PrismaClientOptions = ({
 export type GlobalOmitConfig = {
   rho_sys_Task?: Prisma.rho_sys_TaskOmit
   rho_sys_Cron?: Prisma.rho_sys_CronOmit
+  rho_sys_Notification?: Prisma.rho_sys_NotificationOmit
   rho_sys_Owner?: Prisma.rho_sys_OwnerOmit
   rho_sys_Session?: Prisma.rho_sys_SessionOmit
   rho_sys_ApiToken?: Prisma.rho_sys_ApiTokenOmit

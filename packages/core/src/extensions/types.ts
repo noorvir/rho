@@ -2,6 +2,12 @@ import { type AnyRouter, os } from "@orpc/server";
 import type { RhoAgentExtensionSource } from "@rho/ai";
 import type { Channel } from "@rho/channels";
 import type { CronInput, CronRegistration } from "../crons.ts";
+import type {
+	EmitNotificationInput,
+	EmitNotificationResult,
+	NotificationDefInput,
+	NotificationDefRegistration,
+} from "../notifications.ts";
 import type { RhoDb } from "../index.ts";
 
 export type { RhoAgentExtensionSource } from "@rho/ai";
@@ -72,6 +78,12 @@ export interface RhoExtensionContext extends RhoAppApiBuilderContext {
 	};
 	/** Registers a durable cron owned by this extension. */
 	cron(input: CronInput): void;
+	/** Registers a notification capability owned by this extension. */
+	notificationDef(input: NotificationDefInput): void;
+	/** Emits notifications owned by this extension. */
+	notifications: {
+		emit(input: EmitNotificationInput): Promise<EmitNotificationResult>;
+	};
 }
 
 export interface RhoExtensionDefinition {
@@ -95,6 +107,7 @@ export interface LoadedExtension {
 	channels: Channel[];
 	agentExtensions: AgentExtension[];
 	crons: CronRegistration[];
+	notificationDefs: NotificationDefRegistration[];
 }
 
 export interface DiscoveredExtension {

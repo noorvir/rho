@@ -52,6 +52,11 @@ export type rho_sys_Task = Prisma.rho_sys_TaskModel
  */
 export type rho_sys_Cron = Prisma.rho_sys_CronModel
 /**
+ * Model rho_sys_Notification
+ * 
+ */
+export type rho_sys_Notification = Prisma.rho_sys_NotificationModel
+/**
  * Model rho_sys_Owner
  * 
  */

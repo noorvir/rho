@@ -53,6 +53,15 @@ export const rho_sys_CronPurpose = {
 export type rho_sys_CronPurpose = (typeof rho_sys_CronPurpose)[keyof typeof rho_sys_CronPurpose]
 
 
+export const rho_sys_NotificationLevel = {
+  info: 'info',
+  attention: 'attention',
+  urgent: 'urgent'
+} as const
+
+export type rho_sys_NotificationLevel = (typeof rho_sys_NotificationLevel)[keyof typeof rho_sys_NotificationLevel]
+
+
 export const Relationship = {
   BookClub: 'BookClub',
   Family: 'Family',

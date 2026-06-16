@@ -17,6 +17,7 @@ export function createRhoPrisma(databaseUrl: string): RhoPrisma {
 export const RHO_SYSTEM_MODELS = [
 	"rho_sys_Task",
 	"rho_sys_Cron",
+	"rho_sys_Notification",
 	"rho_sys_Owner",
 	"rho_sys_Session",
 	"rho_sys_ApiToken",

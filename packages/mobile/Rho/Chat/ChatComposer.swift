@@ -26,6 +26,7 @@ struct ComposerOverlay: UIViewRepresentable {
     let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
     let onHeightChange: (CGFloat) -> Void
+    let onLayoutChange: () -> Void
 
     func makeUIView(context: Context) -> ComposerOverlayView {
         let hosting = UIHostingController(rootView: rootView)
@@ -35,15 +36,15 @@ struct ComposerOverlay: UIViewRepresentable {
         context.coordinator.hosting = hosting
 
         let overlay = ComposerOverlayView()
-        overlay.onHeightChange = onHeightChange
+        overlay.onLayoutChange = onLayoutChange
         overlay.install(barView: hosting.view)
         return overlay
     }
 
     func updateUIView(_ overlay: ComposerOverlayView, context: Context) {
         context.coordinator.hosting?.rootView = rootView
-        overlay.onHeightChange = onHeightChange
-        overlay.reportBarHeight()
+        overlay.onLayoutChange = onLayoutChange
+        overlay.reportBarFrame()
     }
 
     func makeCoordinator() -> Coordinator {
@@ -59,7 +60,8 @@ struct ComposerOverlay: UIViewRepresentable {
             onSend: onSend,
             onRemoveImage: onRemoveImage,
             onAudioRecorded: onAudioRecorded,
-            onMediaAction: onMediaAction
+            onMediaAction: onMediaAction,
+            onHeightChange: onHeightChange
         )
     }
 
@@ -69,7 +71,7 @@ struct ComposerOverlay: UIViewRepresentable {
 }
 
 final class ComposerOverlayView: UIView {
-    var onHeightChange: ((CGFloat) -> Void)?
+    var onLayoutChange: (() -> Void)?
 
     private weak var barView: UIView?
     private var reportedBarFrame: CGRect = .null
@@ -105,15 +107,15 @@ final class ComposerOverlayView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        reportBarHeight()
+        reportBarFrame()
     }
 
-    func reportBarHeight() {
+    func reportBarFrame() {
         guard let barView else { return }
         guard !reportedBarFrame.isClose(to: barView.frame) else { return }
 
         reportedBarFrame = barView.frame
-        onHeightChange?(barView.bounds.height)
+        onLayoutChange?()
     }
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
@@ -140,6 +142,7 @@ struct AgentInput: View {
     let onRemoveImage: (UUID) -> Void
     let onAudioRecorded: (PendingAudio) -> Void
     let onMediaAction: (ComposerMediaAction) -> Void
+    let onHeightChange: (CGFloat) -> Void
 
     @State private var recorder = VoiceRecorder()
     @State private var textInputHeight: CGFloat = 22
@@ -160,6 +163,41 @@ struct AgentInput: View {
     }
 
     var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            if isMediaTrayPresented {
+                Color.clear
+                    .frame(height: mediaMenuHeight + GlassControlMetrics.chatControlSize + 10)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        setMediaMenuPresented(false)
+                    }
+
+                MediaOptionsMenu { action in
+                    setMediaMenuPresented(false)
+                    onMediaAction(action)
+                }
+                .frame(width: mediaMenuWidth, height: mediaMenuHeight)
+                .padding(.bottom, GlassControlMetrics.chatControlSize + 10)
+            }
+
+            composerStack
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear
+                            .onAppear {
+                                onHeightChange(proxy.size.height)
+                            }
+                            .onChange(of: proxy.size.height) { _, height in
+                                onHeightChange(height)
+                            }
+                    }
+                }
+        }
+        .padding(.horizontal, 22)
+        .padding(.top, 8)
+    }
+
+    private var composerStack: some View {
         VStack(spacing: 0) {
             if !pendingImages.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -186,44 +224,16 @@ struct AgentInput: View {
                 .padding(.bottom, 10)
             }
 
-            ZStack(alignment: .bottomLeading) {
-                Color.clear
-                    .frame(height: mediaOverlayHeight)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        setMediaMenuPresented(false)
-                    }
-                    .allowsHitTesting(isMediaTrayPresented)
+            ZStack {
+                composerBar
+                    .opacity(recorder.state == .idle ? 1 : 0)
+                    .allowsHitTesting(recorder.state == .idle)
 
-                if isMediaTrayPresented {
-                    MediaOptionsMenu { action in
-                        setMediaMenuPresented(false)
-                        onMediaAction(action)
-                    }
-                    .frame(width: mediaMenuWidth, height: mediaMenuHeight)
-                    .padding(.bottom, GlassControlMetrics.chatControlSize + 10)
-                }
-
-                ZStack {
-                    composerBar
-                        .opacity(recorder.state == .idle ? 1 : 0)
-                        .allowsHitTesting(recorder.state == .idle)
-
-                    if recorder.state != .idle {
-                        recordingBar
-                    }
+                if recorder.state != .idle {
+                    recordingBar
                 }
             }
         }
-        .padding(.horizontal, 22)
-        .padding(.top, 8)
-    }
-
-    private var mediaOverlayHeight: CGFloat {
-        guard isMediaTrayPresented else {
-            return GlassControlMetrics.chatControlSize
-        }
-        return mediaMenuHeight + GlassControlMetrics.chatControlSize + 10
     }
 
     private var composerBar: some View {

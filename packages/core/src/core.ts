@@ -14,6 +14,7 @@ import {
 	rhoCronUpdateExtension,
 	rhoContextExtension,
 	rhoMigrateExtension,
+	rhoNotificationsExtension,
 	rhoQueryExtension,
 	rhoReloadExtension,
 	rhoValidateSchemaExtension,
@@ -42,6 +43,11 @@ import { queryRuntimeDatabase } from "./db.ts";
 import { type AgentExtension, type ExtensionLoader, FileSystemExtensionLoader } from "./extensions/index.ts";
 import type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
 import { migrateRuntimeSchema, validateRuntimeSchema } from "./migrate.ts";
+import {
+	NotificationService,
+	type NotificationDefRegistration,
+	type NotificationSummary,
+} from "./notifications.ts";
 import { createReloadableRhoPrisma } from "./prisma.ts";
 import { type ReloadResult, reload } from "./reload.ts";
 import { KeyedMutex, TaskRunner } from "./tasks.ts";
@@ -91,6 +97,7 @@ export interface RhoCore {
 	listTasks(key: ConversationKey): Promise<Task[]>;
 	listCrons(scope: CronListScope): Promise<CronSummary[]>;
 	listReminders(): Promise<CronSummary[]>;
+	listNotifications(): Promise<NotificationSummary[]>;
 	listApps(): Promise<AppExtension[]>;
 	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
@@ -128,6 +135,9 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		await prismaHandle.reload();
 	}
 	const conversations = new KeyedMutex();
+	const notifications = new NotificationService({ prisma });
+
+	let cronScheduler: CronScheduler;
 
 	const extensionLoader =
 		opts.extensionLoader ??
@@ -136,10 +146,10 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 			extensionPaths,
 			db: prisma,
 			defaultTimezone,
+			notifications,
 		});
 
 	let agentExtensions: AgentExtension[] = [];
-	let cronScheduler: CronScheduler;
 
 	const runtimeToolSources: RhoAgentExtensionSource[] = [];
 	if (opts.docsDir) {
@@ -157,6 +167,26 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		type: "factory",
 		factory: rhoAppsExtension(async () =>
 			appRegistry.current().map((app) => ({ name: app.name, slug: app.slug, routes: app.routes })),
+		),
+	});
+	runtimeToolSources.push({
+		type: "factory",
+		factory: rhoNotificationsExtension(
+			() => notifications.agentPrompt(),
+			async (request) => {
+				const result = await notifications.emit({
+					key: request.key,
+					title: request.title,
+					body: request.body,
+					level: request.level,
+					idempotencyKey: request.idempotencyKey,
+					target: request.target,
+				});
+				if (!result.ok) {
+					return { ok: false, error: result.error };
+				}
+				return { ok: true, notificationId: result.notification.id };
+			},
 		),
 	});
 	runtimeToolSources.push({
@@ -269,12 +299,14 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 	};
 
 	const replaceCrons = (next: CronRegistration[]) => cronScheduler.replaceCrons(next);
+	const replaceNotificationDefs = (next: NotificationDefRegistration[]) => notifications.replaceDefs(next);
 
 	const handleMessage = async (message: ChannelMessage) => runtime.handle(message);
 
 	const listApps = async () => appRegistry.current();
 	const listCrons = async (scope: CronListScope) => cronScheduler.listCrons(scope);
 	const listReminders = async () => cronScheduler.listReminders();
+	const listNotifications = async () => notifications.listNotifications();
 
 	const core: RhoCore = {
 		runtime,
@@ -287,6 +319,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		listTasks: async (key) => tasks.listForConversation(key),
 		listCrons,
 		listReminders,
+		listNotifications,
 		listApps,
 		replaceApps,
 		replaceChannels,
@@ -299,6 +332,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 				replaceChannels,
 				replaceAgentExtensions,
 				replaceCrons,
+				replaceNotificationDefs,
 				activeChannelIds: () => channelRegistry.current().map((channel) => channel.id),
 			});
 		},

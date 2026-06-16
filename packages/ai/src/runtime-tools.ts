@@ -21,6 +21,7 @@ export interface RhoExpressionCronSchedule {
 }
 
 export type RhoCronScope = "all" | "agent" | "extension";
+export type RhoNotificationLevel = "info" | "attention" | "urgent";
 export type RhoCronKind = "agent" | "extension";
 export type RhoCronStatus = "not_run" | "running" | "succeeded" | "failed";
 export type RhoCronPurpose = "reminder" | "scheduled_task";
@@ -61,6 +62,24 @@ export interface RhoCronUpdateRequest {
 	instructions?: string;
 }
 
+export interface RhoNotificationSendRequest {
+	key: string;
+	title: string;
+	body: string;
+	level: RhoNotificationLevel;
+	idempotencyKey: string;
+	target?: {
+		type: string;
+		id: string;
+	};
+}
+
+export interface RhoNotificationSendResult {
+	ok: boolean;
+	notificationId?: string;
+	error?: string;
+}
+
 const cronScheduleParams = Type.Union([
 	Type.Object({
 		kind: Type.Literal("at"),
@@ -73,6 +92,20 @@ const cronScheduleParams = Type.Union([
 		timezone: Type.String({ description: "Concrete IANA timezone, e.g. America/Los_Angeles." }),
 	}),
 ]);
+
+const notificationSendParams = Type.Object({
+	key: Type.String({ description: "Registered notification definition key from the current agent context." }),
+	title: Type.String({ description: "Specific notification title to show the user." }),
+	body: Type.String({ description: "Specific notification body to show the user." }),
+	level: Type.Union([Type.Literal("info"), Type.Literal("attention"), Type.Literal("urgent")]),
+	idempotencyKey: Type.String({ description: "Stable key that prevents duplicate notifications." }),
+	target: Type.Optional(
+		Type.Object({
+			type: Type.String({ description: "Optional target object type, such as plant." }),
+			id: Type.String({ description: "Optional target object id." }),
+		}),
+	),
+});
 
 const backgroundTaskParams = Type.Object({
 	title: Type.String({ description: "Short user-facing name for the task, e.g. 'Build the todo list app'" }),
@@ -113,6 +146,45 @@ export function backgroundTaskExtension(
 							text: `Background task ${result.taskId} started. Reply to the user with a short acknowledgement now; the outcome will be delivered to them automatically when the task finishes.`,
 						},
 					],
+					details: result,
+				};
+			},
+		});
+	};
+}
+
+export function rhoNotificationsExtension(
+	registeredDefs: () => string,
+	send: (request: RhoNotificationSendRequest) => Promise<RhoNotificationSendResult>,
+): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_notification_send",
+			label: "Send Rho notification",
+			description:
+				"Send an in-app Rho notification using a registered extension notification definition. " +
+				"Only use definition keys listed below. If no matching definition is listed, do not send a notification.\n\n" +
+				registeredDefs(),
+			promptSnippet: "Send an in-app Rho notification using a registered extension notification definition",
+			parameters: notificationSendParams,
+			async execute(_toolCallId, params) {
+				const result = await send({
+					key: params.key,
+					title: params.title,
+					body: params.body,
+					level: params.level,
+					idempotencyKey: params.idempotencyKey,
+					target: params.target,
+				});
+				if (!result.ok) {
+					return {
+						content: [{ type: "text", text: `Notification was not sent: ${result.error ?? "unknown_error"}` }],
+						details: result,
+					};
+				}
+
+				return {
+					content: [{ type: "text", text: `Notification ${result.notificationId ?? ""} sent.` }],
 					details: result,
 				};
 			},

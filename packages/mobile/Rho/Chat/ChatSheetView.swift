@@ -98,6 +98,9 @@ struct ChatSheetView: View {
                 onHeightChange: { height in
                     composerHeight = height
                     composerLayoutVersion += 1
+                },
+                onLayoutChange: {
+                    composerLayoutVersion += 1
                 }
             )
             .ignoresSafeArea()

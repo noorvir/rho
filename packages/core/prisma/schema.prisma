@@ -44,6 +44,12 @@ enum rho_sys_CronPurpose {
   SCHEDULED_TASK @map("scheduled_task")
 }
 
+enum rho_sys_NotificationLevel {
+  info
+  attention
+  urgent
+}
+
 model rho_sys_Task {
   id              String             @id
   conversationKey String             @map("conversation_key")
@@ -84,15 +90,37 @@ model rho_sys_Cron {
 
   purpose         rho_sys_CronPurpose @default(SCHEDULED_TASK)
   instructions    String?
-  conversationKey String?                  @map("conversation_key")
-  channelId       String?                  @map("channel_id")
-  targetType      String?                  @map("target_type")
-  targetId        String?                  @map("target_id")
-  extensionId     String?                  @map("extension_id")
+  conversationKey String?             @map("conversation_key")
+  channelId       String?             @map("channel_id")
+  targetType      String?             @map("target_type")
+  targetId        String?             @map("target_id")
+  extensionId     String?             @map("extension_id")
 
   @@index([nextRunAt])
   @@index([extensionId])
   @@map("rho_sys_crons")
+}
+
+model rho_sys_Notification {
+  id             String                    @id
+  defKey         String                    @map("def_key")
+  extensionId    String                    @map("extension_id")
+  defId          String                    @map("def_id")
+  title          String
+  body           String
+  level          rho_sys_NotificationLevel
+  targetType     String?                   @map("target_type")
+  targetId       String?                   @map("target_id")
+  idempotencyKey String                    @map("idempotency_key")
+  readAt         DateTime?                 @map("read_at")
+  dismissedAt    DateTime?                 @map("dismissed_at")
+  createdAt      DateTime                  @default(now()) @map("created_at")
+  updatedAt      DateTime                  @updatedAt @map("updated_at")
+
+  @@unique([defKey, idempotencyKey])
+  @@index([dismissedAt, createdAt])
+  @@index([extensionId, defId])
+  @@map("rho_sys_notifications")
 }
 
 model rho_sys_Owner {

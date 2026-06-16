@@ -30,6 +30,15 @@ export type {
 	RhoHostPlatform,
 } from "./extensions/index.ts";
 export type { rho_sys_Task as Task } from "./generated/prisma/client.ts";
+export type {
+	EmitNotificationInput,
+	EmitNotificationResult,
+	NotificationDefInput,
+	NotificationDefRegistration,
+	NotificationLevel,
+	NotificationSummary,
+	NotificationTarget,
+} from "./notifications.ts";
 export { createRhoPrisma, type RhoPrisma } from "./prisma.ts";
 
 import type { RhoPrisma as RhoPrismaClient } from "./prisma.ts";
