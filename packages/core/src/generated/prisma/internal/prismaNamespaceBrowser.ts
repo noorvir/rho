@@ -118,7 +118,8 @@ export const Rho_sys_CronScalarFieldEnum = {
   channelId: 'channelId',
   targetType: 'targetType',
   targetId: 'targetId',
-  extensionId: 'extensionId'
+  extensionId: 'extensionId',
+  icon: 'icon'
 } as const
 
 export type Rho_sys_CronScalarFieldEnum = (typeof Rho_sys_CronScalarFieldEnum)[keyof typeof Rho_sys_CronScalarFieldEnum]
@@ -132,6 +133,7 @@ export const Rho_sys_NotificationScalarFieldEnum = {
   title: 'title',
   body: 'body',
   level: 'level',
+  icon: 'icon',
   targetType: 'targetType',
   targetId: 'targetId',
   idempotencyKey: 'idempotencyKey',

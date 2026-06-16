@@ -98,6 +98,9 @@ export interface RhoCore {
 	listCrons(scope: CronListScope): Promise<CronSummary[]>;
 	listReminders(): Promise<CronSummary[]>;
 	listNotifications(): Promise<NotificationSummary[]>;
+	dismissNotification(id: string): Promise<void>;
+	snoozeReminder(id: string, minutes: number): Promise<void>;
+	dismissReminder(id: string): Promise<void>;
 	listApps(): Promise<AppExtension[]>;
 	replaceApps(apps: AppExtension[]): void;
 	replaceChannels(channels: Channel[]): void;
@@ -180,6 +183,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 					body: request.body,
 					level: request.level,
 					idempotencyKey: request.idempotencyKey,
+					icon: request.icon,
 					target: request.target,
 				});
 				if (!result.ok) {
@@ -270,6 +274,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 								enabled: request.enabled,
 								purpose: request.purpose,
 								instructions: request.instructions,
+								icon: request.icon,
 							});
 							return { id: cron.id };
 						}, defaultTimezone),
@@ -307,6 +312,13 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 	const listCrons = async (scope: CronListScope) => cronScheduler.listCrons(scope);
 	const listReminders = async () => cronScheduler.listReminders();
 	const listNotifications = async () => notifications.listNotifications();
+	const dismissNotification = async (id: string) => notifications.dismiss(id);
+	const snoozeReminder = async (id: string, minutes: number) => {
+		await cronScheduler.snoozeReminder(id, minutes);
+	};
+	const dismissReminder = async (id: string) => {
+		await cronScheduler.dismissReminder(id);
+	};
 
 	const core: RhoCore = {
 		runtime,
@@ -320,6 +332,9 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		listCrons,
 		listReminders,
 		listNotifications,
+		dismissNotification,
+		snoozeReminder,
+		dismissReminder,
 		listApps,
 		replaceApps,
 		replaceChannels,

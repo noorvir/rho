@@ -1,59 +1,93 @@
-# Current Work: Home attention and reminders
+# Current Work: Extension notification backend
 
-## Goals
+## Goal
 
-Shape Rho's mobile Home screen around two separate concepts:
+Let extensions declare notification capabilities and emit notifications. Keep notifications independent from cron scheduling.
 
-1. **Notifications / attention items**: things an extension or agent wants to bring to the user's attention now. Example: an email triage extension finds an email that looks important and surfaces it near the top of Home.
-2. **Reminders**: scheduled reminders or scheduled agent work the user asked Rho to handle. These come from agent-created crons and should feel calmer and more predictable than attention notifications.
+The UI mock is done; this plan is backend/runtime only.
 
-The immediate work is still UI mock iteration in SwiftUI. Do not implement the runtime API, database shape, extension registration, or notification delivery mechanics until the UI direction is clearer.
+## Boundaries
 
-## Current direction
+- **Notifications** own definitions and emitted notification rows.
+- **Crons** own scheduling only. A cron is a scheduled task (runs code) or a reminder (wakes the agent). Cron rows do not store notification metadata.
+- If scheduled code wants to notify, it emits a notification from its handler. If the agent wants to notify, it calls the notification tool. Cron does not know about notifications beyond exposing `ctx.notifications.emit(...)` to handlers.
 
-Home should show notifications before reminders when there is something new or important. If there are no new notifications, the notifications area should collapse or become very small so the screen does not feel noisy.
+## Notification definition
 
-Reminders should have their own section. They can be backed by agent-created crons later, but visually they should not be mixed with extension attention notifications.
-
-Avoid notification fatigue:
-
-- Notifications should be explicitly registered/configurable by extensions.
-- Extensions should not get a generic right to put arbitrary cards at the top of Home without declaring the type of attention item they can emit.
-- The user should be able to control which extension notification types appear on Home and how prominently.
-- Repeated or stale notification items should be grouped, collapsed, or de-emphasized.
-
-## Future runtime shape to explore
-
-Extension definitions may register notification types, similar in spirit to the earlier widget-registration idea.
-
-Example only:
+Extensions register stable notification capabilities:
 
 ```ts
-rho.notificationType({
-  id: "important-email",
-  title: "Important email",
-  description: "Email triage items that probably need your attention.",
-  defaultPlacement: "home",
+rho.notificationDef({
+  id: "plant-care",
+  title: "Plant care",
+  prompt: "Use this for plant care alerts, such as watering, fertilizing, or repotting.",
 });
 ```
 
-The extension can then emit instances of that registered type. Rho owns the user-facing policy: enabled/disabled state, grouping, prominence, stale-item handling, and Home placement.
+The definition is a permission/configuration handle, not the final notification. Runtime/user policy can enable or disable it. Concrete content is supplied at emit time:
 
-Extension crons may deserve the same explicit registration treatment as notifications: stable ids and declared purpose in extension code, with user configuration layered on top. This should be reconciled with the existing cron scheduler plan before implementation.
+```ts
+await rho.notifications.emit({
+  def: "plant-care",
+  title: `Water ${plant.name}`,
+  body: `${plant.name} is due for watering today.`,
+  level: "attention",
+  idempotencyKey: `water:${plant.id}:${occurrence}`,
+  target: { type: "plant", id: plant.id },
+});
+```
 
-## Non-goals for the current UI pass
+`emit` is create-once on `(defKey, idempotencyKey)`.
 
-- Do not build notification APIs yet.
-- Do not build extension registration yet.
-- Do not build real reminder persistence in this pass.
-- Do not mirror iOS widgets inside the app.
-- Do not use stacked cards if they make the Home screen look heavier or less readable.
+## Cron handler emit
 
-## Immediate UI next step
+Scheduled-task cron handlers receive `ctx.notifications.emit(...)`. Example flow:
 
-Replace the stacked Today card mock with two clear sections:
+```ts
+rho.cron({
+  id: "plant-book.water-check",
+  title: "Plant watering check",
+  schedule,
+  enabled: true,
+  run: async (ctx) => {
+    const due = await ctx.db.plant.findMany(/* due for watering */);
+    for (const plant of due) {
+      await ctx.notifications.emit({
+        def: "plant-care",
+        title: `Water ${plant.name}`,
+        body: `${plant.name} is due for watering today.`,
+        level: "attention",
+        idempotencyKey: `water:${plant.id}:${ctx.cron.nextRunAt.toISOString()}`,
+        target: { type: "plant", id: plant.id },
+      });
+    }
+  },
+});
+```
 
-- **Notifications**: top section for extension/agent attention items, possibly a single important example card and a quiet empty/collapsed state later.
-- **Reminders**: separate section for scheduled reminders, using simpler list/card rows.
+## Agent tool
 
-Keep the header near the top and continue rapid phone-build iteration based on screenshots and feedback.
+One global `rho_notification_send` tool. Registered definitions are injected into its prompt/context as allowed `defKey` values; the tool validates the definition exists and is enabled at runtime.
+
+## Storage
+
+`rho_sys_` tables for notification definitions and emitted notifications. No notification fields on cron rows.
+
+## Read path
+
+`GET /agent/notifications` returns current (non-dismissed) notifications for Home/mobile.
+
+## End-to-end test target
+
+Plant Book-style extension:
+
+1. registers `notificationDef({ id: "plant-care" })`
+2. a scheduled cron handler (or the agent) emits `plant-care`
+3. one notification row is created
+4. emitting the same occurrence again does not duplicate
+
+## Next steps
+
+- Wire mobile Home notifications preview to `GET /agent/notifications`.
+- Add user enable/disable of notification defs in Settings.
+- Add dismiss/read endpoints when the UI needs them.

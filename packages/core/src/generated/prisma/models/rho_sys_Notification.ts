@@ -32,6 +32,7 @@ export type Rho_sys_NotificationMinAggregateOutputType = {
   title: string | null
   body: string | null
   level: $Enums.rho_sys_NotificationLevel | null
+  icon: string | null
   targetType: string | null
   targetId: string | null
   idempotencyKey: string | null
@@ -49,6 +50,7 @@ export type Rho_sys_NotificationMaxAggregateOutputType = {
   title: string | null
   body: string | null
   level: $Enums.rho_sys_NotificationLevel | null
+  icon: string | null
   targetType: string | null
   targetId: string | null
   idempotencyKey: string | null
@@ -66,6 +68,7 @@ export type Rho_sys_NotificationCountAggregateOutputType = {
   title: number
   body: number
   level: number
+  icon: number
   targetType: number
   targetId: number
   idempotencyKey: number
@@ -85,6 +88,7 @@ export type Rho_sys_NotificationMinAggregateInputType = {
   title?: true
   body?: true
   level?: true
+  icon?: true
   targetType?: true
   targetId?: true
   idempotencyKey?: true
@@ -102,6 +106,7 @@ export type Rho_sys_NotificationMaxAggregateInputType = {
   title?: true
   body?: true
   level?: true
+  icon?: true
   targetType?: true
   targetId?: true
   idempotencyKey?: true
@@ -119,6 +124,7 @@ export type Rho_sys_NotificationCountAggregateInputType = {
   title?: true
   body?: true
   level?: true
+  icon?: true
   targetType?: true
   targetId?: true
   idempotencyKey?: true
@@ -209,6 +215,7 @@ export type Rho_sys_NotificationGroupByOutputType = {
   title: string
   body: string
   level: $Enums.rho_sys_NotificationLevel
+  icon: string | null
   targetType: string | null
   targetId: string | null
   idempotencyKey: string
@@ -247,6 +254,7 @@ export type rho_sys_NotificationWhereInput = {
   title?: Prisma.StringFilter<"rho_sys_Notification"> | string
   body?: Prisma.StringFilter<"rho_sys_Notification"> | string
   level?: Prisma.Enumrho_sys_NotificationLevelFilter<"rho_sys_Notification"> | $Enums.rho_sys_NotificationLevel
+  icon?: Prisma.StringNullableFilter<"rho_sys_Notification"> | string | null
   targetType?: Prisma.StringNullableFilter<"rho_sys_Notification"> | string | null
   targetId?: Prisma.StringNullableFilter<"rho_sys_Notification"> | string | null
   idempotencyKey?: Prisma.StringFilter<"rho_sys_Notification"> | string
@@ -264,6 +272,7 @@ export type rho_sys_NotificationOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   body?: Prisma.SortOrder
   level?: Prisma.SortOrder
+  icon?: Prisma.SortOrderInput | Prisma.SortOrder
   targetType?: Prisma.SortOrderInput | Prisma.SortOrder
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -285,6 +294,7 @@ export type rho_sys_NotificationWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringFilter<"rho_sys_Notification"> | string
   body?: Prisma.StringFilter<"rho_sys_Notification"> | string
   level?: Prisma.Enumrho_sys_NotificationLevelFilter<"rho_sys_Notification"> | $Enums.rho_sys_NotificationLevel
+  icon?: Prisma.StringNullableFilter<"rho_sys_Notification"> | string | null
   targetType?: Prisma.StringNullableFilter<"rho_sys_Notification"> | string | null
   targetId?: Prisma.StringNullableFilter<"rho_sys_Notification"> | string | null
   idempotencyKey?: Prisma.StringFilter<"rho_sys_Notification"> | string
@@ -302,6 +312,7 @@ export type rho_sys_NotificationOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   body?: Prisma.SortOrder
   level?: Prisma.SortOrder
+  icon?: Prisma.SortOrderInput | Prisma.SortOrder
   targetType?: Prisma.SortOrderInput | Prisma.SortOrder
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -325,6 +336,7 @@ export type rho_sys_NotificationScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"rho_sys_Notification"> | string
   body?: Prisma.StringWithAggregatesFilter<"rho_sys_Notification"> | string
   level?: Prisma.Enumrho_sys_NotificationLevelWithAggregatesFilter<"rho_sys_Notification"> | $Enums.rho_sys_NotificationLevel
+  icon?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Notification"> | string | null
   targetType?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Notification"> | string | null
   targetId?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Notification"> | string | null
   idempotencyKey?: Prisma.StringWithAggregatesFilter<"rho_sys_Notification"> | string
@@ -342,6 +354,7 @@ export type rho_sys_NotificationCreateInput = {
   title: string
   body: string
   level: $Enums.rho_sys_NotificationLevel
+  icon?: string | null
   targetType?: string | null
   targetId?: string | null
   idempotencyKey: string
@@ -359,6 +372,7 @@ export type rho_sys_NotificationUncheckedCreateInput = {
   title: string
   body: string
   level: $Enums.rho_sys_NotificationLevel
+  icon?: string | null
   targetType?: string | null
   targetId?: string | null
   idempotencyKey: string
@@ -376,6 +390,7 @@ export type rho_sys_NotificationUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   level?: Prisma.Enumrho_sys_NotificationLevelFieldUpdateOperationsInput | $Enums.rho_sys_NotificationLevel
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -393,6 +408,7 @@ export type rho_sys_NotificationUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   level?: Prisma.Enumrho_sys_NotificationLevelFieldUpdateOperationsInput | $Enums.rho_sys_NotificationLevel
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -410,6 +426,7 @@ export type rho_sys_NotificationCreateManyInput = {
   title: string
   body: string
   level: $Enums.rho_sys_NotificationLevel
+  icon?: string | null
   targetType?: string | null
   targetId?: string | null
   idempotencyKey: string
@@ -427,6 +444,7 @@ export type rho_sys_NotificationUpdateManyMutationInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   level?: Prisma.Enumrho_sys_NotificationLevelFieldUpdateOperationsInput | $Enums.rho_sys_NotificationLevel
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -444,6 +462,7 @@ export type rho_sys_NotificationUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   body?: Prisma.StringFieldUpdateOperationsInput | string
   level?: Prisma.Enumrho_sys_NotificationLevelFieldUpdateOperationsInput | $Enums.rho_sys_NotificationLevel
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   idempotencyKey?: Prisma.StringFieldUpdateOperationsInput | string
@@ -466,6 +485,7 @@ export type rho_sys_NotificationCountOrderByAggregateInput = {
   title?: Prisma.SortOrder
   body?: Prisma.SortOrder
   level?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
   targetType?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -483,6 +503,7 @@ export type rho_sys_NotificationMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   body?: Prisma.SortOrder
   level?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
   targetType?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -500,6 +521,7 @@ export type rho_sys_NotificationMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   body?: Prisma.SortOrder
   level?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
   targetType?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
   idempotencyKey?: Prisma.SortOrder
@@ -523,6 +545,7 @@ export type rho_sys_NotificationSelect<ExtArgs extends runtime.Types.Extensions.
   title?: boolean
   body?: boolean
   level?: boolean
+  icon?: boolean
   targetType?: boolean
   targetId?: boolean
   idempotencyKey?: boolean
@@ -540,6 +563,7 @@ export type rho_sys_NotificationSelectCreateManyAndReturn<ExtArgs extends runtim
   title?: boolean
   body?: boolean
   level?: boolean
+  icon?: boolean
   targetType?: boolean
   targetId?: boolean
   idempotencyKey?: boolean
@@ -557,6 +581,7 @@ export type rho_sys_NotificationSelectUpdateManyAndReturn<ExtArgs extends runtim
   title?: boolean
   body?: boolean
   level?: boolean
+  icon?: boolean
   targetType?: boolean
   targetId?: boolean
   idempotencyKey?: boolean
@@ -574,6 +599,7 @@ export type rho_sys_NotificationSelectScalar = {
   title?: boolean
   body?: boolean
   level?: boolean
+  icon?: boolean
   targetType?: boolean
   targetId?: boolean
   idempotencyKey?: boolean
@@ -583,7 +609,7 @@ export type rho_sys_NotificationSelectScalar = {
   updatedAt?: boolean
 }
 
-export type rho_sys_NotificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "defKey" | "extensionId" | "defId" | "title" | "body" | "level" | "targetType" | "targetId" | "idempotencyKey" | "readAt" | "dismissedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["rho_sys_Notification"]>
+export type rho_sys_NotificationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "defKey" | "extensionId" | "defId" | "title" | "body" | "level" | "icon" | "targetType" | "targetId" | "idempotencyKey" | "readAt" | "dismissedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["rho_sys_Notification"]>
 
 export type $rho_sys_NotificationPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "rho_sys_Notification"
@@ -596,6 +622,7 @@ export type $rho_sys_NotificationPayload<ExtArgs extends runtime.Types.Extension
     title: string
     body: string
     level: $Enums.rho_sys_NotificationLevel
+    icon: string | null
     targetType: string | null
     targetId: string | null
     idempotencyKey: string
@@ -1033,6 +1060,7 @@ export interface rho_sys_NotificationFieldRefs {
   readonly title: Prisma.FieldRef<"rho_sys_Notification", 'String'>
   readonly body: Prisma.FieldRef<"rho_sys_Notification", 'String'>
   readonly level: Prisma.FieldRef<"rho_sys_Notification", 'rho_sys_NotificationLevel'>
+  readonly icon: Prisma.FieldRef<"rho_sys_Notification", 'String'>
   readonly targetType: Prisma.FieldRef<"rho_sys_Notification", 'String'>
   readonly targetId: Prisma.FieldRef<"rho_sys_Notification", 'String'>
   readonly idempotencyKey: Prisma.FieldRef<"rho_sys_Notification", 'String'>

@@ -95,6 +95,7 @@ model rho_sys_Cron {
   targetType      String?             @map("target_type")
   targetId        String?             @map("target_id")
   extensionId     String?             @map("extension_id")
+  icon            String?
 
   @@index([nextRunAt])
   @@index([extensionId])
@@ -109,6 +110,7 @@ model rho_sys_Notification {
   title          String
   body           String
   level          rho_sys_NotificationLevel
+  icon           String?
   targetType     String?                   @map("target_type")
   targetId       String?                   @map("target_id")
   idempotencyKey String                    @map("idempotency_key")

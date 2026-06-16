@@ -79,6 +79,7 @@ const notificationSchema = z.object({
 	title: z.string(),
 	body: z.string(),
 	level: notificationLevelSchema,
+	icon: z.string().nullable(),
 	target: notificationTargetSchema.nullable(),
 	idempotencyKey: z.string(),
 	readAt: z.date().nullable(),
@@ -102,6 +103,7 @@ const cronSchema = z.object({
 	activeRunId: z.string().nullable(),
 	instructions: z.string().nullable(),
 	extensionId: z.string().nullable(),
+	icon: z.string().nullable(),
 	createdAt: z.date(),
 	updatedAt: z.date(),
 });
@@ -216,6 +218,18 @@ export const httpContract = {
 		notifications: oc
 			.route({ method: "GET", path: "/agent/notifications" })
 			.output(z.object({ notifications: z.array(notificationSchema) })),
+		dismissNotification: oc
+			.route({ method: "POST", path: "/agent/notifications/{id}/dismiss" })
+			.input(z.object({ id: z.string().min(1) }))
+			.output(z.object({ ok: z.boolean() })),
+		dismissReminder: oc
+			.route({ method: "POST", path: "/agent/reminders/{id}/dismiss" })
+			.input(z.object({ id: z.string().min(1) }))
+			.output(z.object({ ok: z.boolean() })),
+		snoozeReminder: oc
+			.route({ method: "POST", path: "/agent/reminders/{id}/snooze" })
+			.input(z.object({ id: z.string().min(1), minutes: z.coerce.number().int().min(1).optional() }))
+			.output(z.object({ ok: z.boolean() })),
 	},
 	store: {
 		upload: oc

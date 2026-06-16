@@ -1,6 +1,7 @@
 import ObjectiveC
 import Security
 import SwiftUI
+import UIKit
 import WebKit
 
 enum RootScreen {
@@ -157,6 +158,164 @@ final class AppsClient {
     }
 }
 
+/// Decoded notification from `GET /agent/notifications`.
+private struct HomeNotification: Identifiable, Decodable {
+    let id: String
+    let defId: String
+    let title: String
+    let body: String
+    let level: String
+    let icon: String?
+    let readAt: String?
+
+    var isUnread: Bool { readAt == nil }
+    var sourceLabel: String { defId }
+}
+
+/// Decoded reminder cron from `GET /agent/reminders`.
+private struct HomeReminder: Decodable {
+    let id: String
+    let title: String
+    let nextRunAt: String
+    let icon: String?
+
+    var reminderItem: ReminderItem {
+        ReminderItem(
+            id: id,
+            title: title,
+            time: HomeReminder.formatTime(nextRunAt),
+            icon: icon,
+            tint: HomeReminder.proximityColor(nextRunAt)
+        )
+    }
+
+    /// Color signals urgency by how soon the reminder is due. The change is
+    /// dramatic inside a day (red↔amber, warm hues only), then jumps to a calm
+    /// blue that fades to light gray over the following week.
+    static func proximityColor(_ iso: String) -> Color {
+        guard let date = isoParsers.lazy.compactMap({ $0.date(from: iso) }).first else {
+            return .gray
+        }
+        return urgencyColor(hoursUntilDue: date.timeIntervalSinceNow / 3600)
+    }
+
+    private static let isoParsers: [ISO8601DateFormatter] = {
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        return [withFraction, plain]
+    }()
+
+    static func formatTime(_ iso: String) -> String {
+        guard let date = isoParsers.lazy.compactMap({ $0.date(from: iso) }).first else {
+            return iso
+        }
+
+        let time = DateFormatter()
+        time.dateFormat = "h:mm a"
+        let clock = time.string(from: date)
+
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return "Today, \(clock)" }
+        if calendar.isDateInTomorrow(date) { return "Tomorrow, \(clock)" }
+
+        let day = DateFormatter()
+        day.dateFormat = "EEE"
+        return "\(day.string(from: date)), \(clock)"
+    }
+}
+
+/// Loads the Home screen's notification and reminder content from the rho
+/// server's agent endpoints, using the same auth/refresh flow as the rest of
+/// the app.
+@MainActor
+private struct HomeClient {
+    let authStore: AuthStore
+
+    func notifications() async throws -> [HomeNotification] {
+        let data = try await authorizedData(url: authStore.baseURL.appendingPathComponent("agent/notifications"))
+        return try JSONDecoder().decode(NotificationsResponse.self, from: data).notifications
+    }
+
+    func reminders() async throws -> [HomeReminder] {
+        let data = try await authorizedData(url: authStore.baseURL.appendingPathComponent("agent/reminders"))
+        return try JSONDecoder().decode(RemindersResponse.self, from: data).reminders
+    }
+
+    func dismissNotification(id: String) async throws {
+        try await post(url: authStore.baseURL.appendingPathComponent("agent/notifications/\(id)/dismiss"), body: nil)
+    }
+
+    func dismissReminder(id: String) async throws {
+        try await post(url: authStore.baseURL.appendingPathComponent("agent/reminders/\(id)/dismiss"), body: nil)
+    }
+
+    func snoozeReminder(id: String, minutes: Int) async throws {
+        let body = try JSONEncoder().encode(["minutes": minutes])
+        try await post(url: authStore.baseURL.appendingPathComponent("agent/reminders/\(id)/snooze"), body: body)
+    }
+
+    private func post(url: URL, body: Data?) async throws {
+        let response = try await sendPost(url: url, body: body)
+        if response.status == 401 {
+            try await authStore.refresh()
+            let retried = try await sendPost(url: url, body: body)
+            guard (200..<300).contains(retried.status) else { throw URLError(.userAuthenticationRequired) }
+            return
+        }
+        guard (200..<300).contains(response.status) else { throw URLError(.badServerResponse) }
+    }
+
+    private func sendPost(url: URL, body: Data?) async throws -> (data: Data, status: Int) {
+        var request = authStore.authorizedRequest(url: url)
+        request.httpMethod = "POST"
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = body
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        return (data, httpResponse.statusCode)
+    }
+
+    private func authorizedData(url: URL) async throws -> Data {
+        let response = try await send(url: url)
+        if response.status == 401 {
+            try await authStore.refresh()
+            let retried = try await send(url: url)
+            guard (200..<300).contains(retried.status) else {
+                throw URLError(.userAuthenticationRequired)
+            }
+            return retried.data
+        }
+
+        guard (200..<300).contains(response.status) else {
+            throw URLError(.badServerResponse)
+        }
+
+        return response.data
+    }
+
+    private func send(url: URL) async throws -> (data: Data, status: Int) {
+        var request = authStore.authorizedRequest(url: url)
+        request.httpMethod = "GET"
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+        return (data, httpResponse.statusCode)
+    }
+
+    private struct NotificationsResponse: Decodable {
+        let notifications: [HomeNotification]
+    }
+
+    private struct RemindersResponse: Decodable {
+        let reminders: [HomeReminder]
+    }
+}
+
 private struct LoginView: View {
     @ObservedObject var authStore: AuthStore
     @State private var password = ""
@@ -239,7 +398,7 @@ private struct RootScreenView: View {
     var body: some View {
         switch screen {
         case .home:
-            HomeScreen()
+            HomeScreen(authStore: authStore)
         case .app(let app):
             AppWebView(app: app, authStore: authStore)
         case .search:
@@ -274,39 +433,102 @@ private struct PlaceholderScreen: View {
 }
 
 private struct HomeScreen: View {
-    @State private var isShowingReminders = false
+    let authStore: AuthStore
 
-    private let reminders = [
-        ReminderItem(icon: "leaf", title: "Water fiddle leaf fig", time: "Today, 5:00 PM", tint: Color.green),
-        ReminderItem(icon: "cart", title: "Review grocery list", time: "Today, 6:30 PM", tint: RhoTheme.primaryColor),
-        ReminderItem(icon: "creditcard", title: "Pay invoice", time: "Tomorrow, 9:00 AM", tint: Color.orange),
-        ReminderItem(icon: "bubble.left.and.bubble.right", title: "Message Sophie", time: "Tomorrow, 12:00 PM", tint: Color.purple),
-        ReminderItem(icon: "pills", title: "Refill vitamins", time: "Friday, 10:00 AM", tint: Color.red),
-        ReminderItem(icon: "tray.full", title: "Clean downloads folder", time: "Sunday, 4:00 PM", tint: Color.gray),
-        ReminderItem(icon: "book", title: "Read saved article", time: "Monday, 8:00 PM", tint: Color.indigo),
-        ReminderItem(icon: "figure.walk", title: "Take a walk", time: "Tuesday, 7:30 AM", tint: Color.mint),
-        ReminderItem(icon: "phone", title: "Call dentist", time: "Wednesday, 11:00 AM", tint: Color.teal),
-        ReminderItem(icon: "birthday.cake", title: "Buy birthday gift", time: "Thursday, 5:30 PM", tint: Color.pink),
-        ReminderItem(icon: "archivebox", title: "Archive old notes", time: "Next Saturday, 2:00 PM", tint: Color.brown),
-    ]
+    @State private var isShowingReminders = false
+    @State private var isShowingNotifications = false
+    @State private var notifications: [HomeNotification] = []
+    @State private var reminders: [ReminderItem] = []
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 22) {
-                header
-                notificationsSection
-                remindersSection
-                quickActions
-                // widgetsSection
+        List {
+            header.homeRow(top: 6, bottom: 0)
+            quickActions.homeRow(top: 18, bottom: 0)
+
+            HomeSectionTitle(title: "Notifications").homeRow(top: 20, bottom: 8)
+            ForEach(Array(notifications.prefix(2))) { notification in
+                NotificationCard(notification: notification)
+                    .homeRow(top: 3, bottom: 3)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            dismissNotification(notification.id)
+                        } label: {
+                            Label("Dismiss", systemImage: "trash")
+                        }
+                    }
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 6)
-            .padding(.bottom, 120)
+            if notifications.count > 2 {
+                notificationsViewAll.homeRow(top: 4, bottom: 0)
+            }
+
+            HomeSectionTitle(title: "Reminders").homeRow(top: 20, bottom: 8)
+            ForEach(Array(reminders.prefix(3))) { reminder in
+                ReminderCard(reminder: reminder)
+                    .homeRow(top: 3, bottom: 3)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            dismissReminder(reminder.id)
+                        } label: {
+                            Label("Dismiss", systemImage: "trash")
+                        }
+                        Button {
+                            snoozeReminder(reminder.id)
+                        } label: {
+                            Label("Snooze", systemImage: "clock")
+                        }
+                        .tint(.orange)
+                    }
+            }
+            if reminders.count > 3 {
+                remindersViewAll.homeRow(top: 4, bottom: 0)
+            }
+
+            Color.clear
+                .frame(height: 90)
+                .homeRow(top: 0, bottom: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
         .background(Color.white)
         .sheet(isPresented: $isShowingReminders) {
-            ReminderListSheet(reminders: reminders)
+            ReminderListSheet(authStore: authStore, reminders: reminders) {
+                Task { await load() }
+            }
+        }
+        .sheet(isPresented: $isShowingNotifications) {
+            NotificationListSheet(authStore: authStore, notifications: notifications) {
+                Task { await load() }
+            }
+        }
+        .task {
+            await load()
+        }
+    }
+
+    private func load() async {
+        let client = HomeClient(authStore: authStore)
+        async let notificationsResult = client.notifications()
+        async let remindersResult = client.reminders()
+        notifications = (try? await notificationsResult) ?? []
+        reminders = ((try? await remindersResult) ?? []).map(\.reminderItem)
+    }
+
+    private func dismissNotification(_ id: String) {
+        notifications.removeAll { $0.id == id }
+        Task { try? await HomeClient(authStore: authStore).dismissNotification(id: id) }
+    }
+
+    private func dismissReminder(_ id: String) {
+        reminders.removeAll { $0.id == id }
+        Task { try? await HomeClient(authStore: authStore).dismissReminder(id: id) }
+    }
+
+    private func snoozeReminder(_ id: String) {
+        reminders.removeAll { $0.id == id }
+        Task {
+            try? await HomeClient(authStore: authStore).snoozeReminder(id: id, minutes: 60)
+            await load()
         }
     }
 
@@ -325,21 +547,44 @@ private struct HomeScreen: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var notificationsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HomeSectionTitle(title: "Notifications")
-            NotificationCard()
+    private var notificationsViewAll: some View {
+        Button {
+            isShowingNotifications = true
+        } label: {
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
+                OverlappingIcons(badges: notificationBadges(notifications))
+                Text(hiddenNotificationsLabel)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(RhoTheme.primaryColor)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 4)
         }
+        .buttonStyle(.plain)
     }
 
-    private var remindersSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HomeSectionTitle(title: "Reminders")
+    private var hiddenNotificationsLabel: String {
+        let hidden = max(0, notifications.count - 2)
+        return "+\(hidden) more notification\(hidden == 1 ? "" : "s")"
+    }
 
-            ReminderPreviewStack(reminders: reminders) {
-                isShowingReminders = true
+    private var remindersViewAll: some View {
+        let hidden = max(0, reminders.count - 3)
+        return Button {
+            isShowingReminders = true
+        } label: {
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
+                OverlappingIcons(badges: reminderBadges(reminders))
+                Text("+\(hidden) more reminder\(hidden == 1 ? "" : "s")")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(RhoTheme.primaryColor)
+                Spacer(minLength: 0)
             }
+            .padding(.vertical, 4)
         }
+        .buttonStyle(.plain)
     }
 
     private var quickActions: some View {
@@ -412,28 +657,32 @@ private struct HomeSectionTitle: View {
 }
 
 private struct NotificationCard: View {
+    let notification: HomeNotification
+
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "envelope.badge")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(RhoTheme.primaryColor)
-                .frame(width: 36, height: 36)
-                .background(RhoTheme.primaryColor.opacity(0.12), in: Circle())
+            IconAvatar(
+                systemName: safeSymbol(notification.icon, fallback: "bell.badge"),
+                color: notificationLevelColor(notification.level),
+                size: 36
+            )
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("Email triage")
+                    Text(notification.sourceLabel)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.secondary)
-                    Text("New")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(RhoTheme.primaryColor)
+                    if notification.isUnread {
+                        Text("New")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(RhoTheme.primaryColor)
+                    }
                 }
 
-                Text("Important email from Sam")
+                Text(notification.title)
                     .font(.system(size: 17, weight: .semibold))
 
-                Text("Looks like it needs a reply today. Rho marked it as high priority.")
+                Text(notification.body)
                     .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
@@ -448,51 +697,117 @@ private struct NotificationCard: View {
     }
 }
 
-private struct ReminderPreviewStack: View {
-    let reminders: [ReminderItem]
-    let onViewAll: () -> Void
+private struct NotificationListSheet: View {
+    let authStore: AuthStore
+    let onChanged: () -> Void
+    @State private var notifications: [HomeNotification]
+
+    init(authStore: AuthStore, notifications: [HomeNotification], onChanged: @escaping () -> Void) {
+        self.authStore = authStore
+        self.onChanged = onChanged
+        _notifications = State(initialValue: notifications)
+    }
 
     var body: some View {
-        VStack(spacing: 6) {
-            ForEach(reminders.prefix(3)) { reminder in
-                ReminderCard(reminder: reminder)
+        NavigationStack {
+            List {
+                ForEach(notifications) { notification in
+                    NotificationCard(notification: notification)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 3, leading: 12, bottom: 3, trailing: 12))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                dismiss(notification)
+                            } label: {
+                                Label("Dismiss", systemImage: "trash")
+                            }
+                        }
+                }
             }
-
-            Button {
-                onViewAll()
-            } label: {
-                Text("View all \(reminders.count)")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(RhoTheme.primaryColor)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 4)
-            }
-            .buttonStyle(.plain)
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color.white)
+            .navigationTitle("Notifications")
+            .navigationBarTitleDisplayMode(.inline)
         }
+        .presentationDetents([.fraction(0.68), .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func dismiss(_ notification: HomeNotification) {
+        let id = notification.id
+        notifications.removeAll { $0.id == id }
+        onChanged()
+        Task { try? await HomeClient(authStore: authStore).dismissNotification(id: id) }
     }
 }
 
 private struct ReminderListSheet: View {
-    let reminders: [ReminderItem]
+    let authStore: AuthStore
+    let onChanged: () -> Void
+    @State private var reminders: [ReminderItem]
+
+    init(authStore: AuthStore, reminders: [ReminderItem], onChanged: @escaping () -> Void) {
+        self.authStore = authStore
+        self.onChanged = onChanged
+        _reminders = State(initialValue: reminders)
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 4) {
-                    ForEach(reminders) { reminder in
-                        ReminderCard(reminder: reminder)
-                    }
+            List {
+                ForEach(reminders) { reminder in
+                    ReminderCard(reminder: reminder)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 3, leading: 12, bottom: 3, trailing: 12))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                dismiss(reminder)
+                            } label: {
+                                Label("Dismiss", systemImage: "trash")
+                            }
+                            Button {
+                                snooze(reminder)
+                            } label: {
+                                Label("Snooze", systemImage: "clock")
+                            }
+                            .tint(.orange)
+                        }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-                .padding(.bottom, 20)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
             .background(Color.white)
             .navigationTitle("Reminders")
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.fraction(0.68), .large])
         .presentationDragIndicator(.visible)
+    }
+
+    private func dismiss(_ reminder: ReminderItem) {
+        let id = reminder.id
+        reminders.removeAll { $0.id == id }
+        onChanged()
+        Task { try? await HomeClient(authStore: authStore).dismissReminder(id: id) }
+    }
+
+    private func snooze(_ reminder: ReminderItem) {
+        let id = reminder.id
+        reminders.removeAll { $0.id == id }
+        onChanged()
+        Task {
+            try? await HomeClient(authStore: authStore).snoozeReminder(id: id, minutes: 60)
+            await refresh()
+        }
+    }
+
+    private func refresh() async {
+        let updated = (try? await HomeClient(authStore: authStore).reminders())?.map(\.reminderItem)
+        if let updated { reminders = updated }
+        onChanged()
     }
 }
 
@@ -501,11 +816,11 @@ private struct ReminderCard: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: reminder.icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(reminder.tint)
-                .frame(width: 32, height: 32)
-                .background(reminder.tint.opacity(0.12), in: Circle())
+            IconAvatar(
+                systemName: safeSymbol(reminder.icon, fallback: "bell"),
+                color: reminder.tint,
+                size: 32
+            )
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(reminder.title)
@@ -525,11 +840,165 @@ private struct ReminderCard: View {
 }
 
 private struct ReminderItem: Identifiable {
-    let id = UUID()
-    let icon: String
+    let id: String
     let title: String
     let time: String
+    let icon: String?
     let tint: Color
+}
+
+/// App-list-style avatar: a gradient circle holding an SF Symbol, where color
+/// signals urgency. The symbol name is validated by the caller so a bad name
+/// falls back to a safe default rather than rendering blank.
+private struct IconAvatar: View {
+    let systemName: String
+    let color: Color
+    let size: CGFloat
+
+    var body: some View {
+        Circle()
+            .fill(Color.white)
+            .overlay(
+                Circle().fill(
+                    LinearGradient(
+                        colors: [color.opacity(0.78), color],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            )
+            .frame(width: size, height: size)
+            .overlay {
+                Image(systemName: systemName)
+                    .font(.system(size: size * 0.46, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+    }
+}
+
+/// Returns `name` only if it is a real SF Symbol; otherwise the fallback. This
+/// keeps an agent-hallucinated icon from rendering as an empty glyph.
+private func safeSymbol(_ name: String?, fallback: String) -> String {
+    guard let name, !name.isEmpty, UIImage(systemName: name) != nil else { return fallback }
+    return name
+}
+
+private func notificationLevelColor(_ level: String) -> Color {
+    switch level {
+    case "urgent": return .red
+    case "attention": return Color(red: 0.96, green: 0.66, blue: 0.0)
+    default: return .blue
+    }
+}
+
+/// Picks up to three notifications for the cluster, spanning urgency: one of
+/// each level when all three are present; otherwise two of the higher level
+/// plus one of the next; otherwise up to three of the single level present.
+private func notificationSample(_ notifications: [HomeNotification]) -> [HomeNotification] {
+    let urgent = notifications.filter { $0.level == "urgent" }
+    let attention = notifications.filter { $0.level == "attention" }
+    let info = notifications.filter { $0.level != "urgent" && $0.level != "attention" }
+    let groups = [urgent, attention, info].filter { !$0.isEmpty }
+
+    if groups.count >= 3 {
+        return [urgent[0], attention[0], info[0]]
+    }
+    if groups.count == 2 {
+        var picked = Array(groups[0].prefix(2))
+        picked += Array(groups[1].prefix(3 - picked.count))
+        return picked
+    }
+    return Array((groups.first ?? []).prefix(3))
+}
+
+/// Shared row styling for the Home `List`: no separators, clear background,
+/// and horizontal page insets with caller-controlled vertical spacing.
+private extension View {
+    func homeRow(top: CGFloat, bottom: CGFloat) -> some View {
+        self
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowInsets(EdgeInsets(top: top, leading: 22, bottom: bottom, trailing: 22))
+    }
+}
+
+/// An icon plus its urgency color, used by the overlapping cluster.
+private struct IconBadge: Identifiable {
+    let id = UUID()
+    let systemName: String
+    let color: Color
+}
+
+/// A row of overlapping icons, mirroring an avatar cluster.
+private struct OverlappingIcons: View {
+    let badges: [IconBadge]
+    var size: CGFloat = 26
+
+    var body: some View {
+        HStack(spacing: -size * 0.34) {
+            ForEach(badges) { badge in
+                IconAvatar(systemName: badge.systemName, color: badge.color, size: size)
+                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+            }
+        }
+    }
+}
+
+private func notificationBadges(_ notifications: [HomeNotification]) -> [IconBadge] {
+    notificationSample(notifications).map {
+        IconBadge(systemName: safeSymbol($0.icon, fallback: "bell.badge"), color: notificationLevelColor($0.level))
+    }
+}
+
+private func reminderBadges(_ reminders: [ReminderItem]) -> [IconBadge] {
+    reminderSample(reminders).map {
+        IconBadge(systemName: safeSymbol($0.icon, fallback: "bell"), color: $0.tint)
+    }
+}
+
+/// Picks up to three reminders spread across the time range (soonest, middle,
+/// latest) so the cluster spans the urgency colors present.
+private func reminderSample(_ reminders: [ReminderItem]) -> [ReminderItem] {
+    if reminders.count <= 3 {
+        return reminders
+    }
+    return [reminders[0], reminders[reminders.count / 2], reminders[reminders.count - 1]]
+}
+
+/// Maps hours-until-due to an urgency color. Warm band (within a day) blends
+/// red→amber only; cool band (after a day) blends blue→gray→light gray. The
+/// two bands never mix, so there is no muddy brown in between.
+private func urgencyColor(hoursUntilDue hours: Double) -> Color {
+    let red = Color(red: 0.90, green: 0.13, blue: 0.13)
+    let amber = Color(red: 0.98, green: 0.72, blue: 0.0)
+    let gray = Color(white: 0.55)
+    let lightGray = Color(white: 0.80)
+
+    if hours <= 0 {
+        return red
+    }
+    if hours <= 24 {
+        return blend(red, amber, CGFloat(hours / 24))
+    }
+
+    let coolness = max(0, min(1, CGFloat((hours - 24) / (168 - 24))))
+    if coolness < 0.5 {
+        return blend(.blue, gray, coolness / 0.5)
+    }
+    return blend(gray, lightGray, (coolness - 0.5) / 0.5)
+}
+
+private func blend(_ a: Color, _ b: Color, _ fraction: CGFloat) -> Color {
+    let f = max(0, min(1, fraction))
+    var ar: CGFloat = 0, ag: CGFloat = 0, ab: CGFloat = 0, aa: CGFloat = 0
+    var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+    UIColor(a).getRed(&ar, green: &ag, blue: &ab, alpha: &aa)
+    UIColor(b).getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+    return Color(
+        red: Double(ar + (br - ar) * f),
+        green: Double(ag + (bg - ag) * f),
+        blue: Double(ab + (bb - ab) * f)
+    )
 }
 
 private struct QuickActionCard: View {
@@ -865,16 +1334,20 @@ private struct WebView: UIViewRepresentable {
             decidePolicyFor navigationAction: WKNavigationAction,
             decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
         ) {
-            guard let url = navigationAction.request.url,
-                  url.host == allowedHost,
-                  url.port == allowedPort
-            else {
-                decisionHandler(.cancel)
+            let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
+
+            // Cross-origin subframes (e.g. an app's embedded Google Map) are
+            // allowed; only the main frame is locked to the rho host.
+            if !isMainFrame {
+                decisionHandler(.allow)
                 return
             }
 
-            let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
-            if isMainFrame && !url.path.hasPrefix("/embed/") {
+            guard let url = navigationAction.request.url,
+                  url.host == allowedHost,
+                  url.port == allowedPort,
+                  url.path.hasPrefix("/embed/")
+            else {
                 decisionHandler(.cancel)
                 return
             }

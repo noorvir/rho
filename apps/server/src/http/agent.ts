@@ -98,6 +98,33 @@ export function agentRouter() {
 			return { notifications: notifications.data };
 		}),
 
+		dismissNotification: p.agent.dismissNotification.handler(async ({ input, context }) => {
+			await requireAuth(context);
+			const res = await tc(context.core.dismissNotification(input.id));
+			if (res.error) {
+				throw badRequest(res.error, "Failed to dismiss notification");
+			}
+			return { ok: true };
+		}),
+
+		dismissReminder: p.agent.dismissReminder.handler(async ({ input, context }) => {
+			await requireAuth(context);
+			const res = await tc(context.core.dismissReminder(input.id));
+			if (res.error) {
+				throw badRequest(res.error, "Failed to dismiss reminder");
+			}
+			return { ok: true };
+		}),
+
+		snoozeReminder: p.agent.snoozeReminder.handler(async ({ input, context }) => {
+			await requireAuth(context);
+			const res = await tc(context.core.snoozeReminder(input.id, input.minutes ?? 60));
+			if (res.error) {
+				throw badRequest(res.error, "Failed to snooze reminder");
+			}
+			return { ok: true };
+		}),
+
 		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {
 			await requireAuth(context);
 			const messageInput = tc(() => validateHttpMessage(input));

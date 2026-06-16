@@ -37,6 +37,7 @@ export interface CronSummary {
 	activeRunId: string | null;
 	instructions: string | null;
 	extensionId: string | null;
+	icon: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -58,6 +59,8 @@ export interface CreateAgentCronInput extends AgentCronDeliveryTarget {
 	enabled: boolean;
 	purpose: CronPurpose;
 	instructions: string;
+	/** SF Symbol name chosen for this reminder from its content, e.g. "leaf". */
+	icon?: string;
 }
 
 export interface UpdateCronInput {
@@ -236,10 +239,28 @@ export class CronScheduler {
 				channelId: input.channelId,
 				targetType: input.targetType,
 				targetId: input.targetId,
+				icon: input.icon ?? null,
 			},
 		});
 		await this.rescheduleCrons();
 		return cronSummary(cron);
+	}
+
+	/** Reschedules a reminder cron to fire `minutes` from now. */
+	async snoozeReminder(id: string, minutes: number): Promise<CronSummary> {
+		const existing = await this.requireCron(id);
+		const at = new Date(Date.now() + minutes * 60_000).toISOString();
+		return this.updateCron({
+			id,
+			enabled: true,
+			schedule: { kind: "at", at, timezone: existing.timezone },
+		});
+	}
+
+	/** Disables a reminder cron so it no longer fires or appears in lists. */
+	async dismissReminder(id: string): Promise<CronSummary> {
+		await this.requireCron(id);
+		return this.updateCron({ id, enabled: false });
 	}
 
 	async updateCron(input: UpdateCronInput): Promise<CronSummary> {
@@ -644,6 +665,7 @@ function cronSummary(cron: CronRow): CronSummary {
 		activeRunId: cron.activeRunId,
 		instructions: cron.instructions,
 		extensionId: cron.extensionId,
+		icon: cron.icon,
 		createdAt: cron.createdAt,
 		updatedAt: cron.updatedAt,
 	};

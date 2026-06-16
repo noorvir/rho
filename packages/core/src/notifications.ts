@@ -7,6 +7,8 @@ export interface NotificationDefInput {
 	id: string;
 	title: string;
 	prompt: string;
+	/** SF Symbol name shown for notifications of this type, e.g. "leaf". */
+	icon?: string;
 }
 
 export interface NotificationDefRegistration extends NotificationDefInput {
@@ -29,6 +31,8 @@ export interface EmitNotificationInput {
 	level: NotificationLevel;
 	idempotencyKey: string;
 	target?: NotificationTarget;
+	/** Overrides the definition's icon for this notification. */
+	icon?: string;
 }
 
 export interface EmitNotificationByKeyInput extends Omit<EmitNotificationInput, "def"> {
@@ -49,6 +53,7 @@ export interface NotificationSummary {
 	title: string;
 	body: string;
 	level: NotificationLevel;
+	icon: string | null;
 	target: NotificationTarget | null;
 	idempotencyKey: string;
 	readAt: Date | null;
@@ -100,7 +105,16 @@ export class NotificationService {
 			orderBy: { createdAt: "desc" },
 			take: limit,
 		});
+		// Stable sort keeps newest-first order within each priority level.
+		rows.sort((a, b) => levelRank(a.level) - levelRank(b.level));
 		return rows.map(notificationSummary);
+	}
+
+	async dismiss(id: string): Promise<void> {
+		await this.prisma.rho_sys_Notification.updateMany({
+			where: { id, dismissedAt: null },
+			data: { dismissedAt: new Date() },
+		});
 	}
 
 	async emit(input: EmitNotificationByKeyInput): Promise<EmitNotificationResult> {
@@ -135,6 +149,7 @@ export class NotificationService {
 				title: input.title,
 				body: input.body,
 				level: input.level,
+				icon: input.icon ?? def.icon ?? null,
 				targetType: input.target?.type,
 				targetId: input.target?.id,
 				idempotencyKey: input.idempotencyKey,
@@ -147,6 +162,12 @@ export class NotificationService {
 
 export function notificationDefKey(extensionId: string, id: string): string {
 	return `${extensionId}:${id}`;
+}
+
+function levelRank(level: NotificationLevel | null): number {
+	if (level === "urgent") return 0;
+	if (level === "attention") return 1;
+	return 2;
 }
 
 function formatNotificationDefsForAgent(defs: RegisteredNotificationDef[]): string {
@@ -172,6 +193,7 @@ function notificationSummary(row: NotificationRow): NotificationSummary {
 		title: row.title,
 		body: row.body,
 		level: row.level ?? "info",
+		icon: row.icon,
 		target,
 		idempotencyKey: row.idempotencyKey ?? "",
 		readAt: row.readAt,

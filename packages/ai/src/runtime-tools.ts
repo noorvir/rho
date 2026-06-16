@@ -51,6 +51,7 @@ export interface RhoCronCreateRequest {
 	enabled: boolean;
 	purpose: RhoCronPurpose;
 	instructions: string;
+	icon?: string;
 }
 
 export interface RhoCronUpdateRequest {
@@ -68,6 +69,7 @@ export interface RhoNotificationSendRequest {
 	body: string;
 	level: RhoNotificationLevel;
 	idempotencyKey: string;
+	icon?: string;
 	target?: {
 		type: string;
 		id: string;
@@ -99,6 +101,7 @@ const notificationSendParams = Type.Object({
 	body: Type.String({ description: "Specific notification body to show the user." }),
 	level: Type.Union([Type.Literal("info"), Type.Literal("attention"), Type.Literal("urgent")]),
 	idempotencyKey: Type.String({ description: "Stable key that prevents duplicate notifications." }),
+	icon: Type.Optional(Type.String({ description: "Optional SF Symbol name to override the definition's icon." })),
 	target: Type.Optional(
 		Type.Object({
 			type: Type.String({ description: "Optional target object type, such as plant." }),
@@ -174,6 +177,7 @@ export function rhoNotificationsExtension(
 					body: params.body,
 					level: params.level,
 					idempotencyKey: params.idempotencyKey,
+					icon: params.icon,
 					target: params.target,
 				});
 				if (!result.ok) {
@@ -232,6 +236,12 @@ export function rhoCronCreateExtension(
 				enabled: Type.Boolean({ description: "Whether the cron should be active immediately." }),
 				purpose: Type.Union([Type.Literal("reminder"), Type.Literal("scheduled_task")]),
 				instructions: Type.String({ description: "What the agent should do when this cron fires." }),
+				icon: Type.Optional(
+					Type.String({
+						description:
+							"For reminders, an SF Symbol name that fits the content (e.g. 'leaf' for plants, 'cart' for shopping, 'creditcard' for bills, 'pills' for medication, 'phone' for calls, 'bubble.left.and.bubble.right' for messages, 'figure.walk' for exercise). Use a plain, common SF Symbol.",
+					}),
+				),
 			}),
 			async execute(_toolCallId, params) {
 				const result = await createCron({
@@ -240,6 +250,7 @@ export function rhoCronCreateExtension(
 					enabled: params.enabled,
 					purpose: params.purpose,
 					instructions: params.instructions,
+					icon: params.icon,
 				});
 				return {
 					content: [{ type: "text", text: `Cron ${result.id} created.` }],

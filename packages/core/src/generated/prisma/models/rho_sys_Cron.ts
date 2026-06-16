@@ -46,6 +46,7 @@ export type Rho_sys_CronMinAggregateOutputType = {
   targetType: string | null
   targetId: string | null
   extensionId: string | null
+  icon: string | null
 }
 
 export type Rho_sys_CronMaxAggregateOutputType = {
@@ -70,6 +71,7 @@ export type Rho_sys_CronMaxAggregateOutputType = {
   targetType: string | null
   targetId: string | null
   extensionId: string | null
+  icon: string | null
 }
 
 export type Rho_sys_CronCountAggregateOutputType = {
@@ -94,6 +96,7 @@ export type Rho_sys_CronCountAggregateOutputType = {
   targetType: number
   targetId: number
   extensionId: number
+  icon: number
   _all: number
 }
 
@@ -120,6 +123,7 @@ export type Rho_sys_CronMinAggregateInputType = {
   targetType?: true
   targetId?: true
   extensionId?: true
+  icon?: true
 }
 
 export type Rho_sys_CronMaxAggregateInputType = {
@@ -144,6 +148,7 @@ export type Rho_sys_CronMaxAggregateInputType = {
   targetType?: true
   targetId?: true
   extensionId?: true
+  icon?: true
 }
 
 export type Rho_sys_CronCountAggregateInputType = {
@@ -168,6 +173,7 @@ export type Rho_sys_CronCountAggregateInputType = {
   targetType?: true
   targetId?: true
   extensionId?: true
+  icon?: true
   _all?: true
 }
 
@@ -265,6 +271,7 @@ export type Rho_sys_CronGroupByOutputType = {
   targetType: string | null
   targetId: string | null
   extensionId: string | null
+  icon: string | null
   _count: Rho_sys_CronCountAggregateOutputType | null
   _min: Rho_sys_CronMinAggregateOutputType | null
   _max: Rho_sys_CronMaxAggregateOutputType | null
@@ -310,6 +317,7 @@ export type rho_sys_CronWhereInput = {
   targetType?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   targetId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   extensionId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
+  icon?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
 }
 
 export type rho_sys_CronOrderByWithRelationInput = {
@@ -334,6 +342,7 @@ export type rho_sys_CronOrderByWithRelationInput = {
   targetType?: Prisma.SortOrderInput | Prisma.SortOrder
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
   extensionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  icon?: Prisma.SortOrderInput | Prisma.SortOrder
 }
 
 export type rho_sys_CronWhereUniqueInput = Prisma.AtLeast<{
@@ -361,6 +370,7 @@ export type rho_sys_CronWhereUniqueInput = Prisma.AtLeast<{
   targetType?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   targetId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
   extensionId?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
+  icon?: Prisma.StringNullableFilter<"rho_sys_Cron"> | string | null
 }, "id">
 
 export type rho_sys_CronOrderByWithAggregationInput = {
@@ -385,6 +395,7 @@ export type rho_sys_CronOrderByWithAggregationInput = {
   targetType?: Prisma.SortOrderInput | Prisma.SortOrder
   targetId?: Prisma.SortOrderInput | Prisma.SortOrder
   extensionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  icon?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.rho_sys_CronCountOrderByAggregateInput
   _max?: Prisma.rho_sys_CronMaxOrderByAggregateInput
   _min?: Prisma.rho_sys_CronMinOrderByAggregateInput
@@ -415,6 +426,7 @@ export type rho_sys_CronScalarWhereWithAggregatesInput = {
   targetType?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
   targetId?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
   extensionId?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
+  icon?: Prisma.StringNullableWithAggregatesFilter<"rho_sys_Cron"> | string | null
 }
 
 export type rho_sys_CronCreateInput = {
@@ -439,6 +451,7 @@ export type rho_sys_CronCreateInput = {
   targetType?: string | null
   targetId?: string | null
   extensionId?: string | null
+  icon?: string | null
 }
 
 export type rho_sys_CronUncheckedCreateInput = {
@@ -463,6 +476,7 @@ export type rho_sys_CronUncheckedCreateInput = {
   targetType?: string | null
   targetId?: string | null
   extensionId?: string | null
+  icon?: string | null
 }
 
 export type rho_sys_CronUpdateInput = {
@@ -487,6 +501,7 @@ export type rho_sys_CronUpdateInput = {
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type rho_sys_CronUncheckedUpdateInput = {
@@ -511,6 +526,7 @@ export type rho_sys_CronUncheckedUpdateInput = {
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type rho_sys_CronCreateManyInput = {
@@ -535,6 +551,7 @@ export type rho_sys_CronCreateManyInput = {
   targetType?: string | null
   targetId?: string | null
   extensionId?: string | null
+  icon?: string | null
 }
 
 export type rho_sys_CronUpdateManyMutationInput = {
@@ -559,6 +576,7 @@ export type rho_sys_CronUpdateManyMutationInput = {
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type rho_sys_CronUncheckedUpdateManyInput = {
@@ -583,6 +601,7 @@ export type rho_sys_CronUncheckedUpdateManyInput = {
   targetType?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   targetId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extensionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type rho_sys_CronCountOrderByAggregateInput = {
@@ -607,6 +626,7 @@ export type rho_sys_CronCountOrderByAggregateInput = {
   targetType?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
   extensionId?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
 }
 
 export type rho_sys_CronMaxOrderByAggregateInput = {
@@ -631,6 +651,7 @@ export type rho_sys_CronMaxOrderByAggregateInput = {
   targetType?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
   extensionId?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
 }
 
 export type rho_sys_CronMinOrderByAggregateInput = {
@@ -655,6 +676,7 @@ export type rho_sys_CronMinOrderByAggregateInput = {
   targetType?: Prisma.SortOrder
   targetId?: Prisma.SortOrder
   extensionId?: Prisma.SortOrder
+  icon?: Prisma.SortOrder
 }
 
 export type Enumrho_sys_CronKindFieldUpdateOperationsInput = {
@@ -701,6 +723,7 @@ export type rho_sys_CronSelect<ExtArgs extends runtime.Types.Extensions.Internal
   targetType?: boolean
   targetId?: boolean
   extensionId?: boolean
+  icon?: boolean
 }, ExtArgs["result"]["rho_sys_Cron"]>
 
 export type rho_sys_CronSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -725,6 +748,7 @@ export type rho_sys_CronSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   targetType?: boolean
   targetId?: boolean
   extensionId?: boolean
+  icon?: boolean
 }, ExtArgs["result"]["rho_sys_Cron"]>
 
 export type rho_sys_CronSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -749,6 +773,7 @@ export type rho_sys_CronSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   targetType?: boolean
   targetId?: boolean
   extensionId?: boolean
+  icon?: boolean
 }, ExtArgs["result"]["rho_sys_Cron"]>
 
 export type rho_sys_CronSelectScalar = {
@@ -773,9 +798,10 @@ export type rho_sys_CronSelectScalar = {
   targetType?: boolean
   targetId?: boolean
   extensionId?: boolean
+  icon?: boolean
 }
 
-export type rho_sys_CronOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kind" | "title" | "scheduleKind" | "schedule" | "timezone" | "enabled" | "status" | "nextRunAt" | "lastRunAt" | "lastError" | "activeRunId" | "createdAt" | "updatedAt" | "purpose" | "instructions" | "conversationKey" | "channelId" | "targetType" | "targetId" | "extensionId", ExtArgs["result"]["rho_sys_Cron"]>
+export type rho_sys_CronOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "kind" | "title" | "scheduleKind" | "schedule" | "timezone" | "enabled" | "status" | "nextRunAt" | "lastRunAt" | "lastError" | "activeRunId" | "createdAt" | "updatedAt" | "purpose" | "instructions" | "conversationKey" | "channelId" | "targetType" | "targetId" | "extensionId" | "icon", ExtArgs["result"]["rho_sys_Cron"]>
 
 export type $rho_sys_CronPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "rho_sys_Cron"
@@ -802,6 +828,7 @@ export type $rho_sys_CronPayload<ExtArgs extends runtime.Types.Extensions.Intern
     targetType: string | null
     targetId: string | null
     extensionId: string | null
+    icon: string | null
   }, ExtArgs["result"]["rho_sys_Cron"]>
   composites: {}
 }
@@ -1246,6 +1273,7 @@ export interface rho_sys_CronFieldRefs {
   readonly targetType: Prisma.FieldRef<"rho_sys_Cron", 'String'>
   readonly targetId: Prisma.FieldRef<"rho_sys_Cron", 'String'>
   readonly extensionId: Prisma.FieldRef<"rho_sys_Cron", 'String'>
+  readonly icon: Prisma.FieldRef<"rho_sys_Cron", 'String'>
 }
     
 
