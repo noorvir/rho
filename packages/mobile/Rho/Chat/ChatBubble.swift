@@ -1,3 +1,4 @@
+import MarkdownUI
 import SwiftUI
 
 struct ChatMessage: Identifiable {
@@ -37,7 +38,7 @@ struct ChatBubble: View {
                 }
 
                 if !message.text.isEmpty || message.imagePaths.isEmpty {
-                    Text(message.text.isEmpty ? "…" : message.text)
+                    messageText
                         .font(.system(size: GlassControlMetrics.chatTextFontSize))
                         .foregroundStyle(.black.opacity(message.role == .user ? 0.9 : 0.78))
                         .textSelection(.enabled)
@@ -57,9 +58,34 @@ struct ChatBubble: View {
         }
     }
 
+    private var messageText: some View {
+        MarkdownMessageText(text: message.text.isEmpty ? "…" : message.text)
+    }
+
     private var backgroundColor: Color {
         message.role == .user ? Color.black.opacity(0.055) : Color.white
     }
+}
+
+private struct MarkdownMessageText: View {
+    let text: String
+
+    var body: some View {
+        Markdown(text)
+            .markdownTheme(.rhoChat)
+    }
+}
+
+private extension Theme {
+    static let rhoChat = Theme.gitHub
+        .text {
+            BackgroundColor(nil)
+        }
+        .code {
+            FontFamilyVariant(.monospaced)
+            FontSize(.em(0.85))
+            BackgroundColor(Color.black.opacity(0.045))
+        }
 }
 
 /// Renders an image from the rho store, fetching through the authenticated
