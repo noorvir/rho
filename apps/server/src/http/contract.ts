@@ -129,6 +129,25 @@ const storeUploadSchema = z.object({
 	data: z.string().min(1),
 });
 
+const roleSelectionSchema = z.object({
+	provider: z.string().min(1),
+	modelId: z.string().min(1),
+	thinking: z.enum(["minimal", "low", "medium", "high"]),
+});
+const modelSettingsInputSchema = z.object({
+	chat: roleSelectionSchema,
+	task: roleSelectionSchema,
+	timezone: z.string().min(1),
+});
+const modelSettingsResponseSchema = z.object({
+	chat: roleSelectionSchema,
+	task: roleSelectionSchema,
+	timezone: z.string(),
+	choices: z.array(z.object({ provider: z.string(), modelId: z.string(), label: z.string() })),
+	thinkingLevels: z.array(z.string()),
+	timezones: z.array(z.string()),
+});
+
 export const httpContract = {
 	apps: {
 		list: oc.route({ method: "GET", path: "/apps.json" }).output(z.object({ apps: z.array(appSummarySchema) })),
@@ -230,6 +249,13 @@ export const httpContract = {
 			.route({ method: "POST", path: "/agent/reminders/{id}/snooze" })
 			.input(z.object({ id: z.string().min(1), minutes: z.coerce.number().int().min(1).optional() }))
 			.output(z.object({ ok: z.boolean() })),
+		modelSettings: oc
+			.route({ method: "GET", path: "/agent/model-settings" })
+			.output(modelSettingsResponseSchema),
+		setModelSettings: oc
+			.route({ method: "POST", path: "/agent/model-settings" })
+			.input(modelSettingsInputSchema)
+			.output(modelSettingsResponseSchema),
 	},
 	store: {
 		upload: oc

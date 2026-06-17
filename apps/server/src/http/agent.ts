@@ -5,6 +5,13 @@ import { throwRhoError } from "../errors.ts";
 import { conversationKey, messageFromHttp, validateHttpMessage } from "../http-message.ts";
 import { requireAuth } from "./auth.ts";
 import { httpContract } from "./contract.ts";
+import {
+	modelChoices,
+	readModelSettings,
+	thinkingLevels,
+	timezoneChoices,
+	writeModelSettings,
+} from "../lib/model-settings.ts";
 import type { HttpContext } from "./types.ts";
 
 const p = implement(httpContract).$context<HttpContext>();
@@ -123,6 +130,31 @@ export function agentRouter() {
 				throw badRequest(res.error, "Failed to snooze reminder");
 			}
 			return { ok: true };
+		}),
+
+		modelSettings: p.agent.modelSettings.handler(async ({ context }) => {
+			await requireAuth(context);
+			const settings = readModelSettings(context.agentDir);
+			return {
+				...settings,
+				choices: modelChoices,
+				thinkingLevels,
+				timezones: timezoneChoices(settings.timezone),
+			};
+		}),
+
+		setModelSettings: p.agent.setModelSettings.handler(async ({ input, context }) => {
+			await requireAuth(context);
+			const saved = tc(() => writeModelSettings(context.agentDir, input));
+			if (saved.error) {
+				throw badRequest(saved.error, "Failed to save model settings");
+			}
+			return {
+				...saved.data,
+				choices: modelChoices,
+				thinkingLevels,
+				timezones: timezoneChoices(saved.data.timezone),
+			};
 		}),
 
 		handleMessageStream: p.agent.handleMessageStream.handler(async function* ({ input, context }) {

@@ -6,6 +6,7 @@ import UIKit
 
 struct ChatSheetView: View {
     let authStore: AuthStore
+    let navigateToApp: (String, String) -> Void
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -479,11 +480,38 @@ struct ChatSheetView: View {
     private func updateAssistantMessage(_ id: UUID, update: (inout String) -> Void) {
         guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
         update(&messages[index].text)
+
+        let parsed = extractNavigationCommand(from: messages[index].text)
+        messages[index].text = parsed.text
+        if let command = parsed.command {
+            navigateToApp(command.slug, command.path)
+            dismiss()
+        }
     }
 
     private func removeEmptyAssistantMessage(_ id: UUID) {
         messages.removeAll { $0.id == id && $0.text.isEmpty }
     }
+}
+
+private struct AppNavigationCommand: Decodable {
+    let slug: String
+    let path: String
+}
+
+private func extractNavigationCommand(from text: String) -> (text: String, command: AppNavigationCommand?) {
+    guard let start = text.range(of: "⟦rho:navigate ") else {
+        return (text, nil)
+    }
+    guard let end = text[start.upperBound...].range(of: "⟧") else {
+        return (text, nil)
+    }
+
+    let json = String(text[start.upperBound..<end.lowerBound])
+    let command = try? JSONDecoder().decode(AppNavigationCommand.self, from: Data(json.utf8))
+    let cleaned = text.replacingCharacters(in: start.lowerBound..<end.upperBound, with: "")
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+    return (cleaned, command)
 }
 
 private struct ChatHeader: View {
@@ -698,5 +726,5 @@ private struct MarkupCanvas: UIViewRepresentable {
 }
 
 #Preview {
-    ChatSheetView(authStore: AuthStore())
+    ChatSheetView(authStore: AuthStore()) { _, _ in }
 }

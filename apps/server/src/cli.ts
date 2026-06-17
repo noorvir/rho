@@ -6,6 +6,7 @@ import { createRhoCore } from "@rho/core";
 import { createRhoAuth } from "./auth.ts";
 import { installCrashGuards } from "./lib/crash-guards.ts";
 import { env } from "./lib/env.ts";
+import { agentModelsResolver, resolveTimezone } from "./lib/model-settings.ts";
 import { createServer } from "./server.ts";
 import { createRhoStore } from "./store.ts";
 
@@ -23,6 +24,8 @@ const core = await createRhoCore({
 	taskThinkingLevel: env.RHO_TASK_THINKING_LEVEL,
 	channelModel: env.RHO_CHANNEL_MODEL,
 	channelThinkingLevel: env.RHO_CHANNEL_THINKING_LEVEL,
+	agentModels: agentModelsResolver(env.RHO_AGENT_DIR),
+	resolveTimezone: resolveTimezone(env.RHO_AGENT_DIR),
 	docsDir: env.RHO_DOCS_DIR,
 	extensionsDir: env.RHO_EXTENSIONS_DIR,
 	extensionPaths: env.RHO_EXTENSION_PATHS,
@@ -41,6 +44,7 @@ const server = serve({
 		databaseUrl: env.RHO_DATABASE_URL,
 		appModules: "bundle",
 		webRoot,
+		agentDir: env.RHO_AGENT_DIR,
 	}).fetch,
 	hostname: "0.0.0.0",
 	port: env.RHO_PORT,

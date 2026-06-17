@@ -76,7 +76,7 @@ private struct RootBottomBar: View {
                 rootNavigationPill
             } replacement: {
                 AppsMenuView(apps: apps, width: rootNavigationPillWidth) { app in
-                    selectScreen(.app(app))
+                    selectScreen(.app(app, path: "/"))
                     withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
                         isAppsMenuPresented = false
                     }

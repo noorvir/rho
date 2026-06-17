@@ -6,7 +6,7 @@ import WebKit
 
 enum RootScreen {
     case home
-    case app(InstalledApp)
+    case app(InstalledApp, path: String)
     case search
     case settings
 }
@@ -80,7 +80,9 @@ struct ContentView: View {
                     RootScreenView(screen: screen, authStore: authStore, host: appHost)
                 }
                 .sheet(isPresented: $isChatPresented) {
-                    ChatSheetView(authStore: authStore)
+                    ChatSheetView(authStore: authStore) { slug, path in
+                        navigateToApp(slug: slug, path: path)
+                    }
                         .presentationDetents([.large])
                         .presentationDragIndicator(.hidden)
                         .presentationCornerRadius(18)
@@ -115,6 +117,12 @@ struct ContentView: View {
                 authStore.clearSession()
             }
         }
+    }
+
+    private func navigateToApp(slug: String, path: String) {
+        guard let app = apps.first(where: { $0.id == slug }) else { return }
+        isChatPresented = false
+        screen = .app(app, path: path)
     }
 }
 
@@ -210,6 +218,70 @@ final class AppsClient {
     private struct WebSessionResponse: Decodable {
         let cookieName: String
         let token: String
+    }
+}
+
+struct ModelRole: Codable, Equatable {
+    var provider: String
+    var modelId: String
+    var thinking: String
+
+    var key: String { "\(provider)/\(modelId)" }
+}
+
+struct ModelChoice: Codable, Identifiable, Equatable {
+    var provider: String
+    var modelId: String
+    var label: String
+    var id: String { "\(provider)/\(modelId)" }
+}
+
+struct ModelSettings: Codable, Equatable {
+    var chat: ModelRole
+    var task: ModelRole
+    var timezone: String
+    var choices: [ModelChoice]
+    var thinkingLevels: [String]
+    var timezones: [String]
+}
+
+@MainActor
+final class ModelSettingsClient {
+    private let authStore: AuthStore
+    init(authStore: AuthStore) { self.authStore = authStore }
+
+    func load() async throws -> ModelSettings {
+        let data = try await request(method: "GET", body: nil)
+        return try JSONDecoder().decode(ModelSettings.self, from: data)
+    }
+
+    struct SaveBody: Encodable { let chat: ModelRole; let task: ModelRole; let timezone: String }
+
+    func save(chat: ModelRole, task: ModelRole, timezone: String) async throws -> ModelSettings {
+        let body = try JSONEncoder().encode(SaveBody(chat: chat, task: task, timezone: timezone))
+        let data = try await request(method: "POST", body: body)
+        return try JSONDecoder().decode(ModelSettings.self, from: data)
+    }
+
+    private func request(method: String, body: Data?) async throws -> Data {
+        let url = authStore.baseURL.appendingPathComponent("agent/model-settings")
+        func send() async throws -> (Data, Int) {
+            var req = authStore.authorizedRequest(url: url)
+            req.httpMethod = method
+            if let body {
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                req.httpBody = body
+            }
+            let (data, response) = try await URLSession.shared.data(for: req)
+            return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
+        }
+        var (data, status) = try await send()
+        if status == 401 {
+            try await authStore.refresh()
+            (data, status) = try await send()
+        }
+        guard (200..<300).contains(status) else { throw URLError(.badServerResponse) }
+        return data
     }
 }
 
@@ -455,8 +527,8 @@ private struct RootScreenView: View {
         switch screen {
         case .home:
             HomeScreen(authStore: authStore)
-        case .app(let app):
-            AppWebView(app: app, authStore: authStore, host: host)
+        case .app(let app, let path):
+            AppWebView(app: app, path: path, authStore: authStore, host: host)
         case .search:
             PlaceholderScreen(title: "Search", subtitle: "Find apps, sessions, and saved work")
         case .settings:
@@ -501,20 +573,22 @@ private struct HomeScreen: View {
             header.homeRow(top: 6, bottom: 0)
             quickActions.homeRow(top: 18, bottom: 0)
 
-            HomeSectionTitle(title: "Notifications").homeRow(top: 20, bottom: 8)
-            ForEach(Array(notifications.prefix(2))) { notification in
-                NotificationCard(notification: notification)
-                    .homeRow(top: 3, bottom: 3)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            dismissNotification(notification.id)
-                        } label: {
-                            Label("Dismiss", systemImage: "trash")
+            if !notifications.isEmpty {
+                HomeSectionTitle(title: "Notifications").homeRow(top: 20, bottom: 8)
+                ForEach(Array(notifications.prefix(2))) { notification in
+                    NotificationCard(notification: notification)
+                        .homeRow(top: 3, bottom: 3)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                dismissNotification(notification.id)
+                            } label: {
+                                Label("Dismiss", systemImage: "trash")
+                            }
                         }
-                    }
-            }
-            if notifications.count > 2 {
-                notificationsViewAll.homeRow(top: 4, bottom: 0)
+                }
+                if notifications.count > 2 {
+                    notificationsViewAll.homeRow(top: 4, bottom: 0)
+                }
             }
 
             HomeSectionTitle(title: "Reminders").homeRow(top: 20, bottom: 8)
@@ -596,18 +670,10 @@ private struct HomeScreen: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("Home")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundStyle(.primary)
-
-            Spacer(minLength: 12)
-
-            Text("Tue, 16 Jun")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        Text("Home")
+            .font(.system(size: 34, weight: .bold))
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var notificationsViewAll: some View {
@@ -1132,36 +1198,140 @@ private struct HomeWidgetCard: View {
 
 private struct SettingsScreen: View {
     @ObservedObject var authStore: AuthStore
+    @State private var models: ModelSettings?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Settings")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(maxWidth: .infinity)
+        NavigationStack {
+            Form {
+                if let models {
+                    Section("Chat") {
+                        modelRow(role: models.chat, settings: models) { save(chat: $0, task: models.task, timezone: models.timezone) }
+                        reasoningRow(role: models.chat, settings: models) { save(chat: $0, task: models.task, timezone: models.timezone) }
+                    }
+                    Section("Background Agent") {
+                        modelRow(role: models.task, settings: models) { save(chat: models.chat, task: $0, timezone: models.timezone) }
+                        reasoningRow(role: models.task, settings: models) { save(chat: models.chat, task: $0, timezone: models.timezone) }
+                    }
+                    Section("Time Zone") {
+                        NavigationLink {
+                            SettingsSelectionList(
+                                title: "Time Zone",
+                                options: models.timezones.map { SettingsOption(id: $0, label: $0) },
+                                selectedId: models.timezone
+                            ) { tz in
+                                save(chat: models.chat, task: models.task, timezone: tz)
+                            }
+                        } label: {
+                            LabeledContent("Time Zone", value: models.timezone)
+                        }
+                    }
+                }
 
-            VStack(alignment: .leading, spacing: 12) {
-                SettingsRow(label: "Chat environment", value: MobileBuildInfo.chatEnvironment)
-                SettingsRow(label: "Chat endpoint", value: authStore.baseURL.absoluteString)
-                SettingsRow(label: "Version", value: MobileBuildInfo.version)
-                SettingsRow(label: "Bundle", value: MobileBuildInfo.bundleIdentifier)
-            }
-            .padding(16)
-            .background(Color.black.opacity(0.035), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                Section("Connection") {
+                    LabeledContent("Endpoint", value: authStore.baseURL.absoluteString)
+                    LabeledContent("Version", value: MobileBuildInfo.version)
+                }
 
-            Button("Log out") {
-                Task {
-                    await authStore.logout()
+                Section {
+                    Button("Log Out", role: .destructive) {
+                        Task { await authStore.logout() }
+                    }
                 }
             }
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(.red)
-            .buttonStyle(.plain)
-
-            Spacer(minLength: 0)
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .task {
+            models = try? await ModelSettingsClient(authStore: authStore).load()
+        }
+    }
+
+    private func save(chat: ModelRole, task: ModelRole, timezone: String) {
+        models?.chat = chat
+        models?.task = task
+        models?.timezone = timezone
+        Task {
+            if let saved = try? await ModelSettingsClient(authStore: authStore).save(chat: chat, task: task, timezone: timezone) {
+                models = saved
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func modelRow(role: ModelRole, settings: ModelSettings, onChange: @escaping (ModelRole) -> Void) -> some View {
+        NavigationLink {
+            SettingsSelectionList(
+                title: "Model",
+                options: settings.choices.map { SettingsOption(id: $0.id, label: $0.label) },
+                selectedId: role.key
+            ) { id in
+                if let choice = settings.choices.first(where: { $0.id == id }) {
+                    onChange(ModelRole(provider: choice.provider, modelId: choice.modelId, thinking: role.thinking))
+                }
+            }
+        } label: {
+            LabeledContent("Model", value: modelLabel(role, settings.choices))
+        }
+    }
+
+    @ViewBuilder
+    private func reasoningRow(role: ModelRole, settings: ModelSettings, onChange: @escaping (ModelRole) -> Void) -> some View {
+        NavigationLink {
+            SettingsSelectionList(
+                title: "Reasoning",
+                options: settings.thinkingLevels.map { SettingsOption(id: $0, label: $0.capitalized) },
+                selectedId: role.thinking
+            ) { level in
+                onChange(ModelRole(provider: role.provider, modelId: role.modelId, thinking: level))
+            }
+        } label: {
+            LabeledContent("Reasoning", value: role.thinking.capitalized)
+        }
+    }
+
+    private func modelLabel(_ role: ModelRole, _ choices: [ModelChoice]) -> String {
+        choices.first { $0.provider == role.provider && $0.modelId == role.modelId }?.label
+            ?? "\(role.provider)/\(role.modelId)"
+    }
+}
+
+private struct SettingsOption: Identifiable {
+    let id: String
+    let label: String
+}
+
+/// Apple-style selection sub-page: a grouped list with a checkmark on the
+/// current value; tapping a row selects it and pops back.
+private struct SettingsSelectionList: View {
+    let title: String
+    let options: [SettingsOption]
+    let selectedId: String
+    let onSelect: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        List {
+            ForEach(options) { option in
+                Button {
+                    onSelect(option.id)
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text(option.label).foregroundStyle(.primary)
+                        Spacer()
+                        if option.id == selectedId {
+                            Image(systemName: "checkmark")
+                                .font(.body.weight(.semibold))
+                                .foregroundStyle(Color.accentColor)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -1184,6 +1354,7 @@ private struct SettingsRow: View {
 
 private struct AppWebView: View {
     let app: InstalledApp
+    let path: String
     @ObservedObject var authStore: AuthStore
     let host: WebAppHost
 
@@ -1220,9 +1391,9 @@ private struct AppWebView: View {
             }
             .ignoresSafeArea()
         }
-        .task(id: app.id) {
+        .task(id: "\(app.id):\(path)") {
             let cookie = try? await AppsClient(authStore: authStore).webSessionCookie()
-            host.activate(slug: app.id, baseURL: authStore.baseURL, cookie: cookie)
+            host.activate(slug: app.id, path: path, baseURL: authStore.baseURL, cookie: cookie)
         }
     }
 }
@@ -1330,14 +1501,15 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
 
     /// Shows the given app: a real document load the first time, then
     /// client-side navigation for every later switch.
-    func activate(slug: String, baseURL: URL, cookie: HTTPCookie?) {
+    func activate(slug: String, path: String = "/", baseURL: URL, cookie: HTTPCookie?) {
         allowedHost = baseURL.host
         allowedPort = baseURL.port
         let origin = Self.originKey(baseURL)
+        let route = appRoute(slug: slug, path: path)
 
         // Same server already loaded: switch apps client-side (warm, instant).
         if loadedOrigin == origin {
-            navigate(toPath: "/embed/apps/\(slug)")
+            navigate(toPath: route)
             return
         }
 
@@ -1348,7 +1520,7 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
         isReady = false
         pendingPath = nil
         presentNeutralCover()
-        let url = baseURL.appendingPathComponent("embed/apps/\(slug)")
+        let url = baseURL.appendingPathComponent(route.trimmingCharacters(in: CharacterSet(charactersIn: "/")))
         let request = URLRequest(url: url)
         if let cookie {
             webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) { [weak self] in
@@ -1375,6 +1547,14 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
         let host = url.host ?? ""
         let port = url.port.map { ":\($0)" } ?? ""
         return "\(scheme)://\(host)\(port)"
+    }
+
+    private func appRoute(slug: String, path: String) -> String {
+        let cleanPath = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if cleanPath.isEmpty {
+            return "/embed/apps/\(slug)"
+        }
+        return "/embed/apps/\(slug)/\(cleanPath)"
     }
 
     private func navigate(toPath path: String) {
@@ -1474,15 +1654,18 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
             decisionHandler(.allow)
             return
         }
-        guard let url = navigationAction.request.url,
-              url.host == allowedHost,
-              url.port == allowedPort,
-              url.path.hasPrefix("/embed/")
-        else {
+        guard let url = navigationAction.request.url else {
             decisionHandler(.cancel)
             return
         }
-        decisionHandler(.allow)
+        if url.host == allowedHost,
+           url.port == allowedPort,
+           url.path.hasPrefix("/embed/") {
+            decisionHandler(.allow)
+            return
+        }
+        decisionHandler(.cancel)
+        UIApplication.shared.open(url)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {

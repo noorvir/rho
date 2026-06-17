@@ -59,8 +59,8 @@ against a dev or installed runtime database.
 
 Rho owns `db/schema.prisma`. That file is the only schema file for the installed runtime.
 
-The `rho_sys_*` tables and models (`rho_sys_Task`, `rho_sys_Owner`,
-`rho_sys_Session`, `rho_sys_ApiToken`) are rho system tables. Treat them as
+The `rho_sys_*` tables and models (`rho_sys_Task`, `rho_sys_Cron`,
+`rho_sys_Owner`, `rho_sys_Session`, `rho_sys_ApiToken`) are rho system tables. Treat them as
 read-only infrastructure: never edit, rename, or remove their models in the
 schema, and never write to them directly — only the rho runtime itself uses
 them. `rho_reload` refuses to swap in a database client that lost any of

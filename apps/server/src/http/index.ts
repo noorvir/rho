@@ -17,6 +17,7 @@ export interface HttpOptions {
 	core: RhoCore;
 	store: RhoStore;
 	databaseUrl: string;
+	agentDir: string;
 	appModules: AppModuleMode;
 }
 
@@ -42,6 +43,7 @@ export function createHttpMiddleware(options: HttpOptions): MiddlewareHandler {
 			core: options.core,
 			store: options.store,
 			databaseUrl: options.databaseUrl,
+			agentDir: options.agentDir,
 			appModules: options.appModules,
 			requestUrl: context.req.url,
 		};

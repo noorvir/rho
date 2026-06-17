@@ -30,12 +30,26 @@ export function rhoSystemPromptExtension(pi: ExtensionAPI): void {
 		let prompt = event.systemPrompt;
 		prompt = replaceSection(prompt, staticTools, toolsSectionFromOptions(options));
 		prompt = replaceSection(prompt, staticGuidelines, guidelinesSectionFromOptions(options));
+		prompt = `${prompt}\n\n${currentTimeLine()}`;
 
-		if (prompt === event.systemPrompt) {
-			return;
-		}
 		return { systemPrompt: prompt };
 	});
+}
+
+/** A fresh "now" line so the agent can resolve relative dates/times the user
+ * mentions (deadlines, reminders). Uses the server's local clock and zone. */
+function currentTimeLine(): string {
+	const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	const formatted = new Intl.DateTimeFormat("en-US", {
+		weekday: "long",
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+		timeZoneName: "short",
+	}).format(new Date());
+	return `Current date and time: ${formatted} (${timeZone}). Treat this as "now" for any relative date or time the user mentions.`;
 }
 
 // Default engine tools with their upstream one-line prompt snippets.
@@ -107,7 +121,7 @@ Working on Rho itself:
 - Schema changes: edit the runtime schema.prisma, then call rho_migrate (validates on a copy, rejects rho_sys_* system-table changes, applies live, regenerates, reloads). Use rho_validate_schema only for optional preflight; rho_migrate always validates again. Never reset or delete user data without explicit approval. The rho_sys_* models are read-only system tables — never edit, remove, or write to them.
 - Never kill or restart the rho server process — it hosts your session and the user's background tasks. rho_reload applies extension and schema changes to the running server.
 - Create new extensions in the runtime extensions workspace at $RHO_HOME/extensions (one folder per extension, then bun install there). Only the rho home directory survives upgrades — never create extensions in the rho installation or source tree unless you are developing rho itself.
-- After creating or editing an extension, reload the runtime (rho_reload tool when available) so the change becomes visible in the user's apps.
+- After creating or editing an extension, call rho_reload before reporting that implementation is done so new apps, tools, prompts, and routes become visible without a server restart. If rho_reload is not available in the current session, tell the user the runtime still needs to be reloaded.
 - When helping users build Rho apps or extensions, use the Todo app as the running example unless the user asks for another domain. Prefer typed oRPC and React Query for normal app API calls. Treat rho.apiFetch() as a lower-level escape hatch.
 - For explicit reminders or scheduled follow-ups, use rho_cron_create/rho_crons/rho_cron_update inline. Creating or updating a cron is a data action; the scheduled run itself wakes the agent or extension code later.
 

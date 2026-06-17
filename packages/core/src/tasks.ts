@@ -34,6 +34,8 @@ export interface TaskRunnerOptions {
 	taskThinkingLevel?: "minimal" | "low" | "medium" | "high";
 	/** Overrides the settings-default model for task sessions. */
 	taskModel?: { provider: string; modelId: string };
+	/** Live resolver for task model + thinking, read per task so Settings changes apply without a restart. */
+	resolveTaskModel?: () => { model?: { provider: string; modelId: string }; thinkingLevel?: "minimal" | "low" | "medium" | "high" } | undefined;
 	pollIntervalMs?: number;
 }
 
@@ -174,8 +176,8 @@ export class TaskRunner {
 				agentDir: this.options.agentDir,
 				prompt: checkpoint ? resumePrompt() : initialPrompt(task),
 				agentExtensions: this.options.agentExtensions(),
-				thinkingLevel: this.options.taskThinkingLevel,
-				model: this.options.taskModel,
+				thinkingLevel: this.options.resolveTaskModel?.()?.thinkingLevel ?? this.options.taskThinkingLevel,
+				model: this.options.resolveTaskModel?.()?.model ?? this.options.taskModel,
 				onSession: (file) => {
 					if (!file || file === sessionFile) {
 						return;

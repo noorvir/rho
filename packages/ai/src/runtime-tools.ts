@@ -82,6 +82,16 @@ export interface RhoNotificationSendResult {
 	error?: string;
 }
 
+export interface RhoAppNavigateRequest {
+	slug: string;
+	path: string;
+}
+
+const appNavigateParams = Type.Object({
+	slug: Type.String({ description: "Installed app slug to open, e.g. watchlist." }),
+	path: Type.String({ description: "Path inside the app, usually / for the root screen." }),
+});
+
 const cronScheduleParams = Type.Union([
 	Type.Object({
 		kind: Type.Literal("at"),
@@ -190,6 +200,26 @@ export function rhoNotificationsExtension(
 				return {
 					content: [{ type: "text", text: `Notification ${result.notificationId ?? ""} sent.` }],
 					details: result,
+				};
+			},
+		});
+	};
+}
+
+export function rhoAppNavigateExtension(): ExtensionFactory {
+	return (pi: ExtensionAPI) => {
+		pi.registerTool({
+			name: "rho_app_navigate",
+			label: "Navigate Rho app",
+			description:
+				"Navigate the user's live Rho app shell to an installed app screen. Use rho_apps first when you need to discover app slugs/screens. For the demo, use slug watchlist and path / to open the Watchlist app.",
+			promptSnippet: "Navigate the user's live Rho app shell to an installed app screen",
+			parameters: appNavigateParams,
+			async execute(_toolCallId, params) {
+				const command = JSON.stringify({ slug: params.slug, path: params.path });
+				return {
+					content: [{ type: "text", text: `⟦rho:navigate ${command}⟧` }],
+					details: params,
 				};
 			},
 		});

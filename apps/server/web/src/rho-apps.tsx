@@ -183,7 +183,7 @@ function AppRuntime({
 
 	if (embedded) {
 		return (
-			<div className="fixed inset-0 overflow-y-auto overscroll-contain bg-background">
+			<div className="min-h-dvh bg-background">
 				<AppStyles app={app} />
 				<MountedApp className="min-h-full w-full" context={context} mount={appModule.data} />
 			</div>

@@ -8,6 +8,7 @@ import {
 	type ConversationKey,
 	createFileStateManager,
 	loadConversation,
+	rhoAppNavigateExtension,
 	rhoAppsExtension,
 	rhoCronCreateExtension,
 	rhoCronsExtension,
@@ -52,6 +53,12 @@ import { createReloadableRhoPrisma } from "./prisma.ts";
 import { type ReloadResult, reload } from "./reload.ts";
 import { KeyedMutex, TaskRunner } from "./tasks.ts";
 
+/** A model + reasoning effort selection for an agent role (chat or task). */
+export interface AgentModelSelection {
+	model?: { provider: string; modelId: string };
+	thinkingLevel?: "minimal" | "low" | "medium" | "high";
+}
+
 export interface RhoCoreOptions {
 	channels?: Channel[];
 	/** Absolute working directory for agent sessions; tools run and project extensions are discovered here. */
@@ -74,6 +81,9 @@ export interface RhoCoreOptions {
 	channelThinkingLevel?: "minimal" | "low" | "medium" | "high";
 	/** Overrides the settings-default model for channel chat turns; keeps chat snappy. */
 	channelModel?: { provider: string; modelId: string };
+	/** Live resolver for chat/task model + thinking, read per turn so Settings
+	 * changes apply without a restart. Falls back to the static options above. */
+	agentModels?: () => { channel?: AgentModelSelection; task?: AgentModelSelection };
 	/** Absolute directory containing the Rho docs; enables the rho_context tool. */
 	docsDir?: string;
 	/** Absolute extensions workspace directory. Defaults to `<cwd>/.rho/extensions`. */
@@ -82,6 +92,8 @@ export interface RhoCoreOptions {
 	extensionPaths?: string[];
 	/** Default IANA timezone for cron schedules when the user did not specify one. */
 	defaultTimezone?: string;
+	/** Live resolver for the user's IANA time zone, read per turn so Settings changes apply without a restart. */
+	resolveTimezone?: () => string;
 	extensionLoader?: ExtensionLoader;
 	state?: StateManager;
 }
@@ -174,6 +186,10 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 	});
 	runtimeToolSources.push({
 		type: "factory",
+		factory: rhoAppNavigateExtension(),
+	});
+	runtimeToolSources.push({
+		type: "factory",
 		factory: rhoNotificationsExtension(
 			() => notifications.agentPrompt(),
 			async (request) => {
@@ -230,6 +246,7 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 		conversations,
 		taskThinkingLevel: opts.taskThinkingLevel,
 		taskModel: opts.taskModel,
+		resolveTaskModel: opts.agentModels ? () => opts.agentModels?.().task : undefined,
 	});
 
 	cronScheduler = new CronScheduler({ prisma, tasks });
@@ -243,8 +260,8 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 				state,
 				message,
 				conversations,
-				model: opts.channelModel,
-				thinkingLevel: opts.channelThinkingLevel,
+				model: opts.agentModels?.().channel?.model ?? opts.channelModel,
+				thinkingLevel: opts.agentModels?.().channel?.thinkingLevel ?? opts.channelThinkingLevel,
 				agentExtensions: [
 					...sessionExtensions(),
 					{
@@ -277,14 +294,14 @@ export async function createRhoCore(opts: RhoCoreOptions): Promise<RhoCore> {
 								icon: request.icon,
 							});
 							return { id: cron.id };
-						}, defaultTimezone),
+						}, opts.resolveTimezone?.() ?? defaultTimezone),
 					},
 					{
 						type: "factory",
 						factory: rhoCronUpdateExtension(async (request) => {
 							const cron = await cronScheduler.updateCron(request);
 							return { id: cron.id };
-						}, defaultTimezone),
+						}, opts.resolveTimezone?.() ?? defaultTimezone),
 					},
 				],
 			}),

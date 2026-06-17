@@ -110,17 +110,15 @@ async function runConversation(
 	const conversation = await input.state.resolve(input.key);
 	const sessionManager = SessionManager.open(conversation.sessionFile);
 
-	// Channel turns handle conversation and data directly but never structural
-	// change: the channel prompt carries no build knowledge, and the
-	// schema/extension tools are implementer-only so the workflow cannot be
-	// pattern-matched inline.
+	// Channel turns can reload edited extensions on request, but schema tools stay
+	// implementer-only so migration workflows cannot be pattern-matched inline.
 	const session = await createRhoAgentSession({
 		cwd: input.cwd,
 		agentDir: input.agentDir,
 		sessionManager,
 		agentExtensions: input.agentExtensions,
 		role: "channel",
-		excludeTools: ["rho_migrate", "rho_validate_schema", "rho_reload"],
+		excludeTools: ["rho_migrate", "rho_validate_schema"],
 		model: input.model,
 	});
 	// Channel chat optimizes for a fast first reply; heavier reasoning belongs to

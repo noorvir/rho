@@ -10,6 +10,8 @@ export interface HttpContext {
 	core: RhoCore;
 	store: RhoStore;
 	databaseUrl: string;
+	/** Absolute agent config directory; owns runtime-selectable model settings. */
+	agentDir: string;
 	appModules: AppModuleMode;
 	requestUrl: string;
 	reqHeaders?: Headers;

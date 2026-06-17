@@ -130,6 +130,39 @@ changing models follows the Rho-managed migration flow in
 [Database](database.md); after the schema change is applied and the client is
 regenerated, reload the runtime.
 
+## Crons
+
+Installed extension code can register durable crons with `rho.cron(...)`. A cron has a stable id and a function reference from the currently loaded extension code. Rho stores the schedule and run state in the runtime database, but it does not store a function name to call later.
+
+```ts
+import { defineExtension } from "@rho/apps-sdk";
+
+export default defineExtension(async (rho) => {
+	rho.cron({
+		id: "todo-list.daily-digest",
+		title: "Todo daily digest",
+		schedule: {
+			kind: "cron",
+			expression: "0 8 * * *",
+			timezone: rho.user.timezone,
+		},
+		enabled: true,
+		run: async ({ db }) => {
+			const todos = await db.todo.findMany({ where: { done: false } });
+			console.log(`Todo digest found ${todos.length} open items.`);
+		},
+	});
+
+	return { apps: [] };
+});
+```
+
+Use `kind: "at"` for one-shot work and `kind: "cron"` for recurring work. The timezone is always concrete; `rho.user.timezone` is the runtime's default user timezone.
+
+Rho reconciles crons on reload. Re-registering the same id updates the schedule/function binding without duplicating the cron. If a cron is no longer registered by loaded code, Rho disables it and records a visible error instead of calling stale code.
+
+User-created reminders are agent crons with `purpose = "reminder"`. Other scheduled agent work uses `purpose = "scheduled_task"`. Extension crons are also stored as scheduled tasks so app-owned polling/sync jobs do not appear in reminder lists.
+
 ## Agent extensions
 
 An extension package can also extend the Rho agent runtime by contributing agent extensions. Each agent extension declares one or more sources: a path to an agent extension module, or an inline factory.

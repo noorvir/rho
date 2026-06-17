@@ -14,6 +14,8 @@ export interface ServerOptions {
 	auth: RhoAuth;
 	store: RhoStore;
 	databaseUrl: string;
+	/** Absolute agent config directory; owns runtime-selectable model settings. */
+	agentDir: string;
 	/** How app client modules are delivered: vite dev URLs or server-built bundles. */
 	appModules: AppModuleMode;
 	webRoot?: string;

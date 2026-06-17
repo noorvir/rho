@@ -40,6 +40,7 @@ export {
 	type RhoCronUpdateRequest,
 	type RhoNotificationSendRequest,
 	type RhoNotificationSendResult,
+	rhoAppNavigateExtension,
 	rhoAppsExtension,
 	rhoCronCreateExtension,
 	rhoCronsExtension,

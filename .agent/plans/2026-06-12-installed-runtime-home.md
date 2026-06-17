@@ -79,7 +79,9 @@ directory that core receives as configuration:
 - [x] Core: `generatedClientDir` option threaded to the reloadable client;
       `assertSystemModels` tripwire before every swap. Tested: rogue client
       generated from a runtime-style `db/` dir without system tables is
-      refused, live client unaffected.
+      refused, live client unaffected. `rho_migrate` now runs the same
+      system-table preflight before live apply, and `rho_validate_schema`
+      exposes that preflight without touching the live database.
 - [x] System models renamed to `rho_sys_*` (models and tables) via a
       data-preserving hand-written migration; docs + prompt mark them
       read-only.
@@ -106,10 +108,10 @@ directory that core receives as configuration:
       sets password). Boot now swaps in the home generated client, so
       runtime-added models work immediately after restart, not just after
       rho_reload.
-- [x] Extension model typing: `RhoRuntimeModels` augmentation hook in
-      @rho/core + `RhoModelDelegate<Row>` in apps-sdk; examples declare
-      their models in `src/models.d.ts` and typecheck against the
-      system-only core client.
+- [x] Extension model typing: `RhoRuntimeModels` augmentation hook and
+      `RhoModelDelegate<Row>` live in @rho/apps-sdk; examples declare their
+      models in `src/models.d.ts`, do not depend on @rho/core directly, and
+      typecheck against the system-only core client.
 - [x] Verified: prod agent build (todo-list, user-initiated) landed in
       $RHO_HOME/extensions unaided, schema + migration in $RHO_HOME/db,
       copy-validation followed, 6:00 total, single attempt.
@@ -118,7 +120,7 @@ directory that core receives as configuration:
       inline example in rho_context, one-shot scaffold command, rho_migrate
       tool collapsing the validation procedure, lower thinking level or
       faster model for task sessions.
-- [ ] Document the models.d.ts augmentation pattern in docs (template +
+- [x] Document the models.d.ts augmentation pattern in docs (template +
       extension-schema docs) so agents pick it up.
 - [x] Orchestrator/implementer separation — final design after experiments:
       - Boundary is data vs structure. Channel agents handle conversation,

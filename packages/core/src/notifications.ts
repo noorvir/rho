@@ -66,9 +66,24 @@ export interface NotificationServiceOptions {
 	prisma: RhoPrisma;
 }
 
+/**
+ * Always-available notification definition owned by the runtime (not an
+ * extension). Lets the agent send ad-hoc notifications — reminders firing,
+ * alerts, status updates — choosing the title, body, level, and icon at send
+ * time via rho_notification_send.
+ */
+export const AGENT_NOTIFICATION_DEF: RegisteredNotificationDef = {
+	extensionId: "rho",
+	id: "agent",
+	key: notificationDefKey("rho", "agent"),
+	title: "Agent notification",
+	prompt:
+		"Generic notification the agent sends to alert the user (e.g. a reminder firing, an important update). Set the title, body, level (info/attention/urgent), and an SF Symbol icon for each notification at send time.",
+};
+
 export class NotificationService {
 	private readonly prisma: RhoPrisma;
-	private defs = new Map<string, RegisteredNotificationDef>();
+	private defs = new Map<string, RegisteredNotificationDef>([[AGENT_NOTIFICATION_DEF.key, AGENT_NOTIFICATION_DEF]]);
 
 	constructor(options: NotificationServiceOptions) {
 		this.prisma = options.prisma;
@@ -91,6 +106,9 @@ export class NotificationService {
 			const key = notificationDefKey(extensionId, id);
 			next.set(key, { ...registration, extensionId, id, key });
 		}
+		// The runtime-owned agent definition is always available, regardless of
+		// which extensions are loaded.
+		next.set(AGENT_NOTIFICATION_DEF.key, AGENT_NOTIFICATION_DEF);
 		this.defs = next;
 	}
 
@@ -171,10 +189,6 @@ function levelRank(level: NotificationLevel | null): number {
 }
 
 function formatNotificationDefsForAgent(defs: RegisteredNotificationDef[]): string {
-	if (defs.length === 0) {
-		return "No extension notification definitions are registered.";
-	}
-
 	const lines = defs.map((def) => `- def: ${def.key}\n  title: ${def.title}\n  prompt: ${def.prompt}`);
 	return `Registered Rho notification definitions:\n${lines.join("\n")}`;
 }
