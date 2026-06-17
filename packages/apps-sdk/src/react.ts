@@ -10,6 +10,14 @@ import {
 import { createRoot } from "react-dom/client";
 import type { RhoAppContext } from "./index.ts";
 
+declare global {
+	/** Refreshes the mounted app's data in place (refetch without a document
+	 * reload). Set by the running app; called by the native shell on
+	 * pull-to-refresh. In the browser globalThis === window. */
+	// eslint-disable-next-line no-var
+	var __rhoRefresh: (() => Promise<unknown>) | undefined;
+}
+
 const RhoAppContextValue = createContext<RhoAppContext | undefined>(undefined);
 
 export function RhoAppProvider({ context, children }: { context: RhoAppContext; children: ReactNode }) {
@@ -60,6 +68,12 @@ export function rhoApp(App: ComponentType): RhoAppMount {
 			});
 		}
 
+		// Let the native shell refresh the app's data in place: invalidateQueries
+		// refetches while React Query keeps the current data on screen, so
+		// pull-to-refresh updates without a document reload (no remount flash).
+		const refresh = () => queryClient.invalidateQueries();
+		globalThis.__rhoRefresh = refresh;
+
 		root.render(createElement(Root));
 
 		return {
@@ -67,6 +81,9 @@ export function rhoApp(App: ComponentType): RhoAppMount {
 				pushHost(next);
 			},
 			unmount() {
+				if (globalThis.__rhoRefresh === refresh) {
+					globalThis.__rhoRefresh = undefined;
+				}
 				root.unmount();
 			},
 		};

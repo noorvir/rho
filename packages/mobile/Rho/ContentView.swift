@@ -98,6 +98,13 @@ struct ContentView: View {
         }
         .dynamicTypeSize(.medium)
         .preferredColorScheme(.light)
+        .onChange(of: authStore.isAuthenticated) { _, isAuthenticated in
+            // Drop the persistent web view's loaded page on logout so a later
+            // login (even to the same server) never reuses a stale session.
+            if !isAuthenticated {
+                appHost.reset()
+            }
+        }
     }
 
     private func refreshApps() {
@@ -1259,7 +1266,10 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
 
     private var allowedHost: String?
     private var allowedPort: Int?
-    private var loadedInitial = false
+    /// Origin (scheme://host:port) currently loaded in the web view. When the
+    /// active server changes, the document is reloaded instead of client-
+    /// navigating inside a stale origin.
+    private var loadedOrigin: String?
     private var isReady = false
     private var pendingPath: String?
     private var loadingOverlay: UIView?
@@ -1323,13 +1333,20 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
     func activate(slug: String, baseURL: URL, cookie: HTTPCookie?) {
         allowedHost = baseURL.host
         allowedPort = baseURL.port
+        let origin = Self.originKey(baseURL)
 
-        if loadedInitial {
+        // Same server already loaded: switch apps client-side (warm, instant).
+        if loadedOrigin == origin {
             navigate(toPath: "/embed/apps/\(slug)")
             return
         }
 
-        loadedInitial = true
+        // First load, or the active server changed (e.g. login to a different
+        // server): load the document fresh so the web view reflects the active
+        // server and session, never stale content from a prior origin.
+        loadedOrigin = origin
+        isReady = false
+        pendingPath = nil
         presentNeutralCover()
         let url = baseURL.appendingPathComponent("embed/apps/\(slug)")
         let request = URLRequest(url: url)
@@ -1342,6 +1359,24 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
         }
     }
 
+    /// Drops the loaded page so the next activate reloads from scratch. Call on
+    /// logout/session change so a different user never sees the prior session.
+    func reset() {
+        loadedOrigin = nil
+        isReady = false
+        pendingPath = nil
+        if let blank = URL(string: "about:blank") {
+            webView.load(URLRequest(url: blank))
+        }
+    }
+
+    private static func originKey(_ url: URL) -> String {
+        let scheme = url.scheme ?? ""
+        let host = url.host ?? ""
+        let port = url.port.map { ":\($0)" } ?? ""
+        return "\(scheme)://\(host)\(port)"
+    }
+
     private func navigate(toPath path: String) {
         guard isReady else {
             pendingPath = path
@@ -1352,10 +1387,23 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
     }
 
     @objc private func handleRefresh() {
-        presentFreezeOverlay()
-        // reload() (not reloadFromOrigin) revalidates but reuses cached static
-        // assets, so the bundle/CSS are not re-downloaded.
-        webView.reload()
+        // Refresh the app's data in place via the SDK hook instead of reloading
+        // the document. A reload remounts the SPA and repaints its empty state
+        // before data returns (a flash); invalidateQueries keeps the current
+        // content on screen while it refetches. The spinner ends when the
+        // refetch settles. Falls back to a reload if the hook is missing.
+        let script = """
+        if (window.__rhoRefresh) { await window.__rhoRefresh(); return true; }
+        return false;
+        """
+        webView.callAsyncJavaScript(script, arguments: [:], in: nil, in: .page) { [weak self] result in
+            guard let self else { return }
+            self.refreshControl?.endRefreshing()
+            if case let .success(value) = result, (value as? Bool) == false {
+                self.presentFreezeOverlay()
+                self.webView.reload()
+            }
+        }
     }
 
     // MARK: Overlays
@@ -1377,6 +1425,11 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
 
     private func install(overlay: UIView) {
         loadingOverlay?.removeFromSuperview()
+        // Cover synchronously: a freeze snapshot on pull-to-refresh must hide the
+        // page the instant reload() starts, before the next layout pass. The
+        // constraints are a backstop and also cover the fresh-load case where
+        // the web view has no bounds yet (frame would be zero).
+        overlay.frame = webView.bounds
         overlay.translatesAutoresizingMaskIntoConstraints = false
         webView.addSubview(overlay)
         NSLayoutConstraint.activate([
@@ -1451,7 +1504,7 @@ private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate
     ) {
         refreshControl?.endRefreshing()
         removeOverlay()
-        loadedInitial = false
+        loadedOrigin = nil
     }
 
     /// Removes the up/down/done bar WKWebView shows above the keyboard by
