@@ -137,6 +137,10 @@ final class AppsClient {
     /// Exchanges the bearer token for a browser session cookie so the web UI
     /// inside a WKWebView is authenticated.
     func webSessionCookie() async throws -> HTTPCookie? {
+        if let cookie = authStore.webCookieCache, let expiry = authStore.webCookieExpiry, expiry > Date() {
+            return cookie
+        }
+
         let data = try await authorizedData(
             url: authStore.baseURL.appendingPathComponent("api/auth/web-session"),
             method: "POST"
@@ -147,12 +151,15 @@ final class AppsClient {
             return nil
         }
 
-        return HTTPCookie(properties: [
+        let cookie = HTTPCookie(properties: [
             .name: session.cookieName,
             .value: session.token,
             .domain: host,
             .path: "/",
         ])
+        authStore.webCookieCache = cookie
+        authStore.webCookieExpiry = Date().addingTimeInterval(300)
+        return cookie
     }
 
     private func authorizedData(url: URL, method: String) async throws -> Data {
@@ -531,6 +538,9 @@ private struct HomeScreen: View {
         .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 0)
         .background(Color.white)
+        .refreshable {
+            await load()
+        }
         .sheet(isPresented: $isShowingReminders) {
             ReminderListSheet(authStore: authStore, reminders: reminders) {
                 Task { await load() }
@@ -543,6 +553,10 @@ private struct HomeScreen: View {
         }
         .task {
             await load()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                await load()
+            }
         }
     }
 
@@ -1172,7 +1186,7 @@ private struct AppWebView: View {
                 if isReady {
                     WebView(url: app.url, cookie: cookie, reloadToken: 0, backSwipe: backSwipe)
                 } else {
-                    ProgressView()
+                    Color.white
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }
@@ -1294,6 +1308,17 @@ private struct WebView: UIViewRepresentable {
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         backSwipe.webView = webView
 
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.handleRefresh),
+            for: .valueChanged
+        )
+        webView.scrollView.refreshControl = refreshControl
+        webView.scrollView.alwaysBounceVertical = true
+        context.coordinator.webView = webView
+        context.coordinator.refreshControl = refreshControl
+
         hideInputAccessoryBar(in: webView)
         return webView
     }
@@ -1342,6 +1367,7 @@ private struct WebView: UIViewRepresentable {
 
         context.coordinator.requestedURL = url
         context.coordinator.reloadToken = reloadToken
+        context.coordinator.presentNeutralCover(over: webView)
 
         let request = URLRequest(url: url)
         if let cookie {
@@ -1360,6 +1386,52 @@ private struct WebView: UIViewRepresentable {
         var requestedURL: URL?
         /// Last seen reload token; the reload button increments it.
         var reloadToken = 0
+        weak var webView: WKWebView?
+        weak var refreshControl: UIRefreshControl?
+        /// Cover/snapshot held over the web view while a load is in flight, so
+        /// the user never sees a blank page or incremental repaint.
+        private var loadingOverlay: UIView?
+
+        @objc func handleRefresh() {
+            guard let webView else { return }
+            // Freeze the current content as a still image, reload underneath it,
+            // and swap to the fresh page only once it has finished painting.
+            presentOverlay(freezing: webView)
+            webView.reloadFromOrigin()
+        }
+
+        /// Covers the web view for a fresh load where there is no prior content
+        /// worth preserving (initial load or app switch).
+        func presentNeutralCover(over webView: WKWebView) {
+            let cover = UIView()
+            cover.backgroundColor = .white
+            install(overlay: cover, over: webView)
+        }
+
+        private func presentOverlay(freezing webView: WKWebView) {
+            let snapshot = webView.snapshotView(afterScreenUpdates: false) ?? {
+                let view = UIView()
+                view.backgroundColor = .white
+                return view
+            }()
+            install(overlay: snapshot, over: webView)
+        }
+
+        private func install(overlay: UIView, over webView: WKWebView) {
+            loadingOverlay?.removeFromSuperview()
+            overlay.frame = webView.bounds
+            overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            webView.addSubview(overlay)
+            loadingOverlay = overlay
+        }
+
+        private func removeOverlay() {
+            guard let overlay = loadingOverlay else { return }
+            loadingOverlay = nil
+            UIView.animate(withDuration: 0.18, animations: { overlay.alpha = 0 }) { _ in
+                overlay.removeFromSuperview()
+            }
+        }
 
         private let allowedHost: String?
         private let allowedPort: Int?
@@ -1394,6 +1466,28 @@ private struct WebView: UIViewRepresentable {
 
             decisionHandler(.allow)
         }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            refreshControl?.endRefreshing()
+            // Let the fresh page paint before revealing it.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.removeOverlay()
+            }
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            refreshControl?.endRefreshing()
+            removeOverlay()
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            didFailProvisionalNavigation navigation: WKNavigation!,
+            withError error: Error
+        ) {
+            refreshControl?.endRefreshing()
+            removeOverlay()
+        }
     }
 }
 
@@ -1406,6 +1500,10 @@ final class AuthStore: ObservableObject {
 
     private var accessToken: String?
     private var refreshToken: String?
+    /// Cached web-session cookie so opening an app doesn't pay a round-trip to
+    /// mint one every time. Reset when the session changes.
+    var webCookieCache: HTTPCookie?
+    var webCookieExpiry: Date?
 
     var baseURL: URL {
         normalizedBaseURL(serverURLText) ?? MobileBuildInfo.chatBaseURL
@@ -1520,6 +1618,8 @@ final class AuthStore: ObservableObject {
     func clearSession() {
         accessToken = nil
         refreshToken = nil
+        webCookieCache = nil
+        webCookieExpiry = nil
         isAuthenticated = false
         KeychainStore.delete("accessToken")
         KeychainStore.delete("refreshToken")
