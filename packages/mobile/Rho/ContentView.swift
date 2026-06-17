@@ -57,6 +57,7 @@ final class ContentSnapshotService {
 
 struct ContentView: View {
     @StateObject private var authStore = AuthStore()
+    @StateObject private var appHost = WebAppHost()
     @State private var screen: RootScreen = .home
     @State private var isChatPresented = false
     @State private var apps: [InstalledApp] = []
@@ -76,7 +77,7 @@ struct ContentView: View {
                         refreshApps: { refreshApps() }
                     )
                 ) {
-                    RootScreenView(screen: screen, authStore: authStore)
+                    RootScreenView(screen: screen, authStore: authStore, host: appHost)
                 }
                 .sheet(isPresented: $isChatPresented) {
                     ChatSheetView(authStore: authStore)
@@ -441,13 +442,14 @@ private struct LoginView: View {
 private struct RootScreenView: View {
     let screen: RootScreen
     @ObservedObject var authStore: AuthStore
+    let host: WebAppHost
 
     var body: some View {
         switch screen {
         case .home:
             HomeScreen(authStore: authStore)
         case .app(let app):
-            AppWebView(app: app, authStore: authStore)
+            AppWebView(app: app, authStore: authStore, host: host)
         case .search:
             PlaceholderScreen(title: "Search", subtitle: "Find apps, sessions, and saved work")
         case .settings:
@@ -1176,22 +1178,13 @@ private struct SettingsRow: View {
 private struct AppWebView: View {
     let app: InstalledApp
     @ObservedObject var authStore: AuthStore
-    @StateObject private var backSwipe = WebViewBackSwipeBridge()
-    @State private var cookie: HTTPCookie?
-    @State private var isReady = false
+    let host: WebAppHost
 
     var body: some View {
         ZStack {
-            Group {
-                if isReady {
-                    WebView(url: app.url, cookie: cookie, reloadToken: 0, backSwipe: backSwipe)
-                } else {
-                    Color.white
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(.container, edges: [.top, .bottom])
+            AppHostContainer(host: host)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea(.container, edges: [.top, .bottom])
 
             HStack(spacing: 0) {
                 Color.clear
@@ -1203,16 +1196,16 @@ private struct AppWebView: View {
                                 let horizontal = max(0, value.translation.width)
                                 let vertical = abs(value.translation.height)
                                 if horizontal > vertical {
-                                    backSwipe.update(offset: horizontal)
+                                    host.backSwipe.update(offset: horizontal)
                                 }
                             }
                             .onEnded { value in
                                 let horizontal = value.translation.width
                                 let vertical = abs(value.translation.height)
                                 if horizontal > 80 && vertical < 80 {
-                                    backSwipe.finish()
+                                    host.backSwipe.finish()
                                 } else {
-                                    backSwipe.cancel()
+                                    host.backSwipe.cancel()
                                 }
                             }
                     )
@@ -1221,49 +1214,57 @@ private struct AppWebView: View {
             .ignoresSafeArea()
         }
         .task(id: app.id) {
-            cookie = try? await AppsClient(authStore: authStore).webSessionCookie()
-            isReady = true
+            let cookie = try? await AppsClient(authStore: authStore).webSessionCookie()
+            host.activate(slug: app.id, baseURL: authStore.baseURL, cookie: cookie)
         }
     }
 }
 
-@MainActor
-private final class WebViewBackSwipeBridge: ObservableObject {
-    weak var webView: WKWebView?
+/// Hosts the single persistent app web view, reparenting it into whichever
+/// container is currently on screen.
+private struct AppHostContainer: UIViewRepresentable {
+    let host: WebAppHost
 
-    func update(offset: CGFloat) {
-        send(phase: "change", offset: offset)
+    func makeUIView(context: Context) -> UIView {
+        let container = UIView()
+        attach(host.webView, to: container)
+        return container
     }
 
-    func finish() {
-        send(phase: "finish", offset: nil)
+    func updateUIView(_ uiView: UIView, context: Context) {
+        if host.webView.superview !== uiView {
+            attach(host.webView, to: uiView)
+        }
     }
 
-    func cancel() {
-        send(phase: "cancel", offset: nil)
-    }
-
-    private func send(phase: String, offset: CGFloat?) {
-        let offsetValue = offset.map(String.init) ?? "null"
-        let script = """
-        window.dispatchEvent(new CustomEvent('rho:back-swipe', {
-          detail: { phase: '\(phase)', offset: \(offsetValue) }
-        }));
-        """
-        webView?.evaluateJavaScript(script)
+    private func attach(_ webView: WKWebView, to container: UIView) {
+        webView.removeFromSuperview()
+        webView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(webView)
+        NSLayoutConstraint.activate([
+            webView.topAnchor.constraint(equalTo: container.topAnchor),
+            webView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            webView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+        ])
     }
 }
 
-private struct WebView: UIViewRepresentable {
-    let url: URL
-    let cookie: HTTPCookie?
-    let reloadToken: Int
-    let backSwipe: WebViewBackSwipeBridge
+/// Owns one `WKWebView` for the whole session. The first app open does a real
+/// document load; later switches navigate client-side via the embed's
+/// `__rhoNavigate` hook, so the shell and JS module cache stay warm.
+private final class WebAppHost: NSObject, ObservableObject, WKNavigationDelegate, WKScriptMessageHandler {
+    let webView: WKWebView
+    let backSwipe = WebViewBackSwipeBridge()
 
-    /// Makes embedded pages behave like native app surfaces: pins the layout
-    /// to the device width, suppresses the focus auto-zoom (iOS zooms any
-    /// focused input with a font under 16px), and removes web-only tells
-    /// like tap-highlight flashes and double-tap zoom.
+    private var allowedHost: String?
+    private var allowedPort: Int?
+    private var loadedInitial = false
+    private var isReady = false
+    private var pendingPath: String?
+    private var loadingOverlay: UIView?
+    private weak var refreshControl: UIRefreshControl?
+
     private static let nativeFeelScript = """
     (() => {
       let meta = document.querySelector('meta[name="viewport"]');
@@ -1284,49 +1285,178 @@ private struct WebView: UIViewRepresentable {
     })();
     """
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(allowedHost: url.host, allowedPort: url.port)
+    override init() {
+        let configuration = WKWebViewConfiguration()
+        let controller = WKUserContentController()
+        controller.addUserScript(
+            WKUserScript(source: WebAppHost.nativeFeelScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+        )
+        configuration.userContentController = controller
+        webView = WKWebView(frame: .zero, configuration: configuration)
+        super.init()
+        controller.add(self, name: "rho")
+        configure()
     }
 
-    func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.userContentController.addUserScript(
-            WKUserScript(source: Self.nativeFeelScript, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
-        )
-
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.navigationDelegate = context.coordinator
+    private func configure() {
+        webView.navigationDelegate = self
         webView.allowsLinkPreview = false
         webView.scrollView.keyboardDismissMode = .interactive
         webView.scrollView.bouncesZoom = false
         webView.isOpaque = false
         webView.backgroundColor = .clear
         webView.scrollView.backgroundColor = .clear
-        // Let the page own the full height and report true safe-area insets via
-        // env(safe-area-inset-*); otherwise WebKit adds its own top inset and
-        // fixed overlays (back button) sit too low.
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.scrollView.alwaysBounceVertical = true
         backSwipe.webView = webView
 
-        let refreshControl = UIRefreshControl()
-        refreshControl.addTarget(
-            context.coordinator,
-            action: #selector(Coordinator.handleRefresh),
-            for: .valueChanged
-        )
-        webView.scrollView.refreshControl = refreshControl
-        webView.scrollView.alwaysBounceVertical = true
-        context.coordinator.webView = webView
-        context.coordinator.refreshControl = refreshControl
+        let refresh = UIRefreshControl()
+        refresh.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
+        webView.scrollView.refreshControl = refresh
+        refreshControl = refresh
 
         hideInputAccessoryBar(in: webView)
-        return webView
+    }
+
+    /// Shows the given app: a real document load the first time, then
+    /// client-side navigation for every later switch.
+    func activate(slug: String, baseURL: URL, cookie: HTTPCookie?) {
+        allowedHost = baseURL.host
+        allowedPort = baseURL.port
+
+        if loadedInitial {
+            navigate(toPath: "/embed/apps/\(slug)")
+            return
+        }
+
+        loadedInitial = true
+        presentNeutralCover()
+        let url = baseURL.appendingPathComponent("embed/apps/\(slug)")
+        let request = URLRequest(url: url)
+        if let cookie {
+            webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) { [weak self] in
+                self?.webView.load(request)
+            }
+        } else {
+            webView.load(request)
+        }
+    }
+
+    private func navigate(toPath path: String) {
+        guard isReady else {
+            pendingPath = path
+            return
+        }
+        let escaped = path.replacingOccurrences(of: "'", with: "\\'")
+        webView.evaluateJavaScript("window.__rhoNavigate && window.__rhoNavigate('\(escaped)')")
+    }
+
+    @objc private func handleRefresh() {
+        presentFreezeOverlay()
+        // reload() (not reloadFromOrigin) revalidates but reuses cached static
+        // assets, so the bundle/CSS are not re-downloaded.
+        webView.reload()
+    }
+
+    // MARK: Overlays
+
+    private func presentNeutralCover() {
+        let cover = UIView()
+        cover.backgroundColor = .white
+        install(overlay: cover)
+    }
+
+    private func presentFreezeOverlay() {
+        let overlay = webView.snapshotView(afterScreenUpdates: false) ?? {
+            let view = UIView()
+            view.backgroundColor = .white
+            return view
+        }()
+        install(overlay: overlay)
+    }
+
+    private func install(overlay: UIView) {
+        loadingOverlay?.removeFromSuperview()
+        overlay.translatesAutoresizingMaskIntoConstraints = false
+        webView.addSubview(overlay)
+        NSLayoutConstraint.activate([
+            overlay.topAnchor.constraint(equalTo: webView.topAnchor),
+            overlay.bottomAnchor.constraint(equalTo: webView.bottomAnchor),
+            overlay.leadingAnchor.constraint(equalTo: webView.leadingAnchor),
+            overlay.trailingAnchor.constraint(equalTo: webView.trailingAnchor),
+        ])
+        loadingOverlay = overlay
+    }
+
+    private func removeOverlay() {
+        guard let overlay = loadingOverlay else { return }
+        loadingOverlay = nil
+        UIView.animate(withDuration: 0.18, animations: { overlay.alpha = 0 }) { _ in
+            overlay.removeFromSuperview()
+        }
+    }
+
+    // MARK: WKScriptMessageHandler
+
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard let body = message.body as? [String: Any], body["type"] as? String == "ready" else {
+            return
+        }
+        isReady = true
+        if let path = pendingPath {
+            pendingPath = nil
+            navigate(toPath: path)
+        }
+    }
+
+    // MARK: WKNavigationDelegate
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
+        let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
+        if !isMainFrame {
+            decisionHandler(.allow)
+            return
+        }
+        guard let url = navigationAction.request.url,
+              url.host == allowedHost,
+              url.port == allowedPort,
+              url.path.hasPrefix("/embed/")
+        else {
+            decisionHandler(.cancel)
+            return
+        }
+        decisionHandler(.allow)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        refreshControl?.endRefreshing()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.removeOverlay()
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        refreshControl?.endRefreshing()
+        removeOverlay()
+    }
+
+    func webView(
+        _ webView: WKWebView,
+        didFailProvisionalNavigation navigation: WKNavigation!,
+        withError error: Error
+    ) {
+        refreshControl?.endRefreshing()
+        removeOverlay()
+        loadedInitial = false
     }
 
     /// Removes the up/down/done bar WKWebView shows above the keyboard by
     /// swapping the content view's class for a runtime subclass whose
-    /// `inputAccessoryView` is nil — the standard approach, since WebKit has
-    /// no public switch for it.
+    /// `inputAccessoryView` is nil.
     private func hideInputAccessoryBar(in webView: WKWebView) {
         guard let contentView = webView.scrollView.subviews.first(where: {
             String(describing: type(of: $0)).hasPrefix("WKContent")
@@ -1355,139 +1485,32 @@ private struct WebView: UIViewRepresentable {
         objc_registerClassPair(subclass)
         object_setClass(contentView, subclass)
     }
+}
 
-    func updateUIView(_ webView: WKWebView, context: Context) {
-        if context.coordinator.requestedURL == url {
-            if context.coordinator.reloadToken != reloadToken {
-                context.coordinator.reloadToken = reloadToken
-                webView.reloadFromOrigin()
-            }
-            return
-        }
+@MainActor
+private final class WebViewBackSwipeBridge: ObservableObject {
+    weak var webView: WKWebView?
 
-        context.coordinator.requestedURL = url
-        context.coordinator.reloadToken = reloadToken
-        context.coordinator.presentNeutralCover(over: webView)
-
-        let request = URLRequest(url: url)
-        if let cookie {
-            webView.configuration.websiteDataStore.httpCookieStore.setCookie(cookie) {
-                webView.load(request)
-            }
-        } else {
-            webView.load(request)
-        }
+    func update(offset: CGFloat) {
+        send(phase: "change", offset: offset)
     }
 
-    /// Locks the WebView to the rho server's embed surface: same host only,
-    /// and main-frame navigation never leaves /embed/.
-    final class Coordinator: NSObject, WKNavigationDelegate {
-        /// Last URL this view asked the web view to load; app switches change it.
-        var requestedURL: URL?
-        /// Last seen reload token; the reload button increments it.
-        var reloadToken = 0
-        weak var webView: WKWebView?
-        weak var refreshControl: UIRefreshControl?
-        /// Cover/snapshot held over the web view while a load is in flight, so
-        /// the user never sees a blank page or incremental repaint.
-        private var loadingOverlay: UIView?
+    func finish() {
+        send(phase: "finish", offset: nil)
+    }
 
-        @objc func handleRefresh() {
-            guard let webView else { return }
-            // Freeze the current content as a still image, reload underneath it,
-            // and swap to the fresh page only once it has finished painting.
-            presentOverlay(freezing: webView)
-            webView.reloadFromOrigin()
-        }
+    func cancel() {
+        send(phase: "cancel", offset: nil)
+    }
 
-        /// Covers the web view for a fresh load where there is no prior content
-        /// worth preserving (initial load or app switch).
-        func presentNeutralCover(over webView: WKWebView) {
-            let cover = UIView()
-            cover.backgroundColor = .white
-            install(overlay: cover, over: webView)
-        }
-
-        private func presentOverlay(freezing webView: WKWebView) {
-            let snapshot = webView.snapshotView(afterScreenUpdates: false) ?? {
-                let view = UIView()
-                view.backgroundColor = .white
-                return view
-            }()
-            install(overlay: snapshot, over: webView)
-        }
-
-        private func install(overlay: UIView, over webView: WKWebView) {
-            loadingOverlay?.removeFromSuperview()
-            overlay.frame = webView.bounds
-            overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            webView.addSubview(overlay)
-            loadingOverlay = overlay
-        }
-
-        private func removeOverlay() {
-            guard let overlay = loadingOverlay else { return }
-            loadingOverlay = nil
-            UIView.animate(withDuration: 0.18, animations: { overlay.alpha = 0 }) { _ in
-                overlay.removeFromSuperview()
-            }
-        }
-
-        private let allowedHost: String?
-        private let allowedPort: Int?
-
-        init(allowedHost: String?, allowedPort: Int?) {
-            self.allowedHost = allowedHost
-            self.allowedPort = allowedPort
-        }
-
-        func webView(
-            _ webView: WKWebView,
-            decidePolicyFor navigationAction: WKNavigationAction,
-            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
-        ) {
-            let isMainFrame = navigationAction.targetFrame?.isMainFrame ?? true
-
-            // Cross-origin subframes (e.g. an app's embedded Google Map) are
-            // allowed; only the main frame is locked to the rho host.
-            if !isMainFrame {
-                decisionHandler(.allow)
-                return
-            }
-
-            guard let url = navigationAction.request.url,
-                  url.host == allowedHost,
-                  url.port == allowedPort,
-                  url.path.hasPrefix("/embed/")
-            else {
-                decisionHandler(.cancel)
-                return
-            }
-
-            decisionHandler(.allow)
-        }
-
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            refreshControl?.endRefreshing()
-            // Let the fresh page paint before revealing it.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.removeOverlay()
-            }
-        }
-
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            refreshControl?.endRefreshing()
-            removeOverlay()
-        }
-
-        func webView(
-            _ webView: WKWebView,
-            didFailProvisionalNavigation navigation: WKNavigation!,
-            withError error: Error
-        ) {
-            refreshControl?.endRefreshing()
-            removeOverlay()
-        }
+    private func send(phase: String, offset: CGFloat?) {
+        let offsetValue = offset.map(String.init) ?? "null"
+        let script = """
+        window.dispatchEvent(new CustomEvent('rho:back-swipe', {
+          detail: { phase: '\(phase)', offset: \(offsetValue) }
+        }));
+        """
+        webView?.evaluateJavaScript(script)
     }
 }
 

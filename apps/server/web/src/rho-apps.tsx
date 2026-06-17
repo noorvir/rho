@@ -8,6 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { orpc, type AppExtensionSummary } from "./api.ts";
 
+declare global {
+	interface Window {
+		/** Client-side navigation hook the native shell calls to switch apps
+		 * without reloading the document. */
+		__rhoNavigate?: (path: string) => void;
+		webkit?: { messageHandlers?: { rho?: { postMessage: (message: unknown) => void } } };
+	}
+}
+
 interface RhoAppsProps {
 	appSlug?: string;
 	routePath?: string;
@@ -53,6 +62,56 @@ export function RhoApps({ appSlug, routePath = "/" }: RhoAppsProps) {
  */
 export function RhoEmbeddedApp({ appSlug, routePath = "/" }: { appSlug: string; routePath?: string }) {
 	const apps = useQuery(orpc.apps.list.queryOptions());
+	const navigate = useNavigate();
+
+	// Native shell bridge: lets the app shell switch apps/routes client-side
+	// (no document reload). Native calls window.__rhoNavigate with a full path.
+	useEffect(() => {
+		window.__rhoNavigate = (path: string) => {
+			const match = /^\/embed\/apps\/([^/]+)(?:\/(.*))?$/.exec(path);
+			if (!match) {
+				return;
+			}
+			void navigate({
+				to: "/embed/apps/$appSlug/$",
+				params: { appSlug: match[1], _splat: match[2] ?? "" },
+			});
+		};
+		window.webkit?.messageHandlers?.rho?.postMessage({ type: "ready" });
+		return () => {
+			delete window.__rhoNavigate;
+		};
+	}, [navigate]);
+
+	// Warm every app's bundle + stylesheet in the background after the first app
+	// loads, so switching to any app is instant (its module is already imported
+	// and its CSS is in the HTTP cache).
+	const appList = apps.data?.apps;
+	useEffect(() => {
+		if (!appList) {
+			return;
+		}
+		let cancelled = false;
+		const timer = setTimeout(async () => {
+			for (const app of appList) {
+				if (cancelled) {
+					break;
+				}
+				try {
+					await import(/* @vite-ignore */ app.clientModuleUrl);
+					if (app.clientStylesUrl) {
+						await fetch(app.clientStylesUrl);
+					}
+				} catch {
+					// Prefetch is best-effort; ignore failures.
+				}
+			}
+		}, 800);
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
+	}, [appList]);
 
 	if (apps.isPending) {
 		return <EmbedMessage text="Loading…" />;
@@ -124,9 +183,9 @@ function AppRuntime({
 
 	if (embedded) {
 		return (
-			<div className="fixed inset-0 overflow-hidden bg-background">
+			<div className="fixed inset-0 overflow-y-auto overscroll-contain bg-background">
 				<AppStyles app={app} />
-				<MountedApp className="h-full w-full" context={context} mount={appModule.data} />
+				<MountedApp className="min-h-full w-full" context={context} mount={appModule.data} />
 			</div>
 		);
 	}
